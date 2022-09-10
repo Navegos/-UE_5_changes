@@ -1,0 +1,10 @@
+mdl 1.6;
+
+import ::anno::*;
+
+package [[
+	  anno::display_name("Substance Designer Materials")
+	, anno::author("Adobe")
+	, anno::created(2021,  3, 17, "Creation")
+	, anno::version(   1,  0,  0)
+]];

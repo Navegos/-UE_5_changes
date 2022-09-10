@@ -1,0 +1,28 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "200.0.286.6a16b0b6",
+	"FriendlyName": "NVIDIA MDL",
+	"Description": "The NVIDIA MDL plugin adds the ability to import MDL materials, view them as UE4 materials, and export UE4 materials to MDLs."
+	"Category": "Editor",
+	"CreatedBy": "NVIDIA",
+	"CreatedByURL": "https://developer.nvidia.com/nvidia-omniverse",
+	"DocsURL": "https://docs.omniverse.nvidia.com/con_connect/con_connect/ue4.html",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"EngineVersion": "5.0.0",
+	"CanContainContent": true,
+	"IsBetaVersion": true,
+	"Installed": true,
+	"EnabledByDefault": true,
+	"Modules": [
+		{
+			"Name": "MDL",
+			"Type": "Editor",
+			"LoadingPhase": "PostEngineInit",
+			"PlatformAllowList": [
+				"Win64"
+			]
+		}
+	]
+}
