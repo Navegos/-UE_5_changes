@@ -24,6 +24,8 @@
 #include "Serialization/LargeMemoryReader.h"
 #include "Serialization/MemoryWriter.h"
 #include "ProfilingDebugging/CountersTrace.h"
+#include "Tasks/Task.h"
+#include "IO/IoDirectoryIndex.h"
 
 DEFINE_LOG_CATEGORY(LogIoStore);
 
@@ -35,35 +37,6 @@ constexpr char FIoStoreTocHeader::TocMagicImg[];
 
 //TRACE_DECLARE_INT_COUNTER(IoStoreAvailableCompressionBuffers, TEXT("IoStore/AvailableCompressionBuffers"));
 
-FString LexToString(const EIoChunkType Type)
-{
-	const TCHAR* Strings[] = {
-		TEXT("Invalid"),
-		TEXT("ExportBundleData"),
-		TEXT("BulkData"),
-		TEXT("OptionalBulkData"),
-		TEXT("MemoryMappedBulkData"),
-		TEXT("ScriptObjects"),
-		TEXT("ContainerHeader"),
-		TEXT("ExternalFile"),
-		TEXT("ShaderCodeLibrary"),
-		TEXT("ShaderCode"),
-		TEXT("PackageStoreEntry"),
-		TEXT("DerivedData"),
-		TEXT("EditorDerivedData"),
-	};
-	static_assert(UE_ARRAY_COUNT(Strings) == (SIZE_T)EIoChunkType::MAX);
-	uint8 Index = (uint8)Type;
-	if (Index < UE_ARRAY_COUNT(Strings))
-	{
-		return Strings[Index];
-	}
-	else
-	{
-		return Strings[0]; // return Invalid
-	}
-}
-
 template<typename ArrayType>
 bool WriteArray(IFileHandle* FileHandle, const ArrayType& Array)
 {
@@ -72,7 +45,18 @@ bool WriteArray(IFileHandle* FileHandle, const ArrayType& Array)
 
 static IEngineCrypto* GetEngineCrypto()
 {
-	static TArray<IEngineCrypto*> Features = IModularFeatures::Get().GetModularFeatureImplementations<IEngineCrypto>(IEngineCrypto::GetFeatureName());
+	static bool bFeaturesInitialized = false;
+	static TArray<IEngineCrypto*> Features;
+	if (!bFeaturesInitialized)
+	{
+		IModularFeatures::FScopedLockModularFeatureList ScopedLockModularFeatureList;
+		// bFeaturesInitialized is not atomic so it can have potentially become true since we last checked (except now we're under a lock: IModularFeatures::FScopedLockModularFeatureList, so it will be fine now):
+		if (!bFeaturesInitialized)
+		{
+		    Features = IModularFeatures::Get().GetModularFeatureImplementations<IEngineCrypto>(IEngineCrypto::GetFeatureName());
+		    bFeaturesInitialized = true;
+		}
+	}
 	checkf(Features.Num() > 0, TEXT("RSA functionality was used but no modular feature was registered to provide it. Please make sure your project has the PlatformCrypto plugin enabled!"));
 	return Features[0];
 }
@@ -92,7 +76,7 @@ static FRSAKeyHandle GetPublicSigningKey()
 	static bool bInitializedPublicKey = false;
 	if (!bInitializedPublicKey)
 	{
-		FCoreDelegates::FPakSigningKeysDelegate& Delegate = FCoreDelegates::GetPakSigningKeysDelegate();
+		TDelegate<void(TArray<uint8>&, TArray<uint8>&)>& Delegate = FCoreDelegates::GetPakSigningKeysDelegate();
 		if (Delegate.IsBound())
 		{
 			TArray<uint8> Exponent;
@@ -182,6 +166,9 @@ struct FChunkBlock
 {
 	const uint8* UncompressedData = nullptr;
 	FIoBuffer* IoBuffer = nullptr;
+
+	// This is the size of the actual block after encryption alignment, and is
+	// set in EncryptAndSign. This happens whether or not the container is encrypted.
 	uint64 Size = 0;
 	uint64 CompressedSize = 0;
 	uint64 UncompressedSize = 0;
@@ -225,7 +212,7 @@ public:
 	FIoStoreWriteQueue()
 		: Event(FPlatformProcess::GetSynchEventFromPool(false))
 	{ }
-
+	
 	~FIoStoreWriteQueue()
 	{
 		check(Head == nullptr && Tail == nullptr);
@@ -363,6 +350,7 @@ public:
 	FIoStoreWriterContext::FProgress GetProgress() const
 	{
 		FIoStoreWriterContext::FProgress Progress;
+		Progress.HashDbChunksCount = HashDbChunksCount.Load();
 		Progress.TotalChunksCount = TotalChunksCount.Load();
 		Progress.HashedChunksCount = HashedChunksCount.Load();
 		Progress.CompressedChunksCount = CompressedChunksCount.Load();
@@ -384,6 +372,10 @@ public:
 		QueueEntry->Request->PrepareSourceBufferAsync(QueueEntry->BeginCompressionBarrier);
 	}
 
+	//
+	// This must be called prior to the consumer being dispatched in order to prevent resource
+	// contention deadlock (even if using retracting waits)
+	//
 	FIoBuffer* AllocCompressionBuffer(int32 TotalEntryChunkBlocksCount)
 	{
 		if (TotalEntryChunkBlocksCount > TotalCompressionBufferCount)
@@ -449,6 +441,7 @@ private:
 	FIoStoreWriteQueue WriterQueue;
 	TAtomic<uint64> TotalChunksCount{ 0 };
 	TAtomic<uint64> HashedChunksCount{ 0 };
+	TAtomic<uint64> HashDbChunksCount{ 0 };
 	TAtomic<uint64> CompressedChunksCount{ 0 };
 	TAtomic<uint64> SerializedChunksCount{ 0 };
 	TAtomic<uint64> ScheduledCompressionTasksCount{ 0 };
@@ -598,6 +591,55 @@ public:
 		return ChunkIdToFileName.Find(ChunkId);
 	}
 
+	FIoStoreTocChunkInfo GetTocChunkInfo(const int32 TocEntryIndex, const TMap<int32, FString>* InChunkFileNamesMap) const
+	{
+		const FIoStoreTocResource& TocResource = GetTocResource();
+		const FIoStoreTocEntryMeta& Meta = TocResource.ChunkMetas[TocEntryIndex];
+		const FIoOffsetAndLength& OffsetLength = TocResource.ChunkOffsetLengths[TocEntryIndex];
+
+		const bool bIsContainerCompressed = EnumHasAnyFlags(TocResource.Header.ContainerFlags, EIoContainerFlags::Compressed);
+
+		FIoStoreTocChunkInfo ChunkInfo;
+		ChunkInfo.Id = TocResource.ChunkIds[TocEntryIndex];
+		ChunkInfo.ChunkType = ChunkInfo.Id.GetChunkType();
+		ChunkInfo.Hash = Meta.ChunkHash;
+		ChunkInfo.bIsCompressed = EnumHasAnyFlags(Meta.Flags, FIoStoreTocEntryMetaFlags::Compressed);
+		ChunkInfo.bIsMemoryMapped = EnumHasAnyFlags(Meta.Flags, FIoStoreTocEntryMetaFlags::MemoryMapped);
+		ChunkInfo.bForceUncompressed = bIsContainerCompressed && !EnumHasAnyFlags(Meta.Flags, FIoStoreTocEntryMetaFlags::Compressed);
+		ChunkInfo.Offset = OffsetLength.GetOffset();
+		ChunkInfo.Size = OffsetLength.GetLength();
+
+		const FString* FindFileName = 0;
+		if (InChunkFileNamesMap &&
+			(FindFileName = InChunkFileNamesMap->Find(TocEntryIndex)) != nullptr)
+		{
+			ChunkInfo.FileName = *FindFileName;
+			ChunkInfo.bHasValidFileName = true;
+		}
+		else
+		{
+			ChunkInfo.FileName = FString::Printf(TEXT("<%s>"), *LexToString(ChunkInfo.ChunkType));
+			ChunkInfo.bHasValidFileName = false;
+		}
+
+		const uint64 CompressionBlockSize = TocResource.Header.CompressionBlockSize;
+		int32 FirstBlockIndex = int32(ChunkInfo.Offset / CompressionBlockSize);
+		int32 LastBlockIndex = int32((Align(ChunkInfo.Offset + ChunkInfo.Size, CompressionBlockSize) - 1) / CompressionBlockSize);
+
+		ChunkInfo.CompressedSize = 0;
+		ChunkInfo.PartitionIndex = -1;
+		for (int32 BlockIndex = FirstBlockIndex; BlockIndex <= LastBlockIndex; ++BlockIndex)
+		{
+			const FIoStoreTocCompressedBlockEntry& CompressionBlock = TocResource.CompressionBlocks[BlockIndex];
+			ChunkInfo.CompressedSize += CompressionBlock.GetCompressedSize();
+			if (ChunkInfo.PartitionIndex < 0)
+			{
+				ChunkInfo.PartitionIndex = int32(CompressionBlock.GetOffset() / TocResource.Header.PartitionSize);
+			}
+		}
+		return ChunkInfo;
+	}
+
 private:
 	TMap<FIoChunkId, int32> ChunkIdToIndex;
 	FIoStoreTocResource Toc;
@@ -613,13 +655,37 @@ public:
 	{
 	}
 
+	void SetReferenceChunkDatabase(TSharedPtr<IIoStoreWriterReferenceChunkDatabase> InReferenceChunkDatabase)
+	{
+		ReferenceChunkDatabase = InReferenceChunkDatabase;
+	}
+	void SetHashDatabase(TSharedPtr<IIoStoreWriterHashDatabase> InHashDatabase, bool bInVerifyHashDatabase)
+	{
+		HashDatabase = InHashDatabase;
+		bVerifyHashDatabase = bInVerifyHashDatabase;
+	}
+
+	void EnumerateChunks(TFunction<bool(const FIoStoreTocChunkInfo&)>&& Callback) const
+	{
+		const FIoStoreTocResource& TocResource = Toc.GetTocResource();
+
+		for (int32 ChunkIndex = 0; ChunkIndex < TocResource.ChunkIds.Num(); ++ChunkIndex)
+		{
+			FIoStoreTocChunkInfo ChunkInfo = Toc.GetTocChunkInfo(ChunkIndex, 0);
+			if (!Callback(ChunkInfo))
+			{
+				break;
+			}
+		}
+	}
+
 	UE_NODISCARD FIoStatus Initialize(FIoStoreWriterContextImpl& InContext, const FIoContainerSettings& InContainerSettings)
 	{
 		WriterContext = &InContext;
 		ContainerSettings = InContainerSettings;
 
 		TocFilePath = ContainerPath + TEXT(".utoc");
-
+		
 		IPlatformFile& Ipf = IPlatformFile::GetPlatformPhysical();
 		Ipf.CreateDirectoryTree(*FPaths::GetPath(TocFilePath));
 
@@ -659,21 +725,32 @@ public:
 
 		for (const TUniquePtr<FIoStoreReader>& PatchSourceReader : PatchSourceReaders)
 		{
-			PatchSourceReader->EnumerateChunks([this, &PrevEntryLink](const FIoStoreTocChunkInfo& ChunkInfo)
+			TArray<TPair<uint64, FLayoutEntry*>> LayoutEntriesWithOffsets;
+			PatchSourceReader->EnumerateChunks([this, &PrevEntryLink, &LayoutEntriesWithOffsets](const FIoStoreTocChunkInfo& ChunkInfo)
 				{
 					FLayoutEntry* PreviousBuildEntry = new FLayoutEntry();
-					LayoutEntries.Add(PreviousBuildEntry);
-
 					PreviousBuildEntry->Hash = ChunkInfo.Hash;
 					PreviousBuildEntry->PartitionIndex = ChunkInfo.PartitionIndex;
 					PreviousBuildEntry->CompressedSize = ChunkInfo.CompressedSize;
-					PrevEntryLink->Next = PreviousBuildEntry;
-					PreviousBuildEntry->Prev = PrevEntryLink;
-					PrevEntryLink = PreviousBuildEntry;
+					LayoutEntriesWithOffsets.Emplace(ChunkInfo.Offset, PreviousBuildEntry);
 					PreviousBuildLayoutEntryByChunkId.Add(ChunkInfo.Id, PreviousBuildEntry);
 					return true;
 				});
 
+			// Sort entries by offset
+			Algo::Sort(LayoutEntriesWithOffsets, [](const TPair<uint64, FLayoutEntry*>& A, const TPair<uint64, FLayoutEntry*>& B)
+				{
+					return A.Get<0>() < B.Get<0>();
+				});
+
+			for (const TPair<uint64, FLayoutEntry*>& EntryWithOffset : LayoutEntriesWithOffsets)
+			{
+				FLayoutEntry* PreviousBuildEntry = EntryWithOffset.Get<1>();
+				LayoutEntries.Add(PreviousBuildEntry);
+				PrevEntryLink->Next = PreviousBuildEntry;
+				PreviousBuildEntry->Prev = PrevEntryLink;
+				PrevEntryLink = PreviousBuildEntry;
+			}
 			if (!ContainerSettings.bGenerateDiffPatch)
 			{
 				break;
@@ -688,6 +765,16 @@ public:
 
 	virtual void Append(const FIoChunkId& ChunkId, IIoStoreWriteRequest* Request, const FIoWriteOptions& WriteOptions) override
 	{
+		//
+		// This function sets up the sequence of events that takes a chunk from source data on disc
+		// to written to a container. The first thing that happens is the source data is read in order
+		// to hash it to detect whether or not it's modified as well as look up in reference databases.
+		// Load the data -> PrepareSourceBufferAsync
+		// Hash the data -> HashTask lambda
+		//
+		// The hash task itself doesn't continue to the next steps - the Flush() call
+		// waits for all hashes to be complete before kicking the next steps.
+		//
 		TRACE_CPUPROFILER_EVENT_SCOPE(AppendWriteRequest);
 		check(!bHasFlushed);
 		checkf(ChunkId.IsValid(), TEXT("ChunkId is not valid!"));
@@ -699,22 +786,54 @@ public:
 		Entries.Add(Entry);
 		Entry->ChunkId = ChunkId;
 		Entry->Options = WriteOptions;
-		Entry->Request = Request;
-		Entry->HashBarrier = FGraphEvent::CreateGraphEvent();
+		Entry->Request = Request;		
 		Entry->BeginCompressionBarrier = FGraphEvent::CreateGraphEvent();
 		Entry->FinishCompressionBarrier = FGraphEvent::CreateGraphEvent();
 		Entry->FinishEncryptionAndSigningBarrier = FGraphEvent::CreateGraphEvent();
 		Entry->BeginWriteBarrier = FGraphEvent::CreateGraphEvent();
 		Entry->WriteFinishedEvent = FGraphEvent::CreateGraphEvent();
+		
+		bool bTestHashValid = false;
+		FIoChunkHash TestHash;
+		// If we can get the hash without reading the whole thing and hashing it, do so
+		// to avoid the IO.
+		if (HashDatabase.IsValid() &&
+			HashDatabase->FindHashForChunkId(ChunkId, Entry->ChunkHash))
+		{
+			if (bVerifyHashDatabase == false)
+			{
+				// If we aren't validating then we just use it and bail.
+				WriterContext->HashDbChunksCount.IncrementExchange();
+				WriterContext->HashedChunksCount.IncrementExchange();
+				return;
+			}
+
+			// If we are validating, copy the hash out and run the normal path
+			// to check against it.
+			TestHash = Entry->ChunkHash;
+			bTestHashValid = true;
+		}
+		// Otherwise, we have to do the load & hash
+
+		Entry->HashBarrier = FGraphEvent::CreateGraphEvent();
 
 		FGraphEventArray HashPrereqs;
 		HashPrereqs.Add(Entry->HashBarrier);
-		Entry->HashTask = FFunctionGraphTask::CreateAndDispatchWhenReady([this, Entry]()
+		Entry->HashTask = FFunctionGraphTask::CreateAndDispatchWhenReady([this, Entry, TestHash, bTestHashValid]()
 		{
 			TRACE_CPUPROFILER_EVENT_SCOPE(HashChunk);
 			const FIoBuffer* SourceBuffer = Entry->Request->GetSourceBuffer();
 			Entry->ChunkHash = FIoChunkHash::HashBuffer(SourceBuffer->Data(), SourceBuffer->DataSize());
 			WriterContext->HashedChunksCount.IncrementExchange();
+
+			if (bVerifyHashDatabase && bTestHashValid)
+			{
+				if (TestHash != Entry->ChunkHash)
+				{
+					UE_LOG(LogIoStore, Warning, TEXT("HashDb Validation Failed: ChunkId %s has mismatching hash"), *LexToString(Entry->ChunkId));
+				}
+			}
+
 			// Release the source data buffer, it will be reloaded later when we start compressing the chunk
 			Entry->Request->FreeSourceBuffer();
 		}, TStatId(), &HashPrereqs, ENamedThreads::AnyHiPriThreadHiPriTask);
@@ -773,7 +892,7 @@ public:
 		uint32 ChunkCount = TocResource.ChunkIds.Num();
 		uint32 SeedCount = FMath::Max(1, FMath::RoundToInt32(ChunkCount / 2.0));
 		check(TocResource.ChunkOffsetLengths.Num() == ChunkCount);
-
+		
 		TArray<FIoChunkId> OutTocChunkIds;
 		OutTocChunkIds.SetNum(ChunkCount);
 		TArray<FIoOffsetAndLength> OutTocOffsetAndLengths;
@@ -797,7 +916,7 @@ public:
 
 		uint64 TotalIterationCount = 0;
 		uint64 TotalOverflowBucketsCount = 0;
-
+		
 		// For each bucket containing more than one chunk id find a seed that makes its chunk ids
 		// hash to unused slots in the output array
 		Algo::Sort(Buckets, [](const TArray<int32>& A, const TArray<int32>& B)
@@ -1018,7 +1137,7 @@ public:
 					Partition.Offset += ExtraPaddingBytes;
 				}
 			}
-
+			
 			if (Partition.ContainerFileHandle)
 			{
 				TRACE_CPUPROFILER_EVENT_SCOPE(FlushContainerFile);
@@ -1042,7 +1161,7 @@ public:
 			TRACE_CPUPROFILER_EVENT_SCOPE(BuildIndex);
 			TArray<FString> FilesToIndex;
 			Toc.GetFileNamesToIndex(FilesToIndex);
-
+			
 			FString MountPoint = IoDirectoryIndexUtils::GetCommonRootPath(FilesToIndex);
 			FIoDirectoryIndexWriter DirectoryIndexWriter;
 			DirectoryIndexWriter.SetMountPoint(MountPoint);
@@ -1065,9 +1184,9 @@ public:
 				ContainerSettings.IsEncrypted() ? ContainerSettings.EncryptionKey : FAES::FAESKey());
 		}
 
-		TIoStatusOr<uint64> TocSize = FIoStoreTocResource::Write(*TocFilePath, TocResource, ContainerSettings, WriterContext->GetSettings());
+		TIoStatusOr<uint64> TocSize = FIoStoreTocResource::Write(*TocFilePath, TocResource, static_cast<uint32>(WriterSettings.CompressionBlockSize), WriterSettings.MaxPartitionSize, ContainerSettings);
 		check(TocSize.IsOk());
-
+		
 		Result.ContainerId = ContainerSettings.ContainerId;
 		Result.ContainerName = FPaths::GetBaseFilename(TocFilePath);
 		Result.ContainerFlags = ContainerSettings.ContainerFlags;
@@ -1078,7 +1197,7 @@ public:
 		Result.CompressedContainerSize = CompressedContainerSize;
 		Result.DirectoryIndexSize = TocResource.Header.DirectoryIndexSize;
 		Result.CompressionMethod = EnumHasAnyFlags(ContainerSettings.ContainerFlags, EIoContainerFlags::Compressed)
-			? WriterContext->GetSettings().CompressionMethod
+			? WriterSettings.CompressionMethod
 			: NAME_None;
 		Result.ModifiedChunksCount = 0;
 		Result.AddedChunksCount = 0;
@@ -1140,7 +1259,7 @@ private:
 	void FinalizeLayout()
 	{
 		TRACE_CPUPROFILER_EVENT_SCOPE(FinalizeLayout);
-
+		
 		Algo::Sort(Entries, [](const FIoStoreWriteQueueEntry* A, const FIoStoreWriteQueueEntry* B)
 		{
 			uint64 AOrderHint = A->Request->GetOrderHint();
@@ -1185,7 +1304,7 @@ private:
 			}
 			++IdealOrder;
 		}
-
+			
 		if (ContainerSettings.bGenerateDiffPatch)
 		{
 			LayoutEntriesHead->Next = LayoutEntriesTail;
@@ -1263,7 +1382,7 @@ private:
 			ContainerFilePath += FString::Printf(TEXT("_s%d"), Partition.Index);
 		}
 		ContainerFilePath += TEXT(".ucas");
-
+		
 		Partition.ContainerFileHandle.Reset(IFileManager::Get().CreateFileWriter(*ContainerFilePath));
 		if (!Partition.ContainerFileHandle)
 		{
@@ -1350,20 +1469,72 @@ private:
 			Entry->FinishCompressionBarrier->DispatchSubsequents();
 			return;
 		}
-
+		
 		Entry->ChunkBlocks.SetNum(int32(NumChunkBlocks));
-
-		uint64 BytesToProcess = Entry->UncompressedSize;
-		const uint8* UncompressedData = SourceBuffer->Data();
-		for (int32 BlockIndex = 0; BlockIndex < NumChunkBlocks; ++BlockIndex)
 		{
-			FChunkBlock& Block = Entry->ChunkBlocks[BlockIndex];
-			Block.IoBuffer = WriterContext->AllocCompressionBuffer(int32(NumChunkBlocks));
-			Block.CompressionMethod = CompressionMethod;
-			Block.UncompressedSize = FMath::Min(BytesToProcess, WriterSettings.CompressionBlockSize);
-			Block.UncompressedData = UncompressedData;
-			BytesToProcess -= Block.UncompressedSize;
-			UncompressedData += Block.UncompressedSize;
+			// We must allocate resources for our tasks up front to prevent resource deadlock.
+			// Note that for Reference Chunk loaded blocks this will reserve more than actually
+			// needed.
+			uint64 BytesToProcess = Entry->UncompressedSize;
+			const uint8* UncompressedData = SourceBuffer->Data();
+			for (int32 BlockIndex = 0; BlockIndex < NumChunkBlocks; ++BlockIndex)
+			{
+				FChunkBlock& Block = Entry->ChunkBlocks[BlockIndex];
+				Block.IoBuffer = WriterContext->AllocCompressionBuffer(int32(NumChunkBlocks));
+				Block.CompressionMethod = CompressionMethod;
+				Block.UncompressedSize = FMath::Min(BytesToProcess, WriterSettings.CompressionBlockSize);
+				Block.UncompressedData = UncompressedData;
+				BytesToProcess -= Block.UncompressedSize;
+				UncompressedData += Block.UncompressedSize;
+			}
+		}
+
+		//
+		// Check if this chunk exists in the reference cache.
+		//
+		if (ReferenceChunkDatabase.IsValid())
+		{
+			TPair<FIoContainerId, FIoChunkHash> ChunkKey(ContainerSettings.ContainerId, Entry->ChunkHash);
+
+			// Valid chunks must create the same decompressed bits, but can have different compressed bits.
+			// Since we are on a lightweight dispatch thread, the actual read is async, as is the processing
+			// of the results.
+			bool GotChunk = ReferenceChunkDatabase->RetrieveChunk(ChunkKey, CompressionMethod, Entry->UncompressedSize, NumChunkBlocks, [this, Entry](TIoStatusOr<FIoStoreCompressedReadResult> InReadResult)
+			{
+				// If we fail here, in order to recover we effectively need to re-kick this chunk's
+				// BeginCompress()... however, this is just a direct read and should only fail
+				// in catastrophic scenarios (loss of connection on a network drive?).
+				FIoStoreCompressedReadResult ReadResult = InReadResult.ValueOrDie();
+
+				uint8* ReferenceData = ReadResult.IoBuffer.GetData();
+				for (int32 BlockIndex = 0; BlockIndex < ReadResult.Blocks.Num(); ++BlockIndex)
+				{
+					FIoStoreCompressedBlockInfo& ReferenceBlock = ReadResult.Blocks[BlockIndex];
+					FChunkBlock& Block = Entry->ChunkBlocks[BlockIndex];
+					Block.CompressionMethod = ReferenceBlock.CompressionMethod;
+					Block.CompressedSize = ReferenceBlock.CompressedSize;
+
+					// Future optimization: ReadCompressed returns the memory ready to encrypt in one
+					// large contiguous buffer (i.e. padded). We could use the FIoBuffer functionality of referencing a 
+					// sub block from a parent buffer, however this would mean that we need to add support
+					// for tracking the memory usage in order to remain within our prescribed limits. To do this
+					// requires releasing the entire chunk's memory at once after WriteEntry.
+					// As it stands, we temporarily use untracked memory in the ReadCompressed call (in RetrieveChunk),
+					// then immediately copy it to tracked memory. There's some waste as tracked memory is mod CompressionBlockSize
+					// and we are post compression, so with the average 50% compression rate, we're using double the memory
+					// we "could".
+					FMemory::Memcpy(Block.IoBuffer->GetData(), ReferenceData, Block.CompressedSize);
+					ReferenceData += ReferenceBlock.AlignedSize;
+				}
+
+				Entry->FinishCompressionBarrier->DispatchSubsequents();
+			});
+
+			if (GotChunk)
+			{
+				// Lambda handles dispatch subsequents
+				return;
+			}
 		}
 
 		if (CompressionMethod == NAME_None)
@@ -1412,7 +1583,7 @@ private:
 				Entry->bStoreCompressedDataInDDC = true;
 			}
 		}
-
+		
 		for (FChunkBlock& Block : Entry->ChunkBlocks)
 		{
 			WriterContext->ScheduledCompressionTasksCount.IncrementExchange();
@@ -1556,7 +1727,7 @@ private:
 			CreatePartitionContainerFile(*TargetPartition);
 		}
 		Entry->Offset = TargetPartition->Offset;
-
+		
 		FIoOffsetAndLength OffsetLength;
 		OffsetLength.SetOffset(UncompressedFileOffset);
 		OffsetLength.SetLength(Entry->UncompressedSize);
@@ -1656,6 +1827,10 @@ private:
 	bool						bHasMemoryMappedEntry = false;
 	bool						bHasFlushed = false;
 	bool						bHasResult = false;
+	TSharedPtr<IIoStoreWriterReferenceChunkDatabase> ReferenceChunkDatabase;
+	TSharedPtr<IIoStoreWriterHashDatabase> HashDatabase;
+	bool						bVerifyHashDatabase = false;
+
 
 	friend class FIoStoreWriterContextImpl;
 };
@@ -1712,10 +1887,16 @@ void FIoStoreWriterContextImpl::Flush()
 	}
 
 	AllEntries.Empty();
-	for (TSharedPtr<FIoStoreWriter> IoStoreWriter : IoStoreWriters)
-	{
-		IoStoreWriter->Finalize();
-	}
+
+	// Classically there were so few writers that this didn't need to be multi threaded, but it
+	// involves writing files, and with content on demand this ends up being thousands of iterations. 
+	double FinalizeStart = FPlatformTime::Seconds();	
+	ParallelFor(TEXT("IoStoreWriter::Finalize.PF"), IoStoreWriters.Num(), 1, [this](int Index)
+	{ 
+		IoStoreWriters[Index]->Finalize(); 
+	});
+	double FinalizeEnd = FPlatformTime::Seconds();
+	UE_LOG(LogIoStore, Display, TEXT("Finalize took %.1f seconds for %d writers"), FinalizeEnd - FinalizeStart, IoStoreWriters.Num());
 }
 
 void FIoStoreWriterContextImpl::BeginCompressionThreadFunc()
@@ -1821,8 +2002,78 @@ public:
 
 	}
 
+	//
+	// GenericPlatformFile isn't designed around a lot of jobs throwing accesses at it, so instead we 
+	// use IFileHandle directly and round robin between a number of file handles in order to saturate
+	// year 2022 ssd drives. For a file hot in the windows file cache, you can get 4+ GB/s with as few as 
+	// 4 file handles, however a cold file you need upwards of 32 in order to reach ~1.5 GB/s. This is
+	// low because IoStore reads are comparatively small - at most you're reading compression block sized
+	// chunks with uncompressed, however with Oodle those get cut by ~half, so with a default block size
+	// of 64kb, reads are generally less than 32kb, which is tough to use and get full ssd bandwidth out of.
+	//
+	static constexpr uint32 NumHandlesPerFile = 12;
+	struct FContainerFileAccess
+	{
+		FCriticalSection HandleLock[NumHandlesPerFile];
+		IFileHandle* Handle[NumHandlesPerFile];
+		std::atomic_uint32_t NextHandleIndex;
+		bool bValid = false;
+
+		FContainerFileAccess(IPlatformFile& Ipf, const TCHAR* ContainerFileName)
+		{
+			bValid = true;
+			for (uint32 i=0; i < NumHandlesPerFile; i++)
+			{
+				Handle[i] = Ipf.OpenRead(ContainerFileName);
+				if (Handle[i] == nullptr)
+				{
+					bValid = false;
+				}
+			}
+		}
+
+		bool IsValid() const { return bValid; }
+	};
+	
+
+	// Kick off an async read from the iostore container, rotating between the file handles for the partition.
+	UE::Tasks::FTask StartAsyncRead(int32 InPartitionIndex, int64 InPartitionOffset, int64 InReadAmount, uint8* OutBuffer, std::atomic_bool* OutSuccess) const
+	{
+		return UE::Tasks::Launch(TEXT("FIoStoreReader_AsyncRead"), [this, InPartitionIndex, InPartitionOffset, OutBuffer, InReadAmount, OutSuccess]() mutable
+		{
+			FContainerFileAccess* ContainerFileAccess = this->ContainerFileAccessors[InPartitionIndex].Get();
+
+			// Round robin between the file handles. Since we are always reading blocks, everything is ~roughly~ the same
+			// size so we don't have to worry about a single huge read backing up one handle.
+			uint32 OurIndex = ContainerFileAccess->NextHandleIndex.fetch_add(1);
+			OurIndex %= NumHandlesPerFile;
+
+			// Each file handle can only be touched by one task at a time. We use an OS lock so that the OS scheduler
+			// knows we're in a wait state and who we're waiting on.
+			//
+			// CAUTION if any overload of IFileHandle launches tasks (... unlikely ...) this could deadlock if NumHandlesPerFile is more
+			// than the number of worker threads, as the OS lock will not do task retraction.
+			{
+				TRACE_CPUPROFILER_EVENT_SCOPE(FIoStoreReader_StartAsyncRead_Lock);
+				ContainerFileAccess->HandleLock[OurIndex].Lock();
+			}
+
+			bool bReadSucceeded;
+			{
+				TRACE_CPUPROFILER_EVENT_SCOPE(FIoStoreReader_StartAsyncRead_SeekAndRead);
+				ContainerFileAccess->Handle[OurIndex]->Seek(InPartitionOffset);
+				bReadSucceeded = ContainerFileAccess->Handle[OurIndex]->Read(OutBuffer, InReadAmount);
+			}
+
+			OutSuccess->store(bReadSucceeded);
+			ContainerFileAccess->HandleLock[OurIndex].Unlock();
+		});
+	}
+
 	UE_NODISCARD FIoStatus Initialize(const TCHAR* InContainerPath, const TMap<FGuid, FAES::FAESKey>& InDecryptionKeys)
 	{
+		ContainerPath = InContainerPath;
+
 		TStringBuilder<256> TocFilePath;
 		TocFilePath.Append(InContainerPath);
 		TocFilePath.Append(TEXT(".utoc"));
@@ -1837,7 +2088,7 @@ public:
 		Toc.Initialize();
 
 		IPlatformFile& Ipf = FPlatformFileManager::Get().GetPlatformFile();
-		ContainerFileHandles.Reserve(TocResource.Header.PartitionCount);
+		ContainerFileAccessors.Reserve(TocResource.Header.PartitionCount);
 		for (uint32 PartitionIndex = 0; PartitionIndex < TocResource.Header.PartitionCount; ++PartitionIndex)
 		{
 			TStringBuilder<256> ContainerFilePath;
@@ -1847,8 +2098,9 @@ public:
 				ContainerFilePath.Append(FString::Printf(TEXT("_s%d"), PartitionIndex));
 			}
 			ContainerFilePath.Append(TEXT(".ucas"));
-			ContainerFileHandles.Emplace(Ipf.OpenAsyncRead(*ContainerFilePath));
-			if (!ContainerFileHandles.Last())
+
+			ContainerFileAccessors.Emplace(new FContainerFileAccess(Ipf, *ContainerFilePath));
+			if (ContainerFileAccessors.Last().IsValid() == false)
 			{
 				return FIoStatusBuilder(EIoErrorCode::FileOpenFailed) << TEXT("Failed to open IoStore container file '") << *TocFilePath << TEXT("'");
 			}
@@ -1911,7 +2163,7 @@ public:
 
 		for (int32 ChunkIndex = 0; ChunkIndex < TocResource.ChunkIds.Num(); ++ChunkIndex)
 		{
-			FIoStoreTocChunkInfo ChunkInfo = GetTocChunkInfo(ChunkIndex);
+			FIoStoreTocChunkInfo ChunkInfo = Toc.GetTocChunkInfo(ChunkIndex, &ChunkFileNamesMap);
 			if (!Callback(ChunkInfo))
 			{
 				break;
@@ -1924,7 +2176,7 @@ public:
 		const int32* TocEntryIndex = Toc.GetTocEntryIndex(ChunkId);
 		if (TocEntryIndex)
 		{
-			return GetTocChunkInfo(*TocEntryIndex);
+			return Toc.GetTocChunkInfo(*TocEntryIndex, &ChunkFileNamesMap);
 		}
 		else
 		{
@@ -1938,7 +2190,7 @@ public:
 
 		if (TocEntryIndex < uint32(TocResource.ChunkIds.Num()))
 		{
-			return GetTocChunkInfo(TocEntryIndex);
+			return Toc.GetTocChunkInfo(TocEntryIndex, &ChunkFileNamesMap);
 		}
 		else
 		{
@@ -1946,28 +2198,29 @@ public:
 		}
 	}
 
-	TFuture<TIoStatusOr<FIoBuffer>> ReadAsync(const FIoChunkId& ChunkId, const FIoReadOptions& Options) const
+	UE::Tasks::TTask<TIoStatusOr<FIoBuffer>> ReadAsync(const FIoChunkId& ChunkId, const FIoReadOptions& Options) const
 	{
 		TRACE_CPUPROFILER_EVENT_SCOPE(ReadChunkAsync);
 
 		struct FState
 		{
-			TPromise<TIoStatusOr<FIoBuffer>> Promise;
-			IAsyncReadRequest* ReadRequest = nullptr;
-			uint8* CompressedBuffer = nullptr;
+			TArray64<uint8> CompressedBuffer;
 			uint64 CompressedSize = 0;
 			uint64 UncompressedSize = 0;
 			TOptional<FIoBuffer> UncompressedBuffer;
-			TAtomic<bool> bReadFailed{ false };
-			TAtomic<bool> bUncompressFailed{ false };
+			std::atomic_bool bReadSucceeded {false};
+			std::atomic_bool bUncompressFailed { false };
 		};
 
 		const FIoOffsetAndLength* OffsetAndLength = Toc.GetOffsetAndLength(ChunkId);
 		if (!OffsetAndLength )
 		{
-			TPromise<TIoStatusOr<FIoBuffer>> Promise;
-			Promise.EmplaceValue(FIoStatus(EIoErrorCode::NotFound, TEXT("Unknown chunk ID")));
-			return Promise.GetFuture();
+			// Currently there's no way to make a task with a valid result that just emplaces
+			// without running.
+			return UE::Tasks::Launch(TEXT("FIoStoreRead_Error"), 
+				[] { return TIoStatusOr<FIoBuffer>(FIoStatus(EIoErrorCode::NotFound, TEXT("Unknown chunk ID"))); },
+				UE::Tasks::ETaskPriority::Normal,
+				UE::Tasks::EExtendedTaskPriority::Inline); // force execution on this thread
 		}
 
 		const uint64 RequestedOffset = Options.GetOffset();
@@ -1980,9 +2233,12 @@ public:
 		const int32 BlockCount = LastBlockIndex - FirstBlockIndex + 1;
 		if (!BlockCount)
 		{
-			TPromise<TIoStatusOr<FIoBuffer>> Promise;
-			Promise.EmplaceValue(FIoBuffer());
-			return Promise.GetFuture();
+			// Currently there's no way to make a task with a valid result that just emplaces
+			// without running.
+			return UE::Tasks::Launch(TEXT("FIoStoreRead_Empty"),
+				[] { return TIoStatusOr<FIoBuffer>(); },
+				UE::Tasks::ETaskPriority::Normal,
+				UE::Tasks::EExtendedTaskPriority::Inline); // force execution on this thread
 		}
 		const FIoStoreTocCompressedBlockEntry& FirstBlock = TocResource.CompressionBlocks[FirstBlockIndex];
 		const FIoStoreTocCompressedBlockEntry& LastBlock = TocResource.CompressionBlocks[LastBlockIndex];
@@ -1993,119 +2249,105 @@ public:
 		FState* State = new FState();
 		State->CompressedSize = ReadEndOffset - ReadStartOffset;
 		State->UncompressedSize = ResolvedSize;
+		State->CompressedBuffer.AddUninitialized(State->CompressedSize);
+		State->UncompressedBuffer.Emplace(State->UncompressedSize);
 
-		FGraphEventArray PrepareDecompressionPrereqs;
-		FGraphEventArray DecompressionPrereqs;
-		FGraphEventArray FinalizePreReqs;
+		UE::Tasks::FTask ReadJob = StartAsyncRead(PartitionIndex, ReadStartOffset, (int32)State->CompressedSize, State->CompressedBuffer.GetData(), &State->bReadSucceeded);
 
-		FGraphEventRef ReadFinishedBarrier = FGraphEvent::CreateGraphEvent();
-		PrepareDecompressionPrereqs.Add(ReadFinishedBarrier);
+		UE::Tasks::TTask<TIoStatusOr<FIoBuffer>> ReturnTask = UE::Tasks::Launch(TEXT("FIoStoreReader::AsyncRead"), [this, State, PartitionIndex, CompressionBlockSize, ResolvedOffset, FirstBlockIndex, LastBlockIndex, ResolvedSize, ReadStartOffset, &TocResource]()
+		{			
+			UE::Tasks::FTaskEvent DecompressionDoneEvent(TEXT("FIoStoreReader::DecompressionDone"));
 
-		FGraphEventRef PrepareDecompressionTask = FFunctionGraphTask::CreateAndDispatchWhenReady([State]()
+			std::atomic_int32_t DecompressionJobsRemaining = LastBlockIndex - FirstBlockIndex + 1;
+
+			uint64 CompressedSourceOffset = 0;
+			uint64 UncompressedDestinationOffset = 0;
+			uint64 OffsetInBlock = ResolvedOffset % CompressionBlockSize;
+			uint64 RemainingSize = ResolvedSize;
+			for (int32 BlockIndex = FirstBlockIndex; BlockIndex <= LastBlockIndex; ++BlockIndex)
 			{
-				if (State->bReadFailed.Load())
+				UE::Tasks::FTask DecompressBlockTask = UE::Tasks::Launch(TEXT("FIoStoreReader::Decompress"), [this, State, BlockIndex, CompressedSourceOffset, UncompressedDestinationOffset, OffsetInBlock, RemainingSize, &DecompressionDoneEvent, &DecompressionJobsRemaining]()
 				{
-					return;
-				}
-
-				State->CompressedBuffer = State->ReadRequest->GetReadResults();
-				State->UncompressedBuffer.Emplace(State->UncompressedSize);
-			}, TStatId(), & PrepareDecompressionPrereqs, ENamedThreads::AnyHiPriThreadNormalTask);
-		DecompressionPrereqs.Add(PrepareDecompressionTask);
-
-		uint64 CompressedSourceOffset = 0;
-		uint64 UncompressedDestinationOffset = 0;
-		uint64 OffsetInBlock = ResolvedOffset % CompressionBlockSize;
-		uint64 RemainingSize = ResolvedSize;
-		for (int32 BlockIndex = FirstBlockIndex; BlockIndex <= LastBlockIndex; ++BlockIndex)
-		{
-			FGraphEventRef DecompressBlockTask = FFunctionGraphTask::CreateAndDispatchWhenReady([this, State, BlockIndex, CompressedSourceOffset, UncompressedDestinationOffset, OffsetInBlock, RemainingSize]()
-				{
-					if (State->bReadFailed.Load())
+					if (State->bReadSucceeded)
 					{
-						return;
-					}
-					uint8* CompressedSource = State->CompressedBuffer + CompressedSourceOffset;
-					uint8* UncompressedDestination = State->UncompressedBuffer->Data() + UncompressedDestinationOffset;
-					const FIoStoreTocResource& TocResource = Toc.GetTocResource();
-					const FIoStoreTocCompressedBlockEntry& CompressionBlock = TocResource.CompressionBlocks[BlockIndex];
-					const uint32 RawSize = Align(CompressionBlock.GetCompressedSize(), FAES::AESBlockSize);
-					const uint32 UncompressedSize = CompressionBlock.GetUncompressedSize();
-					FName CompressionMethod = TocResource.CompressionMethods[CompressionBlock.GetCompressionMethodIndex()];
-					if (EnumHasAnyFlags(TocResource.Header.ContainerFlags, EIoContainerFlags::Encrypted))
-					{
-						TRACE_CPUPROFILER_EVENT_SCOPE(Decrypt);
-						check(CompressedSource + RawSize <= State->CompressedBuffer + State->CompressedSize);
-						FAES::DecryptData(CompressedSource, RawSize, DecryptionKey);
-					}
-					if (CompressionMethod.IsNone())
-					{
-						check(UncompressedDestination + UncompressedSize - OffsetInBlock <= State->UncompressedBuffer->Data() + State->UncompressedBuffer->DataSize());
-						FMemory::Memcpy(UncompressedDestination, CompressedSource + OffsetInBlock, UncompressedSize - OffsetInBlock);
-					}
-					else
-					{
-						bool bUncompressed;
-						if (OffsetInBlock || RemainingSize < UncompressedSize)
+						uint8* CompressedSource = State->CompressedBuffer.GetData() + CompressedSourceOffset;
+						uint8* UncompressedDestination = State->UncompressedBuffer->Data() + UncompressedDestinationOffset;
+						const FIoStoreTocResource& TocResource = Toc.GetTocResource();
+						const FIoStoreTocCompressedBlockEntry& CompressionBlock = TocResource.CompressionBlocks[BlockIndex];
+						const uint32 RawSize = Align(CompressionBlock.GetCompressedSize(), FAES::AESBlockSize);
+						const uint32 UncompressedSize = CompressionBlock.GetUncompressedSize();
+						FName CompressionMethod = TocResource.CompressionMethods[CompressionBlock.GetCompressionMethodIndex()];
+						if (EnumHasAnyFlags(TocResource.Header.ContainerFlags, EIoContainerFlags::Encrypted))
 						{
-							TArray<uint8> TempBuffer;
-							TempBuffer.SetNumUninitialized(UncompressedSize);
-							bUncompressed = FCompression::UncompressMemory(CompressionMethod, TempBuffer.GetData(), UncompressedSize, CompressedSource, CompressionBlock.GetCompressedSize());
-							uint64 CopySize = FMath::Min<uint64>(UncompressedSize - OffsetInBlock, RemainingSize);
-							FMemory::Memcpy(UncompressedDestination, TempBuffer.GetData() + OffsetInBlock, CopySize);
+							TRACE_CPUPROFILER_EVENT_SCOPE(Decrypt);
+							check(CompressedSource + RawSize <= State->CompressedBuffer.GetData() + State->CompressedSize);
+							FAES::DecryptData(CompressedSource, RawSize, DecryptionKey);
+						}
+						if (CompressionMethod.IsNone())
+						{
+							check(UncompressedDestination + UncompressedSize - OffsetInBlock <= State->UncompressedBuffer->Data() + State->UncompressedBuffer->DataSize());
+							FMemory::Memcpy(UncompressedDestination, CompressedSource + OffsetInBlock, UncompressedSize - OffsetInBlock);
 						}
 						else
 						{
-							check(UncompressedDestination + UncompressedSize <= State->UncompressedBuffer->Data() + State->UncompressedBuffer->DataSize());
-							bUncompressed = FCompression::UncompressMemory(CompressionMethod, UncompressedDestination, UncompressedSize, CompressedSource, CompressionBlock.GetCompressedSize());
+							bool bUncompressed;
+							if (OffsetInBlock || RemainingSize < UncompressedSize)
+							{
+								TArray<uint8> TempBuffer;
+								TempBuffer.SetNumUninitialized(UncompressedSize);
+								bUncompressed = FCompression::UncompressMemory(CompressionMethod, TempBuffer.GetData(), UncompressedSize, CompressedSource, CompressionBlock.GetCompressedSize());
+								uint64 CopySize = FMath::Min<uint64>(UncompressedSize - OffsetInBlock, RemainingSize);
+								FMemory::Memcpy(UncompressedDestination, TempBuffer.GetData() + OffsetInBlock, CopySize);
+							}
+							else
+							{
+								check(UncompressedDestination + UncompressedSize <= State->UncompressedBuffer->Data() + State->UncompressedBuffer->DataSize());
+								bUncompressed = FCompression::UncompressMemory(CompressionMethod, UncompressedDestination, UncompressedSize, CompressedSource, CompressionBlock.GetCompressedSize());
+							}
+							if (!bUncompressed)
+							{
+								State->bUncompressFailed = true;
+							}
 						}
-						if (!bUncompressed)
-						{
-							State->bUncompressFailed.Store(true);
-						}
+					} // end if read succeeded
+
+					if (DecompressionJobsRemaining.fetch_add(-1) == 1)
+					{
+						DecompressionDoneEvent.Trigger();
 					}
-				}, TStatId(), &DecompressionPrereqs, ENamedThreads::AnyHiPriThreadNormalTask);
-			FinalizePreReqs.Add(DecompressBlockTask);
-			const FIoStoreTocCompressedBlockEntry& CompressionBlock = TocResource.CompressionBlocks[BlockIndex];
-			const uint32 RawSize = Align(CompressionBlock.GetCompressedSize(), FAES::AESBlockSize);
-			CompressedSourceOffset += RawSize;
-			UncompressedDestinationOffset += CompressionBlock.GetUncompressedSize();
-			RemainingSize -= CompressionBlock.GetUncompressedSize();
-			OffsetInBlock = 0;
-		}
+				}); // end decompression lambda
 
-		FAsyncFileCallBack ReadRequestCallback = [State, ReadFinishedBarrier](bool bWasCancelled, IAsyncReadRequest*)
-		{
-			if (bWasCancelled)
+				const FIoStoreTocCompressedBlockEntry& CompressionBlock = TocResource.CompressionBlocks[BlockIndex];
+				const uint32 RawSize = Align(CompressionBlock.GetCompressedSize(), FAES::AESBlockSize);
+				CompressedSourceOffset += RawSize;
+				UncompressedDestinationOffset += CompressionBlock.GetUncompressedSize();
+				RemainingSize -= CompressionBlock.GetUncompressedSize();
+				OffsetInBlock = 0;
+			} // end for each block
+
+			// Wait for everything
+			DecompressionDoneEvent.BusyWait();
+
+			TIoStatusOr<FIoBuffer> Result;
+			if (State->bReadSucceeded == false)
 			{
-				State->bReadFailed.Store(true);
+				Result = FIoStatus(EIoErrorCode::ReadError, TEXT("Failed reading chunk from container file"));
 			}
-			ReadFinishedBarrier->DispatchSubsequents();
-		};
-
-		State->ReadRequest = ContainerFileHandles[PartitionIndex]->ReadRequest(ReadStartOffset, State->CompressedSize, AIOP_Normal, &ReadRequestCallback);
-
-		FGraphEventRef FinalizeTask = FFunctionGraphTask::CreateAndDispatchWhenReady([State]()
+			else if (State->bUncompressFailed)
 			{
-				if (State->bReadFailed.Load())
-				{
-					State->Promise.EmplaceValue(FIoStatus(EIoErrorCode::ReadError, TEXT("Failed reading chunk from container file")));
-				}
-				else if (State->bUncompressFailed.Load())
-				{
-					State->Promise.EmplaceValue(FIoStatus(EIoErrorCode::ReadError, TEXT("Failed uncompressing chunk")));
-				}
-				else
-				{
-					State->Promise.SetValue(State->UncompressedBuffer.GetValue());
-				}
-				delete State->CompressedBuffer;
-				delete State->ReadRequest;
-				delete State;
-			}, TStatId(), &FinalizePreReqs, ENamedThreads::AnyHiPriThreadNormalTask);
+				Result = FIoStatus(EIoErrorCode::ReadError, TEXT("Failed uncompressing chunk"));
+			}
+			else
+			{
+				Result = State->UncompressedBuffer.GetValue();
+			}
+			delete State;
 
-		return State->Promise.GetFuture();
-	}
+			return Result;
+		}, UE::Tasks::Prerequisites(ReadJob)); // end read and compress lambda launch
+
+		return ReturnTask;
+	} // end ReadAsync
 
 	TIoStatusOr<FIoBuffer> Read(const FIoChunkId& ChunkId, const FIoReadOptions& Options) const
 	{
@@ -2128,72 +2370,123 @@ public:
 		const FIoStoreTocResource& TocResource = Toc.GetTocResource();
 		const uint64 CompressionBlockSize = TocResource.Header.CompressionBlockSize;
 		FIoBuffer UncompressedBuffer(ResolvedSize);
-		TArray<uint8> CompressedBuffer;
-		CompressedBuffer.SetNumUninitialized(static_cast<int32>(CompressionBlockSize));
+		if (ResolvedSize == 0)
+		{
+			return UncompressedBuffer;
+		}
+
+		// From here on we are reading / decompressing at least one block.
+
+		// We try to overlap the IO for the next block with the decrypt/decompress for the current
+		// block, which requires two IO buffers:
+		TArray<uint8> CompressedBuffers[2];
+		std::atomic_bool AsyncReadSucceeded[2];
+
 		int32 FirstBlockIndex = int32(ResolvedOffset / CompressionBlockSize);
 		int32 LastBlockIndex = int32((Align(ResolvedOffset + ResolvedSize, CompressionBlockSize) - 1) / CompressionBlockSize);
+
+		// Lambda to kick off a read with a sufficient output buffer.
+		auto LaunchBlockRead = [&TocResource, this](int32 BlockIndex, TArray<uint8>& DestinationBuffer, std::atomic_bool* OutReadSucceeded)
+		{
+			const uint64 CompressionBlockSize = TocResource.Header.CompressionBlockSize;
+			const FIoStoreTocCompressedBlockEntry& CompressionBlock = TocResource.CompressionBlocks[BlockIndex];
+
+			// CompressionBlockSize is technically the _uncompresseed_ block size, however it's a good
+			// size to use for reuse as block compression can vary wildly and we want to be able to
+			// read blocks that happen to be uncompressed.
+			uint32 SizeForDecrypt = Align(CompressionBlock.GetCompressedSize(), FAES::AESBlockSize);
+			uint32 CompressedBufferSizeNeeded = FMath::Max(uint32(CompressionBlockSize), SizeForDecrypt);
+
+			if (uint32(DestinationBuffer.Num()) < CompressedBufferSizeNeeded)
+			{
+				DestinationBuffer.SetNumUninitialized(CompressedBufferSizeNeeded);
+			}
+
+			int32 PartitionIndex = int32(CompressionBlock.GetOffset() / TocResource.Header.PartitionSize);
+			int64 PartitionOffset = int64(CompressionBlock.GetOffset() % TocResource.Header.PartitionSize);
+			return StartAsyncRead(PartitionIndex, PartitionOffset, SizeForDecrypt, DestinationBuffer.GetData(), OutReadSucceeded);
+		};
+
+
+		// Kick off the first async read
+		UE::Tasks::FTask NextReadRequest;
+		uint8 NextReadBufferIndex = 0;
+		NextReadRequest = LaunchBlockRead(FirstBlockIndex, CompressedBuffers[NextReadBufferIndex], &AsyncReadSucceeded[NextReadBufferIndex]);
+
 		uint64 UncompressedDestinationOffset = 0;
 		uint64 OffsetInBlock = ResolvedOffset % CompressionBlockSize;
 		uint64 RemainingSize = ResolvedSize;
 		TArray<uint8> TempBuffer;
-		// DevilKrad fix VS2022 V17.1.0 compiler Fatal Error C1001, no proper error as throw over bad allocation stack.
-		const FIoStoreTocCompressedBlockEntry* CompressionBlock = nullptr;
-		uint32 IndexBlock = 0;
-		for (SIZE_T BlockIndex = FirstBlockIndex; BlockIndex <= LastBlockIndex; ++BlockIndex)
+		for (int32 BlockIndex = FirstBlockIndex; BlockIndex <= LastBlockIndex; ++BlockIndex)
 		{
-			IndexBlock = static_cast<uint32>(BlockIndex);
-			CompressionBlock = &TocResource.CompressionBlocks[IndexBlock];
-			uint32 RawSize = Align(CompressionBlock->GetCompressedSize(), FAES::AESBlockSize);
-			if (uint32(CompressedBuffer.Num()) < RawSize)
+			// Kick off the next block's IO if there is one
+			UE::Tasks::FTask ReadRequest(MoveTemp(NextReadRequest));
+			uint8 OurBufferIndex = NextReadBufferIndex;
+			if (BlockIndex + 1 <= LastBlockIndex)
 			{
-				CompressedBuffer.SetNumUninitialized(RawSize);
+				NextReadBufferIndex = NextReadBufferIndex ^ 1;
+				NextReadRequest = LaunchBlockRead(BlockIndex + 1, CompressedBuffers[NextReadBufferIndex], &AsyncReadSucceeded[NextReadBufferIndex]);
 			}
 
-			int32 PartitionIndex = int32(CompressionBlock->GetOffset() / TocResource.Header.PartitionSize);
-			int64 PartitionOffset = int64(CompressionBlock->GetOffset() % TocResource.Header.PartitionSize);
-			TUniquePtr<IAsyncReadRequest> ReadRequest(ContainerFileHandles[PartitionIndex]->ReadRequest(PartitionOffset, RawSize, AIOP_Normal, nullptr, CompressedBuffer.GetData()));
+			// Now, wait for _our_ block's IO
 			{
 				TRACE_CPUPROFILER_EVENT_SCOPE(WaitForIo);
-				ReadRequest->WaitCompletion();
+				ReadRequest.BusyWait();
 			}
 
+			if (AsyncReadSucceeded[OurBufferIndex] == false)
+			{
+				return FIoStatus(EIoErrorCode::ReadError, TEXT("Failed async read in FIoStoreReader::ReadCompressed"));
+			}
+
+			const FIoStoreTocCompressedBlockEntry& CompressionBlock = TocResource.CompressionBlocks[BlockIndex];
+
+			// This also happened in the LaunchBlockRead call, so we know the buffer has the necessary size.
+			uint32 RawSize = Align(CompressionBlock.GetCompressedSize(), FAES::AESBlockSize);
 			if (EnumHasAnyFlags(TocResource.Header.ContainerFlags, EIoContainerFlags::Encrypted))
 			{
 				TRACE_CPUPROFILER_EVENT_SCOPE(Decrypt);
-				FAES::DecryptData(CompressedBuffer.GetData(), RawSize, DecryptionKey);
+				FAES::DecryptData(CompressedBuffers[OurBufferIndex].GetData(), RawSize, DecryptionKey);
 			}
 
-			FName CompressionMethod = TocResource.CompressionMethods[CompressionBlock->GetCompressionMethodIndex()];
+			FName CompressionMethod = TocResource.CompressionMethods[CompressionBlock.GetCompressionMethodIndex()];
 			uint8* UncompressedDestination = UncompressedBuffer.Data() + UncompressedDestinationOffset;
-			const uint32 UncompressedSize = CompressionBlock->GetUncompressedSize();
+			const uint32 UncompressedSize = CompressionBlock.GetUncompressedSize();
 			if (CompressionMethod.IsNone())
 			{
 				uint64 CopySize = FMath::Min<uint64>(UncompressedSize - OffsetInBlock, RemainingSize);
-				FMemory::Memcpy(UncompressedDestination, CompressedBuffer.GetData() + OffsetInBlock, CopySize);
+				check(UncompressedDestination + CopySize <= UncompressedBuffer.Data() + UncompressedBuffer.DataSize());
+				FMemory::Memcpy(UncompressedDestination, CompressedBuffers[OurBufferIndex].GetData() + OffsetInBlock, CopySize);
+				UncompressedDestinationOffset += CopySize;
+				RemainingSize -= CopySize;
 			}
 			else
 			{
 				bool bUncompressed;
 				if (OffsetInBlock || RemainingSize < UncompressedSize)
 				{
+					// If this block is larger than the amount of data actually requested, decompress to a temp
+					// buffer and then copy out. Should never happen when reading the entire chunk.
 					TempBuffer.SetNumUninitialized(UncompressedSize);
-					bUncompressed = FCompression::UncompressMemory(CompressionMethod, TempBuffer.GetData(), UncompressedSize, CompressedBuffer.GetData(), CompressionBlock->GetCompressedSize());
+					bUncompressed = FCompression::UncompressMemory(CompressionMethod, TempBuffer.GetData(), UncompressedSize, CompressedBuffers[OurBufferIndex].GetData(), CompressionBlock.GetCompressedSize());
 					uint64 CopySize = FMath::Min<uint64>(UncompressedSize - OffsetInBlock, RemainingSize);
+					check(UncompressedDestination + CopySize <= UncompressedBuffer.Data() + UncompressedBuffer.DataSize());
 					FMemory::Memcpy(UncompressedDestination, TempBuffer.GetData() + OffsetInBlock, CopySize);
+					UncompressedDestinationOffset += CopySize;
+					RemainingSize -= CopySize;
 				}
 				else
 				{
 					check(UncompressedDestination + UncompressedSize <= UncompressedBuffer.Data() + UncompressedBuffer.DataSize());
-					bUncompressed = FCompression::UncompressMemory(CompressionMethod, UncompressedDestination, UncompressedSize, CompressedBuffer.GetData(), CompressionBlock->GetCompressedSize());
+					bUncompressed = FCompression::UncompressMemory(CompressionMethod, UncompressedDestination, UncompressedSize, CompressedBuffers[OurBufferIndex].GetData(), CompressionBlock.GetCompressedSize());
+					UncompressedDestinationOffset += UncompressedSize;
+					RemainingSize -= UncompressedSize;
 				}
 				if (!bUncompressed)
 				{
 					return FIoStatus(EIoErrorCode::ReadError, TEXT("Failed uncompressing chunk"));
 				}
 			}
-
-			UncompressedDestinationOffset += UncompressedSize;
-			RemainingSize -= UncompressedSize;
 			OffsetInBlock = 0;
 		}
 		return UncompressedBuffer;
@@ -2203,12 +2496,14 @@ public:
 	{
 		TRACE_CPUPROFILER_EVENT_SCOPE(ReadChunkCompressed);
 
+		// Find where in the virtual file the chunk exists.
 		const FIoOffsetAndLength* OffsetAndLength = Toc.GetOffsetAndLength(ChunkId);
 		if (!OffsetAndLength)
 		{
 			return FIoStatus(EIoErrorCode::NotFound, TEXT("Unknown chunk ID"));
 		}
 
+		// Combine with offset/size requested by the reader.
 		uint64 RequestedOffset = Options.GetOffset();
 		uint64 ResolvedOffset = OffsetAndLength->GetOffset() + RequestedOffset;
 		uint64 ResolvedSize = 0;
@@ -2217,60 +2512,76 @@ public:
 			ResolvedSize = FMath::Min(Options.GetSize(), OffsetAndLength->GetLength() - RequestedOffset);
 		}
 
+		// Find what compressed blocks this read straddles.
 		const FIoStoreTocResource& TocResource = Toc.GetTocResource();
 		const uint64 CompressionBlockSize = TocResource.Header.CompressionBlockSize;
-		TArray<uint8> CompressedBuffer;
-		CompressedBuffer.SetNumUninitialized(static_cast<int32>(CompressionBlockSize));
 		int32 FirstBlockIndex = int32(ResolvedOffset / CompressionBlockSize);
 		int32 LastBlockIndex = int32((Align(ResolvedOffset + ResolvedSize, CompressionBlockSize) - 1) / CompressionBlockSize);
+
+		// Determine size of the result and set up output buffers
 		uint64 TotalCompressedSize = 0;
-		// DevilKrad fix VS2022 V17.1.0 compiler Fatal Error C1001, no proper error as throw over bad allocation stack.
-		const FIoStoreTocCompressedBlockEntry* CompressionBlock = nullptr;
-		uint32 IndexBlock = 0;
-		for (SIZE_T BlockIndex = FirstBlockIndex; BlockIndex <= LastBlockIndex; ++BlockIndex)
+		uint64 TotalAlignedSize = 0;
+		for (int32 BlockIndex = FirstBlockIndex; BlockIndex <= LastBlockIndex; ++BlockIndex)
 		{
-			IndexBlock = static_cast<uint32>(BlockIndex);
-			CompressionBlock = &TocResource.CompressionBlocks[IndexBlock];
-			TotalCompressedSize += CompressionBlock->GetCompressedSize();
+			const FIoStoreTocCompressedBlockEntry& CompressionBlock = TocResource.CompressionBlocks[BlockIndex];
+			TotalCompressedSize += CompressionBlock.GetCompressedSize();
+			TotalAlignedSize += Align(CompressionBlock.GetCompressedSize(), FAES::AESBlockSize);
 		}
+
 		FIoStoreCompressedReadResult Result;
-		Result.IoBuffer = FIoBuffer(TotalCompressedSize);
+		Result.IoBuffer = FIoBuffer(TotalAlignedSize);
 		Result.Blocks.Reserve(LastBlockIndex + 1 - FirstBlockIndex);
 		Result.UncompressedOffset = ResolvedOffset % CompressionBlockSize;
 		Result.UncompressedSize = ResolvedSize;
-		uint8* Dst = Result.IoBuffer.Data();
-		// DevilKrad fix VS2022 V17.1.0 compiler Fatal Error C1001, no proper error as throw over bad allocation stack.
-		const FIoStoreTocCompressedBlockEntry* CompressionBlock2 = nullptr;
-		uint32 IndexBlock2 = 0;
-		for (SIZE_T BlockIndex = FirstBlockIndex; BlockIndex <= LastBlockIndex; ++BlockIndex)
-		{
-			IndexBlock2 = static_cast<uint32>(BlockIndex);
-			CompressionBlock2 = &TocResource.CompressionBlocks[IndexBlock2];
-			uint32 RawSize = Align(CompressionBlock2->GetCompressedSize(), FAES::AESBlockSize);
-			if (uint32(CompressedBuffer.Num()) < RawSize)
-			{
-				CompressedBuffer.SetNumUninitialized(RawSize);
-			}
+		Result.TotalCompressedSize = TotalCompressedSize;
 
-			int32 PartitionIndex = int32(CompressionBlock2->GetOffset() / TocResource.Header.PartitionSize);
-			int64 PartitionOffset = int64(CompressionBlock2->GetOffset() % TocResource.Header.PartitionSize);
-			TUniquePtr<IAsyncReadRequest> ReadRequest(ContainerFileHandles[PartitionIndex]->ReadRequest(PartitionOffset, RawSize, AIOP_Normal, nullptr, CompressedBuffer.GetData()));
+		// Set up the result blocks.
+		uint64 CurrentOffset = 0;
+		for (int32 BlockIndex = FirstBlockIndex; BlockIndex <= LastBlockIndex; ++BlockIndex)
+		{
+			const FIoStoreTocCompressedBlockEntry& CompressionBlock = TocResource.CompressionBlocks[BlockIndex];
+			FIoStoreCompressedBlockInfo& BlockInfo = Result.Blocks.AddDefaulted_GetRef();
+			BlockInfo.CompressionMethod = TocResource.CompressionMethods[CompressionBlock.GetCompressionMethodIndex()];
+			BlockInfo.CompressedSize = CompressionBlock.GetCompressedSize();
+			BlockInfo.UncompressedSize = CompressionBlock.GetUncompressedSize();
+			BlockInfo.OffsetInBuffer = CurrentOffset;
+			BlockInfo.AlignedSize = Align(CompressionBlock.GetCompressedSize(), FAES::AESBlockSize);
+			CurrentOffset += BlockInfo.AlignedSize;
+		}
+
+		uint8* OutputBuffer = Result.IoBuffer.Data();
+
+		// We can read the entire thing at once since we obligate the caller to skip the alignment padding.
+		{
+			const FIoStoreTocCompressedBlockEntry& CompressionBlock = TocResource.CompressionBlocks[FirstBlockIndex];
+			int32 PartitionIndex = int32(CompressionBlock.GetOffset() / TocResource.Header.PartitionSize);
+			int64 PartitionOffset = int64(CompressionBlock.GetOffset() % TocResource.Header.PartitionSize);
+
+			std::atomic_bool bReadSucceeded;
+			UE::Tasks::FTask ReadTask = StartAsyncRead(PartitionIndex, PartitionOffset, TotalAlignedSize, OutputBuffer, &bReadSucceeded);
+
 			{
 				TRACE_CPUPROFILER_EVENT_SCOPE(WaitForIo);
-				ReadRequest->WaitCompletion();
+				ReadTask.BusyWait();
 			}
 
-			if (EnumHasAnyFlags(TocResource.Header.ContainerFlags, EIoContainerFlags::Encrypted))
+			if (bReadSucceeded == false)
 			{
-				TRACE_CPUPROFILER_EVENT_SCOPE(Decrypt);
-				FAES::DecryptData(CompressedBuffer.GetData(), RawSize, DecryptionKey);
+				UE_LOG(LogIoStore, Error, TEXT("Read from container %s failed (partition %d, offset %lld, size %d)"), *ContainerPath, PartitionIndex, PartitionOffset, TotalAlignedSize);
+				return FIoStoreCompressedReadResult();
 			}
-			FIoStoreCompressedBlockInfo& BlockInfo = Result.Blocks.AddDefaulted_GetRef();
-			BlockInfo.CompressionMethod = TocResource.CompressionMethods[CompressionBlock2->GetCompressionMethodIndex()];
-			BlockInfo.CompressedSize = CompressionBlock2->GetCompressedSize();
-			BlockInfo.UncompressedSize = CompressionBlock2->GetUncompressedSize();
-			FMemory::Memcpy(Dst, CompressedBuffer.GetData(), BlockInfo.CompressedSize);
-			Dst += BlockInfo.CompressedSize;
+		}
+
+		if (EnumHasAnyFlags(TocResource.Header.ContainerFlags, EIoContainerFlags::Encrypted))
+		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(Decrypt);
+
+			for (int32 BlockIndex = FirstBlockIndex; BlockIndex <= LastBlockIndex; ++BlockIndex)
+			{
+				FIoStoreCompressedBlockInfo& OutputBlock = Result.Blocks[BlockIndex - FirstBlockIndex];
+				uint8* Buffer = OutputBuffer + OutputBlock.OffsetInBuffer;
+				FAES::DecryptData(Buffer, OutputBlock.AlignedSize, DecryptionKey);
+			}
 		}
 		return Result;
 	}
@@ -2296,29 +2607,57 @@ public:
 	{
 		return Toc.GetTocResource().Header.CompressionBlockSize;
 	}
-
+	
 	const TArray<FName>& GetCompressionMethods() const
 	{
 		return Toc.GetTocResource().CompressionMethods;
+	}
+
+	bool EnumerateCompressedBlocksForChunk(const FIoChunkId& ChunkId, TFunction<bool(const FIoStoreTocCompressedBlockInfo&)>&& Callback)
+	{
+		const FIoOffsetAndLength* OffsetAndLength = Toc.GetOffsetAndLength(ChunkId);
+		if (!OffsetAndLength)
+		{
+			return false;
+		}
+
+		// Find what compressed blocks this chunk straddles.
+		const FIoStoreTocResource& TocResource = Toc.GetTocResource();
+		const uint64 CompressionBlockSize = TocResource.Header.CompressionBlockSize;
+		int32 FirstBlockIndex = int32(OffsetAndLength->GetOffset() / CompressionBlockSize);
+		int32 LastBlockIndex = int32((Align(OffsetAndLength->GetOffset() + OffsetAndLength->GetLength(), CompressionBlockSize) - 1) / CompressionBlockSize);
+
+		for (int32 BlockIndex = FirstBlockIndex; BlockIndex <= LastBlockIndex; ++BlockIndex)
+		{
+			const FIoStoreTocCompressedBlockEntry& Entry = TocResource.CompressionBlocks[BlockIndex];
+			FIoStoreTocCompressedBlockInfo Info
+			{
+				Entry.GetOffset(),
+				Entry.GetCompressedSize(),
+				Entry.GetUncompressedSize(),
+				Entry.GetCompressionMethodIndex()
+			};
+			if (!Callback(Info))
+			{
+				break;
+			}
+		}
+		return true;
 	}
 
 	void EnumerateCompressedBlocks(TFunction<bool(const FIoStoreTocCompressedBlockInfo&)>&& Callback)
 	{
 		const FIoStoreTocResource& TocResource = Toc.GetTocResource();
 
-		// DevilKrad fix VS2022 V17.1.0 compiler Fatal Error C1001, no proper error as throw over bad allocation stack.
-		const FIoStoreTocCompressedBlockEntry* Entry = nullptr;
-		uint32 IndexBlock = 0;
-		for (SIZE_T BlockIndex = 0; BlockIndex < TocResource.CompressionBlocks.Num(); ++BlockIndex)
+		for (int32 BlockIndex = 0; BlockIndex < TocResource.CompressionBlocks.Num(); ++BlockIndex)
 		{
-			IndexBlock = static_cast<uint32>(BlockIndex);
-			Entry = &TocResource.CompressionBlocks[IndexBlock];
+			const FIoStoreTocCompressedBlockEntry& Entry = TocResource.CompressionBlocks[BlockIndex];
 			FIoStoreTocCompressedBlockInfo Info
 			{
-				Entry->GetOffset(),
-				Entry->GetCompressedSize(),
-				Entry->GetUncompressedSize(),
-				Entry->GetCompressionMethodIndex()
+				Entry.GetOffset(),
+				Entry.GetCompressedSize(),
+				Entry.GetUncompressedSize(),
+				Entry.GetCompressionMethodIndex()
 			};
 			if (!Callback(Info))
 			{
@@ -2328,60 +2667,12 @@ public:
 	}
 
 private:
-	FIoStoreTocChunkInfo GetTocChunkInfo(const int32 TocEntryIndex) const
-	{
-		const FIoStoreTocResource& TocResource = Toc.GetTocResource();
-		const FIoStoreTocEntryMeta& Meta = TocResource.ChunkMetas[TocEntryIndex];
-		const FIoOffsetAndLength& OffsetLength = TocResource.ChunkOffsetLengths[TocEntryIndex];
 
-		const bool bIsContainerCompressed = EnumHasAnyFlags(TocResource.Header.ContainerFlags, EIoContainerFlags::Compressed);
-
-		FIoStoreTocChunkInfo ChunkInfo;
-		ChunkInfo.Id = TocResource.ChunkIds[TocEntryIndex];
-		ChunkInfo.ChunkType = static_cast<EIoChunkType>(ChunkInfo.Id.Id[11]);
-		ChunkInfo.Hash = Meta.ChunkHash;
-		ChunkInfo.bIsCompressed = EnumHasAnyFlags(Meta.Flags, FIoStoreTocEntryMetaFlags::Compressed);
-		ChunkInfo.bIsMemoryMapped = EnumHasAnyFlags(Meta.Flags, FIoStoreTocEntryMetaFlags::MemoryMapped);
-		ChunkInfo.bForceUncompressed = bIsContainerCompressed && !EnumHasAnyFlags(Meta.Flags, FIoStoreTocEntryMetaFlags::Compressed);
-		ChunkInfo.Offset = OffsetLength.GetOffset();
-		ChunkInfo.Size = OffsetLength.GetLength();
-		const FString* FindFileName = ChunkFileNamesMap.Find(TocEntryIndex);
-		if (FindFileName)
-		{
-			ChunkInfo.FileName = *FindFileName;
-			ChunkInfo.bHasValidFileName = true;
-		}
-		else
-		{
-			ChunkInfo.FileName = FString::Printf(TEXT("<%s>"), *LexToString(ChunkInfo.ChunkType));
-			ChunkInfo.bHasValidFileName = false;
-		}
-
-		const uint64 CompressionBlockSize = TocResource.Header.CompressionBlockSize;
-		int32 FirstBlockIndex = int32(ChunkInfo.Offset / CompressionBlockSize);
-		int32 LastBlockIndex = int32((Align(ChunkInfo.Offset + ChunkInfo.Size, CompressionBlockSize) - 1) / CompressionBlockSize);
-
-		ChunkInfo.CompressedSize = 0;
-		ChunkInfo.PartitionIndex = -1;
-		// DevilKrad fix VS2022 V17.1.0 compiler Fatal Error C1001, no proper error as throw over bad allocation stack.
-		const FIoStoreTocCompressedBlockEntry* CompressionBlock = nullptr;
-		uint32 IndexBlock = 0;
-		for (SIZE_T BlockIndex = FirstBlockIndex; BlockIndex <= LastBlockIndex; ++BlockIndex)
-		{
-			IndexBlock = static_cast<uint32>(BlockIndex);
-			CompressionBlock = &TocResource.CompressionBlocks[IndexBlock];
-			ChunkInfo.CompressedSize += CompressionBlock->GetCompressedSize();
-			if (ChunkInfo.PartitionIndex < 0)
-			{
-				ChunkInfo.PartitionIndex = int32(CompressionBlock->GetOffset() / TocResource.Header.PartitionSize);
-			}
-		}
-		return ChunkInfo;
-	}
 
 	FIoStoreToc Toc;
 	FAES::FAESKey DecryptionKey;
-	TArray<TUniquePtr<IAsyncReadFileHandle>> ContainerFileHandles;
+	TArray<TUniquePtr<FContainerFileAccess>> ContainerFileAccessors;
+	FString ContainerPath;
 	FIoDirectoryIndexReader DirectoryIndexReader;
 	TMap<int32, FString> ChunkFileNamesMap;
 };
@@ -2446,7 +2737,7 @@ TIoStatusOr<FIoStoreCompressedReadResult> FIoStoreReader::ReadCompressed(const F
 	return Impl->ReadCompressed(Chunk, Options);
 }
 
-TFuture<TIoStatusOr<FIoBuffer>> FIoStoreReader::ReadAsync(const FIoChunkId& Chunk, const FIoReadOptions& Options) const
+UE::Tasks::TTask<TIoStatusOr<FIoBuffer>> FIoStoreReader::ReadAsync(const FIoChunkId& Chunk, const FIoReadOptions& Options) const
 {
 	return Impl->ReadAsync(Chunk, Options);
 }
@@ -2469,6 +2760,11 @@ const TArray<FName>& FIoStoreReader::GetCompressionMethods() const
 void FIoStoreReader::EnumerateCompressedBlocks(TFunction<bool(const FIoStoreTocCompressedBlockInfo&)>&& Callback) const
 {
 	Impl->EnumerateCompressedBlocks(MoveTemp(Callback));
+}
+
+void FIoStoreReader::EnumerateCompressedBlocksForChunk(const FIoChunkId& Chunk, TFunction<bool(const FIoStoreTocCompressedBlockInfo&)>&& Callback) const
+{
+	Impl->EnumerateCompressedBlocksForChunk(Chunk, MoveTemp(Callback));
 }
 
 FIoStatus FIoStoreTocResource::Read(const TCHAR* TocFilePath, EIoStoreTocReadOptions ReadOptions, FIoStoreTocResource& OutTocResource)
@@ -2604,10 +2900,10 @@ FIoStatus FIoStoreTocResource::Read(const TCHAR* TocFilePath, EIoStoreTocReadOpt
 		const int32* HashSize = reinterpret_cast<const int32*>(SignatureBuffer);
 		TArrayView<const uint8> TocSignature = MakeArrayView<const uint8>(reinterpret_cast<const uint8*>(HashSize + 1), *HashSize);
 		TArrayView<const uint8> BlockSignature = MakeArrayView<const uint8>(TocSignature.GetData() + *HashSize, *HashSize);
-
+		
 		TArrayView<const uint8> BothSignatures = MakeArrayView<const uint8>(TocSignature.GetData(), *HashSize * 2);
 		FSHA1::HashBuffer(BothSignatures.GetData(), BothSignatures.Num(), OutTocResource.SignatureHash.Hash);
-
+		
 		TArrayView<const FSHAHash> ChunkBlockSignatures = MakeArrayView<const FSHAHash>(reinterpret_cast<const FSHAHash*>(BlockSignature.GetData() + *HashSize), Header.TocCompressedBlockEntryCount);
 
 		// Adjust address to meta data
@@ -2653,8 +2949,9 @@ FIoStatus FIoStoreTocResource::Read(const TCHAR* TocFilePath, EIoStoreTocReadOpt
 TIoStatusOr<uint64> FIoStoreTocResource::Write(
 	const TCHAR* TocFilePath,
 	FIoStoreTocResource& TocResource,
-	const FIoContainerSettings& ContainerSettings,
-	const FIoStoreWriterSettings& WriterSettings)
+	uint32 CompressionBlockSize,
+	uint64 MaxPartitionSize,
+	const FIoContainerSettings& ContainerSettings)
 {
 	check(TocFilePath != nullptr);
 
@@ -2677,6 +2974,19 @@ TIoStatusOr<uint64> FIoStoreTocResource::Write(
 		return FIoStatus(EIoErrorCode::InvalidParameter, TEXT("Number of TOC chunk IDs doesn't match the number of chunk meta data"));
 	}
 
+	bool bHasExplicitCompressionMethodNone = false;
+	for (int32 CompressionMethodIndex = 0; CompressionMethodIndex < TocResource.CompressionMethods.Num(); ++CompressionMethodIndex)
+	{
+		if (TocResource.CompressionMethods[CompressionMethodIndex].IsNone())
+		{
+			if (CompressionMethodIndex != 0)
+			{
+				return FIoStatus(EIoErrorCode::InvalidParameter, TEXT("Compression method None must be the first compression method"));
+			}
+			bHasExplicitCompressionMethodNone = true;
+		}
+	}
+
 	FMemory::Memzero(&TocResource.Header, sizeof(FIoStoreTocHeader));
 
 	FIoStoreTocHeader& TocHeader = TocResource.Header;
@@ -2688,8 +2998,8 @@ TIoStatusOr<uint64> FIoStoreTocResource::Write(
 	TocHeader.TocChunksWithoutPerfectHashCount = TocResource.ChunkIndicesWithoutPerfectHash.Num();
 	TocHeader.TocCompressedBlockEntryCount = TocResource.CompressionBlocks.Num();
 	TocHeader.TocCompressedBlockEntrySize = sizeof(FIoStoreTocCompressedBlockEntry);
-	TocHeader.CompressionBlockSize = uint32(WriterSettings.CompressionBlockSize);
-	TocHeader.CompressionMethodNameCount = TocResource.CompressionMethods.Num();
+	TocHeader.CompressionBlockSize = CompressionBlockSize;
+	TocHeader.CompressionMethodNameCount = TocResource.CompressionMethods.Num() - (bHasExplicitCompressionMethodNone ? 1 : 0);
 	TocHeader.CompressionMethodNameLength = FIoStoreTocResource::CompressionMethodNameLen;
 	TocHeader.DirectoryIndexSize = TocResource.DirectoryIndexBuffer.Num();
 	TocHeader.ContainerId = ContainerSettings.ContainerId;
@@ -2700,10 +3010,13 @@ TIoStatusOr<uint64> FIoStoreTocResource::Write(
 		TocHeader.PartitionCount = 0;
 		TocHeader.PartitionSize = MAX_uint64;
 	}
-	else if (WriterSettings.MaxPartitionSize)
+	else if (MaxPartitionSize)
 	{
-		TocHeader.PartitionCount = uint32(Align(TocResource.CompressionBlocks.Last().GetOffset(), WriterSettings.MaxPartitionSize) / WriterSettings.MaxPartitionSize);
-		TocHeader.PartitionSize = WriterSettings.MaxPartitionSize;
+		const FIoStoreTocCompressedBlockEntry& LastBlock = TocResource.CompressionBlocks.Last();
+		uint64 LastBlockEnd = LastBlock.GetOffset() + LastBlock.GetCompressedSize() - 1;
+		TocHeader.PartitionCount = IntCastChecked<uint32>(LastBlockEnd / MaxPartitionSize + 1);
+		check(TocHeader.PartitionCount > 0);
+		TocHeader.PartitionSize = MaxPartitionSize;
 	}
 	else
 	{
@@ -2752,6 +3065,10 @@ TIoStatusOr<uint64> FIoStoreTocResource::Write(
 
 	for (FName MethodName : TocResource.CompressionMethods)
 	{
+		if (MethodName.IsNone())
+		{
+			continue;
+		}
 		FMemory::Memzero(AnsiMethodName, FIoStoreTocResource::CompressionMethodNameLen);
 		FCStringAnsi::Strcpy(AnsiMethodName, FIoStoreTocResource::CompressionMethodNameLen, TCHAR_TO_ANSI(*MethodName.ToString()));
 

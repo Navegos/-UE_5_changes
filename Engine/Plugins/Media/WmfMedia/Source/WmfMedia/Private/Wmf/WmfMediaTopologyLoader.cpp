@@ -66,7 +66,7 @@ bool WmfMediaTopologyLoader::ResolveActivationNode(const TComPtr<IMFTopology>& I
 				{
 					StreamID = 0;
 				}
-
+				
 				TComPtr<IMFStreamSink> StreamSink;
 				MediaSink->GetStreamSinkById(StreamID, &StreamSink);
 
@@ -151,8 +151,10 @@ bool WmfMediaTopologyLoader::FindDeviceManager(const TComPtr<IMFTopology>& InTop
 					if (Attributes)
 					{
 						UINT32 D3D11_Aware = 0;
-						const GUID LMF_SA_D3D11_AWARE = { 0x206b4fc8, 0xfcf9, 0x4c51, { 0xaf, 0xe3, 0x97, 0x64, 0x36, 0x9e, 0x33, 0xa0 } };
-						if (Attributes->GetUINT32(LMF_SA_D3D11_AWARE, &D3D11_Aware) == S_OK)
+#if (WINVER < _WIN32_WINNT_WIN8) 
+						const GUID MF_SA_D3D11_AWARE = { 0x206b4fc8, 0xfcf9, 0x4c51, { 0xaf, 0xe3, 0x97, 0x64, 0x36, 0x9e, 0x33, 0xa0 } };
+#endif
+						if (Attributes->GetUINT32(MF_SA_D3D11_AWARE, &D3D11_Aware) == S_OK)
 						{
 							DWORD OutputCount = 0;
 							Node->GetOutputCount(&OutputCount);

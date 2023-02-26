@@ -7570,14 +7570,14 @@ msl(std::nano) NOEXCEPT
     return msl(CharT{'n'});
 }
 
-//DevilKradPT MS VC compiler defines this
+//DevelVitorF MS VC compiler defines this
 #if !defined(_MSC_VER)
 template <class CharT>
 CONSTCD14
 inline
 std::enable_if_t
 <
-    std::is_same<CharT, char>{},
+    (std::is_same<CharT, char>{}),
     string_literal<char, 3>
 >
 msl(std::micro) NOEXCEPT
@@ -7590,7 +7590,7 @@ CONSTCD14
 inline
 std::enable_if_t
 <
-    !std::is_same<CharT, char>{},
+    !(std::is_same<CharT, char>{}),
     string_literal<CharT, 2>
 >
 msl(std::micro) NOEXCEPT

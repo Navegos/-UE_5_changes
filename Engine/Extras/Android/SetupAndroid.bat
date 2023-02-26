@@ -18,7 +18,7 @@ SET NDK_VERSION=%4
 
 rem hardcoded versions for compatibility with non-Turnkey manual running
 if "%PLATFORMS_VERSION%" == "" SET PLATFORMS_VERSION=android-32
-if "%BUILDTOOLS_VERSION%" == "" SET BUILDTOOLS_VERSION=33.0.0
+if "%BUILDTOOLS_VERSION%" == "" SET BUILDTOOLS_VERSION=34.0.0-rc1
 if "%CMAKE_VERSION%" == "" SET CMAKE_VERSION=3.22.1
 if "%NDK_VERSION%" == "" SET NDK_VERSION=25.1.8937393
 
@@ -59,6 +59,10 @@ if DEFINED ANDROID_HOME (set a=1) ELSE (
 	set ANDROID_HOME=%STUDIO_SDK_PATH%
 	setx ANDROID_HOME "%STUDIO_SDK_PATH%"
 )
+if DEFINED ANDROID_SDK_HOME (set a=1) ELSE (
+	set ANDROID_SDK_HOME=%STUDIO_SDK_PATH%
+	setx ANDROID_SDK_HOME "%STUDIO_SDK_PATH%"
+)
 if DEFINED JAVA_HOME (set a=1) ELSE (
 	set JAVA_HOME=%STUDIO_PATH%\jre
 	setx JAVA_HOME "%STUDIO_PATH%\jre"
@@ -79,11 +83,11 @@ IF /I "%ERRORLEVEL%" NEQ "0" (
 	echo Added %PLATFORMTOOLS% to path
 )
 
-set SDKMANAGER=%STUDIO_SDK_PATH%\tools\bin\sdkmanager.bat
+set SDKMANAGER=%STUDIO_SDK_PATH%\cmdline-tools\latest\bin\sdkmanager.bat
 IF EXIST "%SDKMANAGER%" (
 	echo Using sdkmanager: %SDKMANAGER%
 ) ELSE (
-	set SDKMANAGER=%STUDIO_SDK_PATH%\cmdline-tools\latest\bin\sdkmanager.bat
+	set SDKMANAGER=%STUDIO_SDK_PATH%\tools\bin\sdkmanager.bat
 	IF EXIST "!SDKMANAGER!" (
 		echo Using sdkmanager: !SDKMANAGER!
 	) ELSE (

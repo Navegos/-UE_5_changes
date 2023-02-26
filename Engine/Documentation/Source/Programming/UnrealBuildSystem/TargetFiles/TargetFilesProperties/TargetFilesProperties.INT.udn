@@ -2,7 +2,7 @@ Availability: NoPublish
 Title: Build Configuration Properties Page
 Crumbs:
 Description: This is a procedurally generated markdown page.
-Version: 5.0
+Version: 5.2
 
 ### Read-Only Properties
 
@@ -10,11 +10,19 @@ $ Platform (UnrealTargetPlatform): Platform that this target is being built for.
 
 $ Configuration (UnrealTargetConfiguration): The configuration being built.
 
-$ Architecture (String): Architecture that the target is being built for (or an empty string for the default).
+$ Architectures (UnrealArchitectures): Architecture that the target is being built for (or an empty string for the default).
 
 $ ProjectFile (FileReference): Path to the project file for the project containing this target.
 
 $ Version (ReadOnlyBuildVersion): The current build version
+
+$ IsTestTarget (Boolean): Whether this is a low level tests target.
+
+$ ExplicitTestsTarget (Boolean): Whether this is a test target explicitly defined. Explicitley defined test targets always inherit from TestTargetRules and define their own tests. Implicit test targets are created from existing targets when building with -Mode=Test and they include tests from all dependencies.
+
+$ WithLowLevelTests (Boolean): Controls the value of WITH_LOW_LEVEL_TESTS that dictates whether module-specific low level tests are compiled in or not.
+
+$ Architecture (UnrealArch): Gets the Architecture in the normal case where there is a single Architecture in Architectures (this will throw an exception if there is more than one architecture specified)
 
 $ HostPlatform (UnrealTargetPlatform): Gets the host platform being built on
 
@@ -27,6 +35,10 @@ $ bIsEngineInstalled (Boolean): Expose a setting for whether or not the engine i
 
 ### Read/Write Properties
 $ Type (TargetType): The type of target.
+
+$ ForcedIncludeOrder (Nullable&lt;EngineIncludeOrderVersion&gt;): Force the include order to a specific version. Overrides any Target and Module rules.
+
+$ OutputFile (String): Path to the output file for the main executable, relative to the Engine or project directory. This setting is only typically useful for non-UE programs, since the engine uses paths relative to the executable to find other known folders (eg. Content).
 
 $ bUsesSteam (Boolean): Whether the target uses Steam.
 
@@ -44,6 +56,8 @@ $ UndecoratedConfiguration (UnrealTargetConfiguration): Specifies the configurat
 
 $ bBuildAllModules (Boolean): Build all the modules that are valid for this target type. Used for CIS and making installed engine builds.
 
+$ VSTestRunSettingsFile (FileReference): Set this to reference a VSTest run settings file from generated projects.
+
 $ BuildPlugins (List&lt;String&gt;): Additional plugins that are built for this target type but not enabled.
 
 $ bRuntimeDependenciesComeFromBuildPlugins (Boolean): If this is true, then the BuildPlugins list will be used to populate RuntimeDependencies, rather than EnablePlugins
@@ -60,7 +74,7 @@ $ PakSigningKeysFile (String): Path to the set of pak signing keys to embed in t
 
 $ SolutionDirectory (String): Allows a Program Target to specify it's own solution folder path.
 
-$ bBuildInSolutionByDefault (Nullable&lt;Boolean&gt;): Whether the target should be included in the default solution build configuration
+$ bBuildInSolutionByDefault (Nullable&lt;Boolean&gt;): Whether the target should be included in the default solution build configuration Setting this to false will skip building when running in the IDE
 
 $ bShouldCompileAsDLL (Boolean): Whether this target should be compiled as a DLL.  Requires LinkType to be set to TargetLinkType.Monolithic.
 
@@ -96,21 +110,21 @@ $ bCompileCEF3 (Boolean): Whether to compile CEF3 support.
 
 $ bCompileISPC (Boolean): Whether to compile using ISPC.
 
+$ bCompileIntelMetricsDiscovery (Boolean): Whether to compile IntelMetricsDiscovery.
+
 $ bCompilePython (Boolean): Whether to compile in python support
+
+$ bUseIris (Boolean): Whether to use Iris.
 
 $ bForceBuildTargetPlatforms (Boolean): Whether to force compiling the target platform modules, even if they wouldn't normally be built.
 
 $ bForceBuildShaderFormats (Boolean): Whether to force compiling shader format modules, even if they wouldn't normally be built.
 
+$ bNeedsExtraShaderFormatsOverride (Nullable&lt;Boolean&gt;): Override for including extra shader formats
+
 $ bCompileCustomSQLitePlatform (Boolean): Whether we should compile SQLite using the custom "Unreal" platform (true), or using the native platform (false).
 
 $ bUseCacheFreedOSAllocs (Boolean): Whether to utilize cache freed OS allocs with MallocBinned
-
-$ bCompileAgainstEngine (Boolean): Enabled for all builds that include the engine project.  Disabled only when building standalone apps that only link with Core.
-
-$ bCompileAgainstCoreUObject (Boolean): Enabled for all builds that include the CoreUObject project.  Disabled only when building standalone apps that only link with Core.
-
-$ bCompileAgainstApplicationCore (Boolean): Enabled for builds that need to initialize the ApplicationCore module. Command line utilities do not normally need this.
 
 $ bCompileRecast (Boolean): Whether to compile Recast navmesh generation.
 
@@ -128,6 +142,10 @@ $ bForceEnableObjCExceptions (Boolean): Enable exceptions for all modules.
 
 $ bForceEnableRTTI (Boolean): Enable RTTI for all modules.
 
+$ bEnablePIE (Boolean): Enable Position Independent Executable (PIE). Has an overhead cost
+
+$ bEnableStackProtection (Boolean): Enable Stack Protection. Has an overhead cost
+
 $ bCompileWithStatsWithoutEngine (Boolean): Whether to include stats support even without the engine.
 
 $ bCompileWithPluginSupport (Boolean): Whether to include plugin support.
@@ -138,6 +156,8 @@ $ bUseDebugLiveCodingConsole (Boolean): Whether to enable support for live codin
 
 $ bWithDirectXMath (Boolean): Whether to enable support for DirectX Math LWC_TODO: No longer supported. Needs removing.
 
+$ bWithFixedTimeStepSupport (Boolean): Whether to enable the support for FixedTimeStep in the engine
+
 $ bUseLoggingInShipping (Boolean): Whether to turn on logging for test/shipping builds.
 
 $ bLoggingToMemoryEnabled (Boolean): Whether to turn on logging to memory for test/shipping builds.
@@ -146,11 +166,17 @@ $ bUseLauncherChecks (Boolean): Whether to check that the process was launched t
 
 $ bUseChecksInShipping (Boolean): Whether to turn on checks (asserts) for test/shipping builds.
 
+$ bTCHARIsUTF8 (Boolean): Whether to turn on UTF-8 mode, mapping TCHAR to UTF8CHAR.
+
 $ bUseEstimatedUtcNow (Boolean): Whether to use the EstimatedUtcNow or PlatformUtcNow.  EstimatedUtcNow is appropriate in cases where PlatformUtcNow can be slow.
 
 $ bCompileFreeType (Boolean): True if we need FreeType support.
 
+$ bUseExecCommandsInShipping (Boolean): Whether to turn allow exec commands for shipping builds.
+
 $ bCompileForSize (Boolean): True if we want to favor optimizing size over speed.
+
+$ OptimizationLevel (OptimizationMode): Allows to fine tune optimizations level for speed and\or code size
 
 $ bForceCompileDevelopmentAutomationTests (Boolean): Whether to compile development automation tests.
 
@@ -166,6 +192,8 @@ $ bUseXGEController (Boolean): Whether the XGE controller worker and modules sho
 
 $ bIWYU (Boolean): Enables "include what you use" by default for modules in this target. Changes the default PCH mode for any module in this project to PCHUsageMode.UseExplicitOrSharedPCHs.
 
+$ bIWYUHeadersOnly (Boolean): Tells "include what you use" to only compile header files.
+
 $ bEnforceIWYU (Boolean): Enforce "include what you use" rules; warns if monolithic headers (Engine.h, UnrealEd.h, etc...) are used, and checks that source files include their matching header first.
 
 $ bPrecompile (Boolean): Make static libraries for all engine modules as intermediates for this target.
@@ -177,6 +205,8 @@ $ bIsBuildingConsoleApplication (Boolean): True if this is a console application
 $ bDisableSymbolCache (Boolean): True if debug symbols that are cached for some platforms should not be created.
 
 $ bForceUnityBuild (Boolean): Whether to force C++ source files to be combined into larger files for faster compilation.
+
+$ bMergeModuleAndGeneratedUnityFiles (Boolean): Whether to merge module and generated unity files for faster compilation.
 
 $ bUseAdaptiveUnityBuild (Boolean): Use a heuristic to determine which files are currently being iterated on and exclude them from unity blobs, result in faster incremental compile times. The current implementation uses the read-only flag to distinguish the working set, assuming that files will be made writable by the source control system if they are being modified. This is true for Perforce, but not for Git.
 
@@ -200,13 +230,17 @@ $ UnsafeTypeCastWarningLevel (WarningLevel): Indicates what warning/error level 
 
 $ bUndefinedIdentifierErrors (Boolean): Forces the use of undefined identifiers in conditional expressions to be treated as errors.
 
-$ bRetainFramePointers (Boolean): Forces frame pointers to be retained this is usually required when you want reliable callstacks e.g. mallocframeprofiler
+$ bRetainFramePointersOverride (Nullable&lt;Boolean&gt;): Forces frame pointers to be retained this is usually required when you want reliable callstacks e.g. mallocframeprofiler
 
 $ bUseFastMonoCalls (Boolean): New Monolithic Graphics drivers have optional "fast calls" replacing various D3d functions
 
 $ NumIncludedBytesPerUnityCPP (Int32): An approximate number of bytes of C++ code to target for inclusion in a single unified C++ file.
 
+$ bDisableModuleNumIncludedBytesPerUnityCPPOverride (Boolean): Disables overrides that are set by the module
+
 $ bStressTestUnity (Boolean): Whether to stress test the C++ unity build robustness by including all C++ files files in a project from a single unified file.
+
+$ bDetailedUnityFiles (Boolean): Whether to add additional information to the unity files, such as '_of_X' in the file name.
 
 $ bForceDebugInfo (Boolean): Whether to force debug info to be generated.
 
@@ -220,7 +254,23 @@ $ bUsePDBFiles (Boolean): Whether PDB files should be used for Visual C++ builds
 
 $ bUsePCHFiles (Boolean): Whether PCH files should be used.
 
+$ bDeterministic (Boolean): Set flags require for determinstic linking (experimental, may not be fully supported). Deterministic compiling is controlled via ModuleRules.
+
+$ bForceDeterministic (Boolean): Force set flags require for determinstic compiling and linking (experimental, may not be fully supported). This setting is only recommended for testing, instead:
+        * Set bDeterministic on a per module basis in ModuleRules to control deterministic compiling.
+        * Set bDeterministic on a per target basis in TargetRules to control deterministic linking.
+
+$ bForceIncludePCHHeadersForGenCppFilesWhenPCHIsDisabled (Boolean): Whether PCH headers should be force included for gen.cpp files when PCH is disabled.
+
 $ bPreprocessOnly (Boolean): Whether to just preprocess source files for this target, and skip compilation
+
+$ bPreprocessDepends (Boolean): Generate dependency files by preprocessing. This is only recommended when distributing builds as it adds additional overhead.
+
+$ StaticAnalyzer (StaticAnalyzer): Whether static code analysis should be enabled.
+
+$ StaticAnalyzerOutputType (StaticAnalyzerOutputType): The output type to use for the static analyzer. This is only supported for Clang.
+
+$ StaticAnalyzerMode (StaticAnalyzerMode): The mode to use for the static analyzer. This is only supported for Clang. Shallow mode completes quicker but is generally not recommended.
 
 $ MinFilesUsingPrecompiledHeader (Int32): The minimum number of files that must use a pre-compiled header before it will be created and used.
 
@@ -232,11 +282,15 @@ $ bAllowLTCG (Boolean): Whether to allow the use of link time code generation (L
 
 $ bPreferThinLTO (Boolean): When Link Time Code Generation (LTCG) is enabled, whether to prefer using the lighter weight version on supported platforms.
 
+$ ThinLTOCacheDirectory (String): Directory where to put the ThinLTO cache on supported platforms.
+
+$ ThinLTOCachePruningArguments (String): Arguments that will be applied to prune the ThinLTO cache on supported platforms. Arguments will only be applied if ThinLTOCacheDirectory is set.
+
 $ bPGOProfile (Boolean): Whether to enable Profile Guided Optimization (PGO) instrumentation in this build.
 
 $ bPGOOptimize (Boolean): Whether to optimize this build with Profile Guided Optimization (PGO).
 
-$ bSupportEditAndContinue (Boolean): Whether to support edit and continue.  Only works on Microsoft compilers.
+$ bSupportEditAndContinue (Boolean): Whether to support edit and continue.
 
 $ bOmitFramePointers (Boolean): Whether to omit frame pointers or not. Disabling is useful for e.g. memory profiling on the PC.
 
@@ -244,7 +298,11 @@ $ bEnableCppModules (Boolean): Whether to enable support for C++20 modules
 
 $ bEnableCppCoroutinesForEvaluation (Boolean): Whether to enable support for C++20 coroutines This option is provided to facilitate evaluation of the feature. Expect the name of the option to change. Use of coroutines in with UE is untested and unsupported.
 
+$ bEnableProcessPriorityControl (Boolean): Whether to enable engine's ability to set process priority on runtime. This option requires some environment setup on Linux, that's why it's disabled by default. Project has to opt-in this feature as it has to guarantee correct setup.
+
 $ bUseMallocProfiler (Boolean): If true, then enable memory profiling in the build (defines USE_MALLOC_PROFILER=1 and forces bOmitFramePointers=false).
+
+$ bShaderCompilerWorkerTrace (Boolean): If true, then enable Unreal Insights (utrace) profiling in the build for the Shader Compiler Worker (defines USE_SHADER_COMPILER_WORKER_TRACE=1).
 
 $ bUseSharedPCHs (Boolean): Enables "Shared PCHs", a feature which significantly speeds up compile times by attempting to share certain PCH files between modules that UBT detects is including those PCH's header files.
 
@@ -262,6 +320,10 @@ $ bCreateMapFile (Boolean): Outputs a map file as part of the build.
 
 $ bAllowRuntimeSymbolFiles (Boolean): True if runtime symbols files should be generated as a post build step for some platforms. These files are used by the engine to resolve symbol names of callstack backtraces in logs.
 
+$ PackagePath (String): Package full path (directory + filename) where to store input files used at link time Normally used to debug a linker crash for platforms that support it
+
+$ CrashDiagnosticDirectory (String): Directory where to put crash report files for platforms that support it
+
 $ BundleVersion (String): Bundle version for Mac apps.
 
 $ bDeployAfterCompile (Boolean): Whether to deploy the executable after compilation on platforms that require deployment.
@@ -271,6 +333,8 @@ $ bAllowRemotelyCompiledPCHs (Boolean): When enabled, allows XGE to compile pre-
 $ bCheckSystemHeadersForModification (Boolean): Whether headers in system paths should be checked for modification when determining outdated actions.
 
 $ bDisableLinking (Boolean): Whether to disable linking for this target.
+
+$ bIgnoreBuildOutputs (Boolean): Whether to ignore tracking build outputs for this target.
 
 $ bFormalBuild (Boolean): Indicates that this is a formal build, intended for distribution. This flag is automatically set to true when Build.version has a changelist set. The only behavior currently bound to this flag is to compile the default resource file separately for each binary so that the OriginalFilename field is set correctly. By default, we only compile the resource once to reduce build times.
 
@@ -282,6 +346,8 @@ $ bParseTimingInfoForTracing (Boolean): Whether to parse timing data into a trac
 
 $ bPublicSymbolsByDefault (Boolean): Whether to expose all symbols as public by default on POSIX platforms
 
+$ bDisableInliningGenCpps (Boolean): Disable supports for inlining gen.cpps
+
 $ ToolChainName (String): Allows overriding the toolchain to be created for this target. This must match the name of a class declared in the UnrealBuildTool assembly.
 
 $ bDisableUnverifiedCertificates (Boolean): Whether to allow engine configuration to determine if we can load unverified certificates.
@@ -291,6 +357,8 @@ $ bAllowGeneratedIniWhenCooked (Boolean): Whether to load generated ini files in
 $ bAllowNonUFSIniWhenCooked (Boolean): Whether to load non-ufs ini files in cooked build, (GameUserSettings.ini loaded either way)
 
 $ CppStandard (CppStandardVersion): Which C++ stanard to use for compiling this target
+
+$ CStandard (CStandardVersion): Which C standard to use for compiling this target
 
 $ DefaultCPU (DefaultCPUVersion): Specifies which processor to use for compiling this module and to tuneup and optimize to specifics of micro-architectures
 
@@ -322,7 +390,7 @@ $ AdditionalCompilerArguments (String): Additional arguments to pass to the comp
 
 $ AdditionalLinkerArguments (String): Additional arguments to pass to the linker
 
-$ MemoryPerActionGB (Double): Max amount of memory that each compile action may require. Used by ParallelExecutor and TaskExecutor to decide the maximum number of parallel actions to start at one time.
+$ MemoryPerActionGB (Double): Max amount of memory that each compile action may require. Used by ParallelExecutor to decide the maximum number of parallel actions to start at one time.
 
 $ DisableUnityBuildForModules (String[]): List of modules to disable unity builds for
 
@@ -338,9 +406,15 @@ $ Name (String): The name of this target
 
 $ DefaultBuildSettings (BuildSettingsVersion): Specifies the engine version to maintain backwards-compatible default build settings with (eg. DefaultSettingsVersion.Release_4_23, DefaultSettingsVersion.Release_4_24). Specify DefaultSettingsVersion.Latest to always use defaults for the current engine version, at the risk of introducing build errors while upgrading.
 
+$ IncludeOrderVersion (EngineIncludeOrderVersion): What version of include order to use when compiling this target. Can be overridden via -ForceIncludeOrder on the command line. ModuleRules.IncludeOrderVersion takes precedence.
+
 $ bAllowHotReload (Boolean): Whether this target supports hot reload
 
-$ bBuildEditor (Boolean): Whether to compile the editor or not. Only desktop platforms (Windows or Mac) will use this, other platforms force this to false.
+$ bUseGameplayDebugger (Boolean): Whether to compile with WITH_GAMEPLAY_DEBUGGER enabled with all Engine's default gameplay debugger categories.
+
+$ bUseGameplayDebuggerCore (Boolean): Set to true when bUseGameplayDebugger is false but GameplayDebugger's core parts are required.
+
+$ bBuildEditor (Boolean): Whether we are compiling editor code or not. Prefer the more explicit bCompileAgainstEditor instead.
 
 $ bBuildRequiresCookedData (Boolean): Whether to compile code related to building assets. Consoles generally cannot build assets. Desktop platforms generally can.
 
@@ -350,9 +424,21 @@ $ bBuildDeveloperTools (Boolean): Whether to compile the developer tools.
 
 $ bBuildTargetDeveloperTools (Boolean): Whether to compile the developer tools that are for target platforms or connected devices (defaults to bBuildDeveloperTools)
 
-$ bCompileSpeedTree (Boolean): Whether we should compile in support for Simplygon or not.
+$ bNeedsExtraShaderFormats (Boolean): Whether we should include any extra shader formats. By default this is only enabled for Program and Editor targets.
+
+$ bCompileAgainstEngine (Boolean): Enabled for all builds that include the engine project.  Disabled only when building standalone apps that only link with Core.
+
+$ bCompileAgainstCoreUObject (Boolean): Enabled for all builds that include the CoreUObject project.  Disabled only when building standalone apps that only link with Core.
+
+$ bCompileAgainstApplicationCore (Boolean): Enabled for builds that need to initialize the ApplicationCore module. Command line utilities do not normally need this.
+
+$ bCompileAgainstEditor (Boolean): Enabled for editor builds (TargetType.Editor). Can be overridden for programs (TargetType.Program) that would need to compile against editor code. Not available for other target types. Mainly drives the value of WITH_EDITOR.
+
+$ bCompileSpeedTree (Boolean): Whether we should compile in support for SpeedTree or not.
 
 $ bWithServerCode (Boolean): Compile server-only code.
+
+$ bFNameOutlineNumber (Boolean): Compile with FName storing the number part in the name table. Saves memory when most names are not numbered and those that are are referenced multiple times. The game and engine must ensure they reuse numbered names similarly to name strings to avoid leaking memory.
 
 $ bWithPushModel (Boolean): When enabled, Push Model Networking support will be compiled in. This can help reduce CPU overhead of networking, at the cost of more memory. Always enabled in editor builds.
 
@@ -374,7 +460,11 @@ $ DefaultWarningLevel (WarningLevel): Default treatment of uncategorized warning
 
 $ DeprecationWarningLevel (WarningLevel): Level to report deprecation warnings as errors
 
+$ bRetainFramePointers (Boolean): Forces frame pointers to be retained this is usually required when you want reliable callstacks e.g. mallocframeprofiler
+
 $ bLegacyPublicIncludePaths (Boolean): Add all the public folders as include paths for the compile environment.
+
+$ bLegacyParentIncludePaths (Boolean): Add all the parent folders as include paths for the compile environment.
 
 $ LinkType (TargetLinkType): Specifies how to link modules in this target (monolithic or modular). This is currently protected for backwards compatibility. Call the GetLinkType() accessor until support for the deprecated ShouldCompileMonolithic() override has been removed.
 
