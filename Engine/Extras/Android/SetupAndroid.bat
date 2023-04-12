@@ -18,7 +18,7 @@ SET NDK_VERSION=%4
 
 rem hardcoded versions for compatibility with non-Turnkey manual running
 if "%PLATFORMS_VERSION%" == "" SET PLATFORMS_VERSION=android-32
-if "%BUILDTOOLS_VERSION%" == "" SET BUILDTOOLS_VERSION=34.0.0-rc1
+if "%BUILDTOOLS_VERSION%" == "" SET BUILDTOOLS_VERSION=34.0.0-rc2
 if "%CMAKE_VERSION%" == "" SET CMAKE_VERSION=3.22.1
 if "%NDK_VERSION%" == "" SET NDK_VERSION=25.1.8937393
 

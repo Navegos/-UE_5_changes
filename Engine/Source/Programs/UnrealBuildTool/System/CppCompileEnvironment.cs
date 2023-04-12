@@ -42,18 +42,18 @@ namespace UnrealBuildTool
 		/// Supports C++20
 		/// </summary>
 		Cpp20,
-		
+
 		/// <summary>
 		/// Latest standard supported by the compiler
 		/// </summary>
 		Latest,
-		
+
 		/// <summary>
 		/// Use the default standard version
 		/// </summary>
 		Default = Cpp17,
 	}
-	
+
 	/// <summary>
 	/// Specifies which C language standard to use. This enum should be kept in order, so that toolchains can check whether the requested setting is >= values that they support.
 	/// </summary>
@@ -94,7 +94,7 @@ namespace UnrealBuildTool
 	/// Specifies which processor to use for compiling this module and to tuneup and optimize to specifics of micro-architectures. This enum should be kept in order, so that toolchains can check whether the requested setting is >= values that they support.
 	/// Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable might cause worse performance or will crash on incompatible processors.
 	/// </summary>
-	public enum DefaultCPUVersion
+	public enum DefaultCPU
 	{
 		/// <summary>
 		/// A generic CPU with 64-bit extensions.
@@ -179,7 +179,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		Bdver3,
 
-		//AVX Supported CPUs
+		//AVX2 Supported CPUs
 
 		/// <summary>
 		/// Intel Haswell CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE and HLE instruction set support.
@@ -202,42 +202,57 @@ namespace UnrealBuildTool
 		Alderlake,
 
 		/// <summary>
+		/// Intel Sierra Forest CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, AES, PREFETCHW, PCLMUL, RDRND, XSAVE, XSAVEC, XSAVES, XSAVEOPT, FSGSBASE, PTWRITE, RDPID, SGX, GFNI-SSE, CLWB, MOVDIRI, MOVDIR64B, CLDEMOTE, WAITPKG, ADCX, AVX, AVX2, BMI, BMI2, F16C, FMA, LZCNT, PCONFIG, PKU, VAES, VPCLMULQDQ, SERIALIZE, HRESET, KL, WIDEKL, AVX-VNNI, AVXIFMA, AVXVNNIINT8, AVXNECONVERT and CMPCCXADD instruction set support.
+		/// </summary>
+		Sierraforest,
+
+		/// <summary>
+		/// Intel Grand Ridge CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, AES, PREFETCHW, PCLMUL, RDRND, XSAVE, XSAVEC, XSAVES, XSAVEOPT, FSGSBASE, PTWRITE, RDPID, SGX, GFNI-SSE, CLWB, MOVDIRI, MOVDIR64B, CLDEMOTE, WAITPKG, ADCX, AVX, AVX2, BMI, BMI2, F16C, FMA, LZCNT, PCONFIG, PKU, VAES, VPCLMULQDQ, SERIALIZE, HRESET, KL, WIDEKL, AVX-VNNI, AVXIFMA, AVXVNNIINT8, AVXNECONVERT, CMPCCXADD and RAOINT instruction set support.
+		/// </summary>
+		Grandridge,
+
+		/// <summary>
 		/// AMD Bulldozer Family 15h core based CPUs with x86-64 instruction set support. This supersets BMI, BMI2, TBM, F16C, FMA, FMA4, FSGSBASE, AVX, AVX2, XOP, LWP, AES, PCLMUL, CX16, MOVBE, MMX, SSE, SSE2, SSE3, SSE4A, SSSE3, SSE4.1, SSE4.2, ABM and 64-bit instruction set extensions.
 		/// </summary>
 		Bdver4,
 
 		/// <summary>
-		/// AMD Zen1 Ryzen/Epic-7xx1-series Family 17h core based CPUs with x86-64 instruction set support. This supersets BMI, BMI2, F16C, FMA, FSGSBASE, AVX, AVX2, ADCX, RDSEED, MWAITX, SHA, CLZERO, AES, PCLMUL, CX16, MOVBE, MMX, SSE, SSE2, SSE3, SSE4A, SSSE3, SSE4.1, SSE4.2, ABM, XSAVEC, XSAVES, CLFLUSHOPT, POPCNT, and 64-bit instruction set extensions.
+		/// AMD Zen1 Ryzen/Epic-7xx1-series Family 17h core based CPUs with x86-64 instruction set support. (This supersets BMI, BMI2, F16C, FMA, FSGSBASE, AVX, AVX2, ADCX, RDSEED, MWAITX, SHA, CLZERO, AES, PCLMUL, CX16, MOVBE, MMX, SSE, SSE2, SSE3, SSE4A, SSSE3, SSE4.1, SSE4.2, ABM, XSAVEC, XSAVES, CLFLUSHOPT, POPCNT, and 64-bit instruction set extensions.)
 		/// </summary>
 		Znver1,
 
 		/// <summary>
-		/// AMD Zen2 Ryzen/Epic-7xx2-series Family 17h core based CPUs with x86-64 instruction set support. This supersets BMI, BMI2, CLWB, F16C, FMA, FSGSBASE, AVX, AVX2, ADCX, RDSEED, MWAITX, SHA, CLZERO, AES, PCLMUL, CX16, MOVBE, MMX, SSE, SSE2, SSE3, SSE4A, SSSE3, SSE4.1, SSE4.2, ABM, XSAVEC, XSAVES, CLFLUSHOPT, POPCNT, RDPID, WBNOINVD, and 64-bit instruction set extensions.
+		/// AMD Zen2 Ryzen/Epic-7xx2-series Family 17h core based CPUs with x86-64 instruction set support. (This supersets BMI, BMI2, CLWB, F16C, FMA, FSGSBASE, AVX, AVX2, ADCX, RDSEED, MWAITX, SHA, CLZERO, AES, PCLMUL, CX16, MOVBE, MMX, SSE, SSE2, SSE3, SSE4A, SSSE3, SSE4.1, SSE4.2, ABM, XSAVEC, XSAVES, CLFLUSHOPT, POPCNT, RDPID, WBNOINVD, and 64-bit instruction set extensions.)
 		/// </summary>
 		Znver2,
 
 		/// <summary>
-		/// AMD Zen3 Ryzen/Epic-7xx3-series Family 19h core based CPUs with x86-64 instruction set support. This supersets BMI, BMI2, CLWB, F16C, FMA, FSGSBASE, AVX, AVX2, ADCX, RDSEED, MWAITX, SHA, CLZERO, AES, PCLMUL, CX16, MOVBE, MMX, SSE, SSE2, SSE3, SSE4A, SSSE3, SSE4.1, SSE4.2, ABM, XSAVEC, XSAVES, CLFLUSHOPT, POPCNT, RDPID, WBNOINVD, PKU, VPCLMULQDQ, VAES, and 64-bit instruction set extensions.
+		/// AMD Zen3 Ryzen/Epic-7xx3-series Family 19h core based CPUs with x86-64 instruction set support. (This supersets BMI, BMI2, CLWB, F16C, FMA, FSGSBASE, AVX, AVX2, ADCX, RDSEED, MWAITX, SHA, CLZERO, AES, PCLMUL, CX16, MOVBE, MMX, SSE, SSE2, SSE3, SSE4A, SSSE3, SSE4.1, SSE4.2, ABM, XSAVEC, XSAVES, CLFLUSHOPT, POPCNT, RDPID, WBNOINVD, PKU, VPCLMULQDQ, VAES, and 64-bit instruction set extensions.)
 		/// </summary>
 		Znver3,
 
 		//AVX512 Supported CPUs
 
 		/// <summary>
-		/// AMD Zen4 Ryzen/Epic-7xx3-series Family 19h core based CPUs with x86-64 instruction set support. This supersets BMI, BMI2, CLWB, F16C, FMA, FSGSBASE, AVX, AVX2, AVX-512, ADCX, RDSEED, MWAITX, SHA, CLZERO, AES, PCLMUL, CX16, MOVBE, MMX, SSE, SSE2, SSE3, SSE4A, SSSE3, SSE4.1, SSE4.2, ABM, XSAVEC, XSAVES, CLFLUSHOPT, POPCNT, RDPID, WBNOINVD, PKU, VPCLMULQDQ, VAES, and 64-bit instruction set extensions.
+		/// AMD Zen4 Ryzen/Epic-7xx4-series Family 19h core based CPUs with x86-64 instruction set support. (This supersets BMI, BMI2, CLWB, F16C, FMA, FSGSBASE, AVX, AVX2, ADCX, RDSEED, MWAITX, SHA, CLZERO, AES, PCLMUL, CX16, MOVBE, MMX, SSE, SSE2, SSE3, SSE4A, SSSE3, SSE4.1, SSE4.2, ABM, XSAVEC, XSAVES, CLFLUSHOPT, POPCNT, RDPID, WBNOINVD, PKU, VPCLMULQDQ, VAES, AVX512F, AVX512DQ, AVX512IFMA, AVX512CD, AVX512BW, AVX512VL, AVX512BF16, AVX512VBMI, AVX512VBMI2, AVX512VNNI, AVX512BITALG, AVX512VPOPCNTDQ, GFNI and 64-bit instruction set extensions.)
 		/// </summary>
 		Znver4,
 
-		/// <summary>
-		/// Intel Knight’s Landing CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AVX512PF, AVX512ER, AVX512F, AVX512CD and PREFETCHWT1 instruction set support.
-		/// </summary>
-		Knl,
+		// Start of. Most of UE required AVX512 CPU features are not supporterd at all in this Intel processors.
+		// Start of. This Intel accelerators processors only runs AVX512.
+		// Removed, incompatible for use with accelerators processors.
+		// <summary>
+		// Intel Knight’s Landing CPU with 64-bit extensions, AVX512PF, AVX512ER, AVX512F, AVX512CD and PREFETCHWT1 instruction set support.
+		// </summary>
+		/*Knl,*/
 
-		/// <summary>
-		/// Intel Knights Mill CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AVX512PF, AVX512ER, AVX512F, AVX512CD and PREFETCHWT1, AVX5124VNNIW, AVX5124FMAPS and AVX512VPOPCNTDQ instruction set support.
-		/// </summary>
-		Knm,
+		// <summary>
+		// Intel Knights Mill CPU with 64-bit extensions, AVX512PF, AVX512ER, AVX512F, AVX512CD and PREFETCHWT1, AVX5124VNNIW, AVX5124FMAPS and AVX512VPOPCNTDQ instruction set support.
+		// </summary>
+		/*Knm,*/
+		// End of. This Intel accelerators processors only runs AVX512.
 
+		// Start of. This Intel processors not all products has the required AVX512 CPU features.
 		/// <summary>
 		/// Intel Skylake Server CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, CLWB, AVX512VL, AVX512BW, AVX512DQ and AVX512CD instruction set support.
 		/// </summary>
@@ -264,24 +279,26 @@ namespace UnrealBuildTool
 		Cascadelake,
 
 		/// <summary>
-		/// Intel Cooperlake CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, CLWB, AVX512VL, AVX512BW, AVX512DQ, AVX512CD, AVX512VNNI and AVX512BF16 instruction set support.
+		/// Intel cooperlake CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, CLWB, AVX512VL, AVX512BW, AVX512DQ, AVX512CD, AVX512VNNI and AVX512BF16 instruction set support.
 		/// </summary>
 		Cooperlake,
 
 		/// <summary>
-		/// Intel Tigerlake CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, AVX512VL, AVX512BW, AVX512DQ, AVX512CD PKU, AVX512VBMI, AVX512IFMA, SHA, AVX512VNNI, GFNI, VAES, AVX512VBMI2, VPCLMULQDQ, AVX512BITALG, RDPID, AVX512VPOPCNTDQ, MOVDIRI, MOVDIR64B, CLWB, AVX512VP2INTERSECT and KEYLOCKER instruction set support
+		/// Intel Tigerlake CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, AVX512VL, AVX512BW, AVX512DQ, AVX512CD PKU, AVX512VBMI, AVX512IFMA, SHA, AVX512VNNI, GFNI, VAES, AVX512VBMI2, VPCLMULQDQ, AVX512BITALG, RDPID, AVX512VPOPCNTDQ, MOVDIRI, MOVDIR64B, CLWB, AVX512VP2INTERSECT and KEYLOCKER instruction set support.
 		/// </summary>
 		Tigerlake,
 
 		/// <summary>
-		/// Intel Sapphirerapids CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, CLWB, AVX512VL, AVX512BW, AVX512DQ, AVX512CD, AVX512VNNI, AVX512BF16 MOVDIRI, MOVDIR64B, AVX512VP2INTERSECT, ENQCMD, CLDEMOTE, PTWRITE, WAITPKG, SERIALIZE, TSXLDTRK, UINTR, AMX-BF16, AMX-TILE, AMX-INT8, AVX-VNNI and AVX512FP16 instruction set support.
+		/// Intel sapphirerapids CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, AVX512VL, AVX512BW, AVX512DQ, AVX512CD, PKU, AVX512VBMI, AVX512IFMA, SHA, AVX512VNNI, GFNI, VAES, AVX512VBMI2, VPCLMULQDQ, AVX512BITALG, RDPID, AVX512VPOPCNTDQ, PCONFIG, WBNOINVD, CLWB, MOVDIRI, MOVDIR64B, ENQCMD, CLDEMOTE, PTWRITE, WAITPKG, SERIALIZE, TSXLDTRK, UINTR, AMX-BF16, AMX-TILE, AMX-INT8, AVX-VNNI, AVX512-FP16 and AVX512BF16 instruction set support.
 		/// </summary>
 		Sapphirerapids,
 
-		/// <summary>
-		/// Intel Alderlake CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, AES, PREFETCHW, PCLMUL, RDRND, XSAVE, XSAVEC, XSAVES, XSAVEOPT, FSGSBASE, PTWRITE, RDPID, SGX, GFNI-SSE, CLWB, MOVDIRI, MOVDIR64B, CLDEMOTE, WAITPKG, ADCX, AVX, AVX2, BMI, BMI2, F16C, FMA, LZCNT, PCONFIG, PKU, VAES, VPCLMULQDQ, SERIALIZE, HRESET, KL, WIDEKL, AVX-VNNI and AVX512F enabled instruction set support.
-		/// </summary>
-		Alderlake_avx512,
+		// <summary>
+		// Intel Alderlake CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, AES, PREFETCHW, PCLMUL, RDRND, XSAVE, XSAVEC, XSAVES, XSAVEOPT, FSGSBASE, PTWRITE, RDPID, SGX, GFNI-SSE, CLWB, MOVDIRI, MOVDIR64B, CLDEMOTE, WAITPKG, ADCX, AVX, AVX2, BMI, BMI2, F16C, FMA, LZCNT, PCONFIG, PKU, VAES, VPCLMULQDQ, SERIALIZE, HRESET, KL, WIDEKL, AVX-VNNI and AVX512F enabled instruction set support.
+		// </summary>
+		/*Alderlake_avx512,*/ // Intel fused of AVX512. Removed.
+		// End of. This Intel processors not all products has the required AVX512 CPU features.
+		// End of. Most of UE required AVX512 CPU features are not supporterd at all in this Intel processors.
 
 		/// <summary>
 		/// Intel Rocketlake CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3 , SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, AVX512F, AVX512VL, AVX512BW, AVX512DQ, AVX512CD PKU, AVX512VBMI, AVX512IFMA, SHA, AVX512VNNI, GFNI, VAES, AVX512VBMI2, VPCLMULQDQ, AVX512BITALG, RDPID and AVX512VPOPCNTDQ instruction set support.
@@ -289,9 +306,37 @@ namespace UnrealBuildTool
 		Rocketlake,
 
 		/// <summary>
+		/// Intel graniterapids CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, AVX512VL, AVX512BW, AVX512DQ, AVX512CD, PKU, AVX512VBMI, AVX512IFMA, SHA, AVX512VNNI, GFNI, VAES, AVX512VBMI2, VPCLMULQDQ, AVX512BITALG, RDPID, AVX512VPOPCNTDQ, PCONFIG, WBNOINVD, CLWB, MOVDIRI, MOVDIR64B, AVX512VP2INTERSECT, ENQCMD, CLDEMOTE, PTWRITE, WAITPKG, SERIALIZE, TSXLDTRK, UINTR, AMX-BF16, AMX-TILE, AMX-INT8, AVX-VNNI, AVX512-FP16, AVX512BF16, AMX-FP16 and PREFETCHI instruction set support.
+		/// </summary>
+		Graniterapids,
+
+		/// <summary>
 		/// Use the default Generic version
 		/// </summary>
 		Default = Generic,
+	}
+
+	/// <summary>
+	/// To what extent a module supports AVX version
+	/// </summary>
+	public enum AVXSupport
+	{
+		/// <summary>
+		/// None means code does not compile with AVX.
+		/// </summary>
+		None,
+
+		/// <summary>
+		/// Direct the compiler to generate AVX instructions wherever SSE or AVX intrinsics are used, on the platforms that support it.
+		/// Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable will crash on machines without AVX support.
+		/// </summary>
+		AVX256,
+
+		/// <summary>
+		/// Direct the compiler to generate AVX instructions wherever SSE or AVX or AVX-512 intrinsics are used, on the platforms that support it.
+		/// Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable will crash on machines without AVX and AVX-512 support.
+		/// </summary>
+		AVX512,
 	}
 
 	/// <summary>
@@ -419,6 +464,12 @@ namespace UnrealBuildTool
 		public bool bUseAVX = false;
 
 		/// <summary>
+		/// Direct the compiler to generate AVX instructions wherever SSE or AVX or AVX-512 intrinsics are used, on the platforms that support it.
+		/// Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable will crash on machines without AVX or AVX-512 support.
+		/// </summary>
+		public AVXSupport AVXSupport = AVXSupport.None;
+
+		/// <summary>
 		/// Enable buffer security checks.   This should usually be enabled as it prevents severe security risks.
 		/// </summary>
 		public bool bEnableBufferSecurityChecks = true;
@@ -462,7 +513,7 @@ namespace UnrealBuildTool
 
 		/// <summary>
 		/// Enable objective C automatic reference counting (ARC)
-		/// If you set this to true you should not use shared PCHs for this module. The engine won't be extensively using ARC in the short term  
+		/// If you set this to true you should not use shared PCHs for this module. The engine won't be extensively using ARC in the short term
 		/// Not doing this will result in a compile errors because shared PCHs were compiled with different flags than consumer
 		/// </summary>
 		public bool bEnableObjCAutomaticReferenceCounting = false;
@@ -601,7 +652,7 @@ namespace UnrealBuildTool
 		public bool bUseIncrementalLinking;
 
 		/// <summary>
-		/// Whether to allow the use of LTCG (link time code generation) 
+		/// Whether to allow the use of LTCG (link time code generation)
 		/// </summary>
 		public bool bAllowLTCG;
 
@@ -699,7 +750,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// True if a single PRecompiledHeader exists, or at least one PerArchPrecompiledHeaderFile exists
 		/// </summary>
-		public bool bHasPrecompiledHeader => PrecompiledHeaderFile != null || (PerArchPrecompiledHeaderFiles != null && PerArchPrecompiledHeaderFiles.Count > 0);
+		public bool bHasPrecompiledHeader => PrecompiledHeaderAction == PrecompiledHeaderAction.Include;
 
 		/// <summary>
 		/// Whether or not UHT is being built
@@ -715,7 +766,7 @@ namespace UnrealBuildTool
 		/// Which C++ standard to support. May not be compatible with all platforms.
 		/// </summary>
 		public CppStandardVersion CppStandard = CppStandardVersion.Default;
-		
+
 		/// <summary>
 		/// Which C standard to support. May not be compatible with all platforms.
 		/// </summary>
@@ -725,7 +776,7 @@ namespace UnrealBuildTool
 		/// Specifies which processor to use for compiling this module and to tuneup and optimize to specifics of micro-architectures. This enum should be kept in order, so that toolchains can check whether the requested setting is >= values that they support.
 		/// Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable might cause worse performance or will crash on incompatible processors.
 		/// </summary>
-		public DefaultCPUVersion DefaultCPU = DefaultCPUVersion.Default;
+		public DefaultCPU DefaultCPU = DefaultCPU.Default;
 
 		/// <summary>
 		/// The amount of the stack usage to report static analysis warnings.
@@ -733,7 +784,7 @@ namespace UnrealBuildTool
 		public int AnalyzeStackSizeWarning = 300000;
 
 		/// <summary>
-		/// Enable C++ coroutine support. 
+		/// Enable C++ coroutine support.
 		/// For MSVC, adds "/await:strict" to the command line. Program should #include &lt;coroutine&gt;
 		/// For Clang, adds "-fcoroutines-ts" to the command line. Program should #include &lt;experimental/coroutine&gt; (not supported in every clang toolchain)
 		/// </summary>
@@ -793,6 +844,7 @@ namespace UnrealBuildTool
 			bUseInlining = Other.bUseInlining;
 			bCompileISPC = Other.bCompileISPC;
 			bUseAVX = Other.bUseAVX;
+			AVXSupport = Other.AVXSupport;
 			bUseUnity = Other.bUseUnity;
 			MinSourceFilesForUnityBuildOverride = Other.MinSourceFilesForUnityBuildOverride;
 			MinFilesUsingPrecompiledHeaderOverride = Other.MinFilesUsingPrecompiledHeaderOverride;

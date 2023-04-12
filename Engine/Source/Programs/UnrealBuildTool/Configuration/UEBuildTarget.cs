@@ -60,7 +60,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="Info"></param>
 		/// <param name="Context"></param>
@@ -70,7 +70,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="Info"></param>
 		/// <param name="Context"></param>
@@ -103,7 +103,7 @@ namespace UnrealBuildTool
 
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="A"></param>
 		/// <param name="B"></param>
@@ -113,7 +113,7 @@ namespace UnrealBuildTool
 			return A.Id == B.Id;
 		}
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="A"></param>
 		/// <param name="B"></param>
@@ -123,7 +123,7 @@ namespace UnrealBuildTool
 			return A.Id != B.Id;
 		}
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="B"></param>
 		/// <returns></returns>
@@ -137,7 +137,7 @@ namespace UnrealBuildTool
 			return Id == ((UnrealTargetPlatform)B).Id;
 		}
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <returns></returns>
 		public override int GetHashCode()
@@ -157,7 +157,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="Name"></param>
 		/// <param name="Platform"></param>
@@ -181,7 +181,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="Name"></param>
 		/// <returns></returns>
@@ -204,7 +204,7 @@ namespace UnrealBuildTool
 
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <returns></returns>
 		public static UnrealTargetPlatform[] GetValidPlatforms()
@@ -213,7 +213,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <returns></returns>
 		public static string[] GetValidPlatformNames()
@@ -222,7 +222,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="Name"></param>
 		/// <returns></returns>
@@ -389,7 +389,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="Info"></param>
 		/// <param name="Context"></param>
@@ -399,7 +399,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="Info"></param>
 		/// <param name="Context"></param>
@@ -419,7 +419,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="A"></param>
 		/// <param name="B"></param>
@@ -429,7 +429,7 @@ namespace UnrealBuildTool
 			return A.Id == B.Id;
 		}
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="A"></param>
 		/// <param name="B"></param>
@@ -439,7 +439,7 @@ namespace UnrealBuildTool
 			return A.Id != B.Id;
 		}
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="B"></param>
 		/// <returns></returns>
@@ -453,7 +453,7 @@ namespace UnrealBuildTool
 			return Id == ((UnrealPlatformGroup)B).Id;
 		}
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <returns></returns>
 		public override int GetHashCode()
@@ -474,7 +474,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="Name"></param>
 		/// <param name="Group"></param>
@@ -492,7 +492,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <returns></returns>
 		public static UnrealPlatformGroup[] GetValidGroups()
@@ -501,7 +501,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <returns></returns>
 		public static string[] GetValidGroupNames()
@@ -510,7 +510,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="Name"></param>
 		/// <returns></returns>
@@ -606,7 +606,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="Info"></param>
 		/// <param name="Context"></param>
@@ -616,7 +616,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="Info"></param>
 		/// <param name="Context"></param>
@@ -642,7 +642,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="A"></param>
 		/// <param name="B"></param>
@@ -652,7 +652,7 @@ namespace UnrealBuildTool
 			return A.Id == B.Id;
 		}
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="A"></param>
 		/// <param name="B"></param>
@@ -662,7 +662,7 @@ namespace UnrealBuildTool
 			return A.Id != B.Id;
 		}
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="B"></param>
 		/// <returns></returns>
@@ -676,7 +676,7 @@ namespace UnrealBuildTool
 			return Id == ((UnrealArch)B).Id;
 		}
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <returns></returns>
 		public override int GetHashCode()
@@ -735,7 +735,7 @@ namespace UnrealBuildTool
 
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="Name"></param>
 		/// <param name="Arch"></param>
@@ -761,7 +761,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="Name"></param>
 		/// <returns></returns>
@@ -786,7 +786,7 @@ namespace UnrealBuildTool
 
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <returns></returns>
 		public static UnrealArch[] GetValidPlatforms()
@@ -795,7 +795,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <returns></returns>
 		public static string[] GetValidPlatformNames()
@@ -804,7 +804,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="Name"></param>
 		/// <returns></returns>
@@ -1035,7 +1035,7 @@ namespace UnrealBuildTool
 	}
 
 	/// <summary>
-	/// The type of configuration a target can be built for.  Roughly order by optimization level. 
+	/// The type of configuration a target can be built for.  Roughly order by optimization level.
 	/// </summary>
 	[JsonConverter(typeof(JsonStringEnumConverter))]
 	public enum UnrealTargetConfiguration
@@ -1077,24 +1077,24 @@ namespace UnrealBuildTool
 	public class BuildManifest
 	{
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		public readonly List<string> BuildProducts = new List<string>();
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		public readonly List<string> DeployTargetFiles = new List<string>();
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		public BuildManifest()
 		{
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="FileName"></param>
 		public void AddBuildProduct(string FileName)
@@ -1107,7 +1107,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="FileName"></param>
 		/// <param name="DebugInfoExtension"></param>
@@ -1957,7 +1957,7 @@ namespace UnrealBuildTool
 		Dictionary<FileReference, LoadOrderManifest> PrepareLoadOrderManifests(ILogger Logger)
 		{
 			Dictionary<FileReference, LoadOrderManifest> FileNameToManifest = new Dictionary<FileReference, LoadOrderManifest>();
-			
+
 			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 
 			if (!bCompileMonolithic && BuildPlatform.RequiresLoadOrderManifest(Rules))
@@ -1993,7 +1993,7 @@ namespace UnrealBuildTool
 				Sorter.CycleHandling = TopologicalSorter<UEBuildModule>.CycleMode.BreakWithInfo;
 				Sorter.Logger = Logger;
 				Sorter.NodeToString = Module => Module.Name;
-				
+
 				if (!Sorter.Sort())
 				{
 					Logger.LogError("Failed to generate {ManifestFileName}: Couldn't sort dynamic modules in a way that would respect all dependencies (probably circular dependencies)", ManifestFileName);
@@ -2316,9 +2316,9 @@ namespace UnrealBuildTool
 
 			// Create the makefile
 			string ExternalMetadata = UEBuildPlatform.GetBuildPlatform(Platform).GetExternalBuildMetadata(ProjectFile);
-			TargetMakefile Makefile = new TargetMakefile(ExternalMetadata, Binaries[0].OutputFilePaths[0], ReceiptFileName, 
-				ProjectIntermediateDirectory, ProjectIntermediateDirectoryNoArch, TargetType, 
-				Rules.ConfigValueTracker, bDeployAfterCompile, UbtPlugins?.ToArray(), EnabledUbtPlugins?.ToArray(), 
+			TargetMakefile Makefile = new TargetMakefile(ExternalMetadata, Binaries[0].OutputFilePaths[0], ReceiptFileName,
+				ProjectIntermediateDirectory, ProjectIntermediateDirectoryNoArch, TargetType,
+				Rules.ConfigValueTracker, bDeployAfterCompile, UbtPlugins?.ToArray(), EnabledUbtPlugins?.ToArray(),
 				EnabledUhtPlugins?.ToArray());
 			Makefile.IsTestTarget = Rules.IsTestTarget;
 			TargetMakefileBuilder MakefileBuilder = new TargetMakefileBuilder(Makefile, Logger);
@@ -2904,7 +2904,7 @@ namespace UnrealBuildTool
 
 		/// <summary>
 		/// Cleans any stale modules that have changed moved output folder.
-		/// 
+		///
 		/// On Windows, the loader reads imported DLLs from the first location it finds them. If modules are moved from one place to another, we have to be sure to clean up the old versions
 		/// so that they're not loaded accidentally causing unintuitive import errors.
 		/// </summary>
@@ -3620,12 +3620,12 @@ namespace UnrealBuildTool
 				UEBuildModule Module = FindOrCreateModuleByName(ModuleName, PrecompileReferenceChain, Logger);
 				AllModules.Add(Module);
 				Module.RecursivelyCreateModules(
-					(string ModuleName, string ReferenceChain) => 
-					{ 
+					(string ModuleName, string ReferenceChain) =>
+					{
 						UEBuildModule FoundModule = FindOrCreateModuleByName(ModuleName, ReferenceChain, Logger);
 						AllModules.Add(FoundModule);
-						return FoundModule; 
-					}, 
+						return FoundModule;
+					},
 					PrecompileReferenceChain, Logger);
 			}
 
@@ -3703,8 +3703,9 @@ namespace UnrealBuildTool
 		/// Finds the base output directory for a module
 		/// </summary>
 		/// <param name="ModuleRules">The rules object created for this module</param>
+		/// <param name="Architectures">The architectures (or none) to insert into the directory structure</param>
 		/// <returns>The output directory for compiled object files for this module</returns>
-		private DirectoryReference GetModuleIntermediateDirectory(ModuleRules ModuleRules)
+		private DirectoryReference GetModuleIntermediateDirectory(ModuleRules ModuleRules, UnrealArchitectures? Architectures)
 		{
 			// Get the root output directory and base name (target name/app name) for this binary
 			DirectoryReference BaseOutputDirectory = GetBaseOutputDirectory(ModuleRules);
@@ -4231,7 +4232,7 @@ namespace UnrealBuildTool
 				}
 			}
 
-			// For all the plugins 
+			// For all the plugins
 			foreach (UEBuildPlugin Plugin in BuildPlugins)
 			{
 				PluginInfo Info = Plugin.Info;
@@ -4362,15 +4363,34 @@ namespace UnrealBuildTool
 			GlobalCompileEnvironment.bUsePIE = Rules.bEnablePIE;
 			GlobalCompileEnvironment.bUseStackProtection = Rules.bEnableStackProtection;
 			GlobalCompileEnvironment.bUseInlining = Rules.bUseInlining;
-			if (Rules.bUseAVX || Rules.DefaultCPU >= DefaultCPUVersion.Haswell)
+			GlobalCompileEnvironment.bUseAVX = Rules.bUseAVX;
+			if (Rules.bUseAVX && Rules.DefaultCPU < DefaultCPU.Haswell)
 			{
-				GlobalCompileEnvironment.bUseAVX = true;
+				GlobalCompileEnvironment.DefaultCPU = DefaultCPU.Haswell;
+			}
+			else
+			{
+				GlobalCompileEnvironment.DefaultCPU = Rules.DefaultCPU;
+			}
+			if (Rules.bUseAVX && GlobalCompileEnvironment.DefaultCPU >= DefaultCPU.Haswell)
+			{
+				if (Rules.AVXSupport == AVXSupport.AVX512 && !(Rules.DefaultCPU >= DefaultCPU.Znver4 && Rules.DefaultCPU <= DefaultCPU.Graniterapids))
+				{
+					throw new BuildException("Enabling compile for AVX512 is only supported with AMD Znver4 or from Intel Skylake_avx512 to Intel Graniterapids processors family.");
+				}
+				if (Rules.AVXSupport == AVXSupport.AVX512 && (Rules.DefaultCPU >= DefaultCPU.Znver4 && Rules.DefaultCPU <= DefaultCPU.Graniterapids))
+				{
+					//GlobalCompileEnvironment.AVXSupport = AVXSupport.AVX512; // Already selected
+				}
+				else
+				{
+					GlobalCompileEnvironment.AVXSupport = AVXSupport.AVX256;
+				}
 			}
 			GlobalCompileEnvironment.bCompileISPC = Rules.bCompileISPC;
 			GlobalCompileEnvironment.bHideSymbolsByDefault = !Rules.bPublicSymbolsByDefault;
 			GlobalCompileEnvironment.CppStandard = Rules.CppStandard;
 			GlobalCompileEnvironment.CStandard = Rules.CStandard;
-			GlobalCompileEnvironment.DefaultCPU = Rules.DefaultCPU;
 			GlobalCompileEnvironment.AdditionalArguments = Rules.AdditionalCompilerArguments ?? String.Empty;
 			GlobalCompileEnvironment.bDeterministic = Rules.bForceDeterministic;
 			GlobalCompileEnvironment.CrashDiagnosticDirectory = Rules.CrashDiagnosticDirectory;
@@ -5083,13 +5103,19 @@ namespace UnrealBuildTool
 				case ModuleRules.ModuleType.CPlusPlus:
 					return new UEBuildModuleCPP(
 							Rules: RulesObject,
-							IntermediateDirectory: GetModuleIntermediateDirectory(RulesObject),
+							IntermediateDirectory: GetModuleIntermediateDirectory(RulesObject, Architectures),
+							IntermediateDirectoryNoArch: GetModuleIntermediateDirectory(RulesObject, null),
 							GeneratedCodeDirectory: GeneratedCodeDirectory,
 							Logger
 						);
 
 				case ModuleRules.ModuleType.External:
-					return new UEBuildModuleExternal(RulesObject, GetModuleIntermediateDirectory(RulesObject), Logger);
+					return new UEBuildModuleExternal(
+							Rules: RulesObject,
+							IntermediateDirectory: GetModuleIntermediateDirectory(RulesObject, Architectures),
+							IntermediateDirectoryNoArch: GetModuleIntermediateDirectory(RulesObject, null),
+							Logger
+						);
 
 				default:
 					throw new BuildException("Unrecognized module type specified by 'Rules' object {0}", RulesObject.ToString());

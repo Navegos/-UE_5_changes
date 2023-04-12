@@ -1067,7 +1067,6 @@ void FPyWrapperObjectMetaData::AddReferencedObjects(FPyWrapperBase* Instance, FR
 		if (PyType_IsSubtype(NewPyType, &PyWrapperObjectType) && NewPyType->tp_basicsize == Py_TYPE(Self)->tp_basicsize)
 		{
 			Py_TYPE(Self) = NewPyType; // todo: is this safe?
-			//Py_SET_TYPE(reinterpret_cast<PyObject*>(Self), NewPyType);
 		}
 		else
 		{

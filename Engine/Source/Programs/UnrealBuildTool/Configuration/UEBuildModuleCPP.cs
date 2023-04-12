@@ -201,8 +201,8 @@ namespace UnrealBuildTool
             new KeyValuePair<string, string>("UnrealEd", "MeshPaint"),
         };
 
-		public UEBuildModuleCPP(ModuleRules Rules, DirectoryReference IntermediateDirectory, DirectoryReference? GeneratedCodeDirectory, ILogger Logger)
-			: base(Rules, IntermediateDirectory, Logger)
+		public UEBuildModuleCPP(ModuleRules Rules, DirectoryReference IntermediateDirectory, DirectoryReference IntermediateDirectoryNoArch, DirectoryReference? GeneratedCodeDirectory, ILogger Logger)
+			: base(Rules, IntermediateDirectory, IntermediateDirectoryNoArch, Logger)
 		{
 			this.GeneratedCodeDirectory = GeneratedCodeDirectory;
 
@@ -320,7 +320,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		public virtual FileReference PrecompiledManifestLocation
 		{
-			get { return FileReference.Combine(IntermediateDirectory, String.Format("{0}.precompiled", Name)); }
+			get { return FileReference.Combine(IntermediateDirectoryNoArch, String.Format("{0}.precompiled", Name)); }
 		}
 
 		/// <summary>
@@ -408,7 +408,7 @@ namespace UnrealBuildTool
 				Graph.AddSourceFiles(Pair.Key, Pair.Value);
 			}
 
-			// If we're compiling only specific files, strip out anything else. This prevents us clobbering response files for anything we're 
+			// If we're compiling only specific files, strip out anything else. This prevents us clobbering response files for anything we're
 			// not going to build, triggering a larger build than necessary when we do a regular build again.
 			if(SpecificFilesToCompile.Count > 0)
 			{
@@ -517,7 +517,7 @@ namespace UnrealBuildTool
 						{
 							// Can't use GetFileNameWithoutAnyExtensions because of the .init.gen.cpp files
 							string FileName = Path.GetFileName(File);
-							string Key = Prefix + FileName.Substring(0, FileName.Length - ".gen.cpp".Length); 
+							string Key = Prefix + FileName.Substring(0, FileName.Length - ".gen.cpp".Length);
 							GeneratedFiles.Add(Key, File);
 						}
 					}
@@ -695,13 +695,13 @@ namespace UnrealBuildTool
 			// Compile CPP files
 			if (bModuleUsesUnityBuild)
 			{
-				Unity.GenerateUnityCPPs(Target, CPPFiles, InputFiles.HeaderFiles, CompileEnvironment, WorkingSet, Rules.ShortName ?? Name, IntermediateDirectory, Graph, SourceFileToUnityFile, 
+				Unity.GenerateUnityCPPs(Target, CPPFiles, InputFiles.HeaderFiles, CompileEnvironment, WorkingSet, Rules.ShortName ?? Name, IntermediateDirectory, Graph, SourceFileToUnityFile,
 					out List<FileItem> NormalFiles, out List<FileItem> AdaptiveFiles, NumIncludedBytesPerUnityCPP);
 				LinkInputFiles.AddRange(CompileFilesWithToolChain(Target, ToolChain, CompileEnvironment, ModuleCompileEnvironment, NormalFiles, AdaptiveFiles, Graph, Logger).ObjectFiles);
 			}
 			else if (SpecificFilesToCompile.Count == 0)
 			{
-				Unity.GetAdaptiveFiles(Target, CPPFiles, InputFiles.HeaderFiles, CompileEnvironment, WorkingSet, Rules.ShortName ?? Name, IntermediateDirectory, Graph, 
+				Unity.GetAdaptiveFiles(Target, CPPFiles, InputFiles.HeaderFiles, CompileEnvironment, WorkingSet, Rules.ShortName ?? Name, IntermediateDirectory, Graph,
 					out List<FileItem> NormalFiles, out List<FileItem> AdaptiveFiles);
 				if (NormalFiles.Where(file => !file.HasExtension(".gen.cpp")).Count() == 0)
 				{
@@ -739,7 +739,7 @@ namespace UnrealBuildTool
 				LinkInputFiles.AddRange(ToolChain.CompileAllCPPFiles(CompileEnvironment, InputFiles.MMFiles, IntermediateDirectory, Name, Graph).ObjectFiles);
 			}
 
-			// Compile RC files. The resource compiler does not work with response files, and using the regular compile environment can easily result in the 
+			// Compile RC files. The resource compiler does not work with response files, and using the regular compile environment can easily result in the
 			// command line length exceeding the OS limit. Use the binary compile environment to keep the size down, and require that all include paths
 			// must be specified relative to the resource file itself or Engine/Source.
 			if(InputFiles.RCFiles.Count > 0)
@@ -855,7 +855,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Creates a precompiled header action to generate a new pch file 
+		/// Creates a precompiled header action to generate a new pch file
 		/// </summary>
 		/// <param name="ToolChain">The toolchain to generate the PCH</param>
 		/// <param name="HeaderFile"></param>
@@ -982,17 +982,27 @@ namespace UnrealBuildTool
 			{
 				return false;
 			}
-			
+
 			if (ModuleCompileEnvironment.CStandard != CompileEnvironment.CStandard)
 			{
 				return false;
 			}
-			
+
 			if (ModuleCompileEnvironment.DefaultCPU != CompileEnvironment.DefaultCPU)
 			{
 				return false;
 			}
-			
+
+			if (ModuleCompileEnvironment.AVXSupport != CompileEnvironment.AVXSupport)
+			{
+				return false;
+			}
+
+			if (ModuleCompileEnvironment.bUseAVX != CompileEnvironment.bUseAVX)
+			{
+				return false;
+			}
+
 			if (ModuleCompileEnvironment.IncludeOrderVersion != CompileEnvironment.IncludeOrderVersion)
 			{
 				return false;
@@ -1101,6 +1111,16 @@ namespace UnrealBuildTool
 				Variant += String.Format(".{0}", CompileEnvironment.DefaultCPU);
 			}
 
+			if (CompileEnvironment.AVXSupport != BaseCompileEnvironment.AVXSupport)
+			{
+				Variant += String.Format(".{0}", CompileEnvironment.AVXSupport);
+			}
+
+			if (CompileEnvironment.bUseAVX != BaseCompileEnvironment.bUseAVX)
+			{
+				Variant += String.Format(".{0}", CompileEnvironment.bUseAVX);
+			}
+
 			if (CompileEnvironment.IncludeOrderVersion != BaseCompileEnvironment.IncludeOrderVersion)
 			{
 				if (CompileEnvironment.IncludeOrderVersion != EngineIncludeOrderVersion.Latest)
@@ -1128,6 +1148,8 @@ namespace UnrealBuildTool
 			CompileEnvironment.CppStandard = ModuleCompileEnvironment.CppStandard;
 			CompileEnvironment.CStandard = ModuleCompileEnvironment.CStandard;
 			CompileEnvironment.DefaultCPU = ModuleCompileEnvironment.DefaultCPU;
+			CompileEnvironment.AVXSupport = ModuleCompileEnvironment.AVXSupport;
+			CompileEnvironment.bUseAVX = ModuleCompileEnvironment.bUseAVX;
 			CompileEnvironment.IncludeOrderVersion = ModuleCompileEnvironment.IncludeOrderVersion;
 		}
 
@@ -1438,8 +1460,8 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Create a header file containing the module definitions, which also includes the PCH itself. Including through another file is necessary on 
-		/// Clang, since we get warnings about #pragma once otherwise, but it also allows us to consistently define the preprocessor state on all 
+		/// Create a header file containing the module definitions, which also includes the PCH itself. Including through another file is necessary on
+		/// Clang, since we get warnings about #pragma once otherwise, but it also allows us to consistently define the preprocessor state on all
 		/// platforms.
 		/// </summary>
 		/// <param name="OutputFile">The output file to create</param>
@@ -1603,10 +1625,79 @@ namespace UnrealBuildTool
 			Result.bUseUnity = Rules.bUseUnity;
 			Result.bOptimizeCode = ShouldEnableOptimization(Rules.OptimizeCode, Target.Configuration, Rules.bTreatAsEngineModule);
 			Result.bUseRTTI |= Rules.bUseRTTI;
+
 			// DevelVitorF Lets make sure target don't get overwritten by module
-			if (Target.bUseAVX || Rules.bUseAVX || Target.DefaultCPU >= DefaultCPUVersion.Haswell || Rules.DefaultCPU >= DefaultCPUVersion.Haswell)
+			// If the module overrides the CPU version, override it on the compile environment
+			// Mixed CPUs between target and modules aren't supported
+			if (Rules.bUseAVX != Target.bUseAVX)
 			{
-				Result.bUseAVX = true;
+				Result.bUseAVX = Target.bUseAVX;
+			}
+			else
+			{
+				Result.bUseAVX = Rules.bUseAVX;
+			}
+
+			if (Rules.DefaultCPU != Target.DefaultCPU)
+			{
+				if (Rules.bUseAVX && Target.DefaultCPU < DefaultCPU.Haswell)
+				{
+					Result.DefaultCPU = DefaultCPU.Haswell;
+				}
+				else
+				{
+					Result.DefaultCPU = Target.DefaultCPU;
+				}
+			}
+			else
+			{
+				if (Rules.bUseAVX && Rules.DefaultCPU < DefaultCPU.Haswell)
+				{
+					Result.DefaultCPU = DefaultCPU.Haswell;
+				}
+				else
+				{
+					Result.DefaultCPU = Rules.DefaultCPU;
+				}
+			}
+
+			if (Rules.AVXSupport != Target.AVXSupport)
+			{
+				if (Rules.bUseAVX && Target.AVXSupport < AVXSupport.AVX256)
+				{
+					Result.AVXSupport = AVXSupport.AVX256;
+				}
+				else
+				{
+					Result.AVXSupport = Target.AVXSupport;
+				}
+			}
+			else
+			{
+				if (Rules.bUseAVX && Rules.AVXSupport < AVXSupport.AVX256)
+				{
+					Result.AVXSupport = AVXSupport.AVX256;
+				}
+				else
+				{
+					Result.AVXSupport = Rules.AVXSupport;
+				}
+			}
+
+			if (Result.bUseAVX && Result.DefaultCPU >= DefaultCPU.Haswell)
+			{
+				if (Result.AVXSupport == AVXSupport.AVX512 && !(Result.DefaultCPU >= DefaultCPU.Znver4 && Result.DefaultCPU <= DefaultCPU.Graniterapids))
+				{
+					throw new BuildException("Enabling compile for AVX512 is only supported with AMD Znver4 or from Intel Skylake_avx512 to Intel Graniterapids processors family.");
+				}
+				if (Result.AVXSupport == AVXSupport.AVX512 && (Result.DefaultCPU == DefaultCPU.Znver4 && Result.DefaultCPU <= DefaultCPU.Graniterapids))
+				{
+					//Result.AVXSupport = AVXSupport.AVX512; // Already selected
+				}
+				else if (Result.AVXSupport != AVXSupport.AVX256)
+				{
+					Result.AVXSupport = AVXSupport.AVX256;
+				}
 			}
 			Result.bEnableBufferSecurityChecks = Rules.bEnableBufferSecurityChecks;
 			Result.MinSourceFilesForUnityBuildOverride = Rules.MinSourceFilesForUnityBuildOverride;
@@ -1641,13 +1732,6 @@ namespace UnrealBuildTool
 			if (Rules.CStandard != CStandardVersion.Default)
 			{
 				Result.CStandard = Rules.CStandard;
-			}
-
-			// If the module overrides the CPU version, override it on the compile environment
-			// Mixed CPUs between target and modules aren't supported
-			if (Rules.DefaultCPU != Target.DefaultCPU)
-			{
-				Result.DefaultCPU = Target.DefaultCPU;
 			}
 
 			// Set the macro used to check whether monolithic headers can be used
@@ -1716,7 +1800,7 @@ namespace UnrealBuildTool
 		{
 			CppCompileEnvironment CompileEnvironment = new CppCompileEnvironment(BaseCompileEnvironment);
 
-			// Use the default optimization setting for 
+			// Use the default optimization setting for
 			CompileEnvironment.bOptimizeCode = ShouldEnableOptimization(ModuleRules.CodeOptimization.Default, Target.Configuration, Rules.bTreatAsEngineModule);
 
 			// Override compile environment

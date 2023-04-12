@@ -11,10 +11,7 @@ namespace UnrealBuildTool.Rules
 		{
 			//bUseUnity = false; // A windows include is preprocessing some method names causing compile failures.
 
-			if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Linux ||
-			    (Target.Platform == UnrealTargetPlatform.HoloLens && Target.WindowsPlatform.Architecture == UnrealArch.X64) ||
-			    (Target.Platform == UnrealTargetPlatform.Android && Target.Architecture == UnrealArch.X64)
-			   )
+			if ((Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Linux || Target.Platform == UnrealTargetPlatform.Android) && Target.Architecture == UnrealArch.X64)
 			{
 				if (Target.bUseAVX)
 				{
@@ -26,7 +23,7 @@ namespace UnrealBuildTool.Rules
 							//"RL_USE_HALF_FLOATS=1", // This on safe to use all AVX2 CPU's has support for F16C.
 							"TRIMD_ENABLE_AVX=1",
 							"TRIMD_ENABLE_SSE=1",
-							//"TRIMD_ENABLE_F16C=1", // This on safe to use all AVX2 CPU's has support for F16C.
+							"TRIMD_ENABLE_F16C=1", // This on safe to use all AVX2 CPU's has support for F16C.
 						}
 					);
 				}

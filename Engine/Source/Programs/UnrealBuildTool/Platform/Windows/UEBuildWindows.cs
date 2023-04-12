@@ -118,7 +118,7 @@ namespace UnrealBuildTool
 		/// Visual Studio and Clang, this means using their built-in static analysis tools.
 		/// Any compiler that doesn't support static analysis will ignore this option.
 		/// </summary>
-		Default, 
+		Default,
 
 		/// <summary>
 		/// Use the built-in Visual C++ static analyzer
@@ -129,7 +129,7 @@ namespace UnrealBuildTool
 		/// Use PVS-Studio for static analysis
 		/// </summary>
 		PVSStudio,
-		
+
 		/// <summary>
 		/// Use clang for static analysis. This forces the compiler to clang.
 		/// </summary>
@@ -141,8 +141,8 @@ namespace UnrealBuildTool
 	/// The Clang static analyzer can do either Text, which prints the analysis to stdout, or
 	/// html, where it writes out a navigable HTML page for each issue that it finds, per file.
 	/// The HTML is output in the same directory as the object fil that would otherwise have
-	/// been generated. 
-	/// All other analyzers default automatically to Text. 
+	/// been generated.
+	/// All other analyzers default automatically to Text.
 	/// </summary>
 	[Obsolete("Replace with StaticAnalyzerOutputType. Will be removed in 5.2")]
 	public enum WindowsStaticAnalyzerOutputType
@@ -210,7 +210,7 @@ namespace UnrealBuildTool
 		[XmlConfigFile(Category = "WindowsPlatform")]
 		[CommandLine("-ClangLinker")]
 		public bool bAllowClangLinker = false;
-		
+
 		/// <summary>
 		/// The specific Windows SDK version to use. This may be a specific version number (for example, "8.1", "10.0" or "10.0.10150.0"), or the string "Latest", to select the newest available version.
 		/// By default, and if it is available, we use the Windows SDK version indicated by WindowsPlatform.DefaultWindowsSdkVersion (otherwise, we use the latest version).
@@ -230,7 +230,7 @@ namespace UnrealBuildTool
 		public bool bPixProfilingEnabled = true;
 
 		/// <summary>
-		/// Enable building with the Win10 SDK instead of the older Win8.1 SDK 
+		/// Enable building with the Win10 SDK instead of the older Win8.1 SDK
 		/// </summary>
 		[ConfigFile(ConfigHierarchyType.Engine, "/Script/WindowsTargetPlatform.WindowsTargetSettings", "bUseWindowsSDK10")]
 		public bool bUseWindowsSDK10 = false;
@@ -397,7 +397,7 @@ namespace UnrealBuildTool
 			set { bStripUnreferencedSymbolsPrivate = value; }
 		}
 		private bool? bStripUnreferencedSymbolsPrivate;
-			
+
 		/// <summary>
 		/// Merge identical COMDAT sections together (/OPT:ICF)
 		/// </summary>
@@ -414,7 +414,7 @@ namespace UnrealBuildTool
 		public bool bOptimizeGlobalData = true;
 
 		/// <summary>
-		/// If specified along with -PGOProfile, then /FASTGENPROFILE will be used instead of /GENPROFILE. 
+		/// If specified along with -PGOProfile, then /FASTGENPROFILE will be used instead of /GENPROFILE.
 		/// This usually means that the PGO data is generated faster, but the resulting data may not yield as efficient optimizations during -PGOOptimize
 		/// </summary>
 		[XmlConfigFile(Category = "WindowsPlatform")]
@@ -422,7 +422,7 @@ namespace UnrealBuildTool
 		public bool bUseFastGenProfile = false;
 
 		/// <summary>
-		/// (Experimental) Appends the -ftime-trace argument to the command line for Clang to output a JSON file containing a timeline for the compile. 
+		/// (Experimental) Appends the -ftime-trace argument to the command line for Clang to output a JSON file containing a timeline for the compile.
 		/// See http://aras-p.info/blog/2019/01/16/time-trace-timeline-flame-chart-profiler-for-Clang/ for more info.
 		/// </summary>
 		[XmlConfigFile(Category = "WindowsPlatform")]
@@ -584,14 +584,14 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Accessors for fields on the inner TargetRules instance
 		/// </summary>
-		#region Read-only accessor properties 
+		#region Read-only accessor properties
 		#pragma warning disable CS1591
 
 		public WindowsCompiler Compiler
 		{
 			get { return Inner.Compiler; }
 		}
-		
+
 		public UnrealArch Architecture
 		{
 			get { return Inner.Architecture; }
@@ -665,7 +665,7 @@ namespace UnrealBuildTool
 		}
 
 		public bool bEnableAddressSanitizer
-		{ 
+		{
 			get { return Inner.bEnableAddressSanitizer; }
 		}
 
@@ -818,7 +818,7 @@ namespace UnrealBuildTool
 		{
 			get { return Inner.DiaSdkDir; }
 		}
-		
+
 		public string? IDEDir
 		{
 			get { return Inner.IDEDir; }
@@ -895,7 +895,7 @@ namespace UnrealBuildTool
 	}
 
 	class WindowsPlatform : UEBuildPlatform
-	{		
+	{
 		MicrosoftPlatformSDK SDK;
 
 		/// <summary>
@@ -960,7 +960,7 @@ namespace UnrealBuildTool
 					{
 						"OpenImageDenoise"
 					});
-					
+
 					// VTune does not support ARM
 					Target.GlobalDefinitions.Add("UE_EXTERNAL_PROFILING_ENABLED=0");
 				}
@@ -971,7 +971,7 @@ namespace UnrealBuildTool
 			{
 				Target.bCompileCEF3 = false;
 			}
-			
+
 			// If clang is selected for static analysis, switch compiler to clang and proceed
 			// as normal.
 			if (Target.StaticAnalyzer == StaticAnalyzer.Clang)
@@ -982,7 +982,7 @@ namespace UnrealBuildTool
 				}
 				Target.StaticAnalyzer = StaticAnalyzer.Default;
 			}
-			else if (Target.StaticAnalyzer != StaticAnalyzer.None && 
+			else if (Target.StaticAnalyzer != StaticAnalyzer.None &&
 			         Target.StaticAnalyzerOutputType != StaticAnalyzerOutputType.Text)
 			{
 				Logger.LogInformation("Defaulting static analyzer output type to text");
@@ -1082,7 +1082,7 @@ namespace UnrealBuildTool
 					{
 						return WindowsCompiler.VisualStudio2019;
 					}
-				} 
+				}
 			}
 
 			// Also check the default format for the Visual Studio project generator
@@ -1417,7 +1417,7 @@ namespace UnrealBuildTool
 
 			CompileEnvironment.Definitions.Add(String.Format("_WIN32_WINNT=0x{0:X4}", Target.WindowsPlatform.TargetWindowsVersion));
 			CompileEnvironment.Definitions.Add(String.Format("WINVER=0x{0:X4}", Target.WindowsPlatform.TargetWindowsVersion));
-			
+
 			CompileEnvironment.Definitions.Add("PLATFORM_WINDOWS=1");
 			CompileEnvironment.Definitions.Add("PLATFORM_MICROSOFT=1");
 

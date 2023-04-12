@@ -10,7 +10,7 @@ namespace UnrealBuildTool
 	sealed class ToolchainInfo : IEquatable<ToolchainInfo>
 	{
 		public CppStandardVersion CppStandard;
-		public DefaultCPUVersion DefaultCPU;
+		public DefaultCPU DefaultCPU;
 		public bool bUseRTTI;
 		public bool bEnableExceptions;
 		public bool bIsBuildingLibrary;
@@ -22,6 +22,7 @@ namespace UnrealBuildTool
 		public bool bUseUnity;
 		public bool bCreateDebugInfo;
 		public bool bUseAVX;
+		public AVXSupport AVXSupport;
 		public bool bUseDebugCRT;
 		public bool bUseStaticCRT;
 		public string? PrecompiledHeaderAction;
@@ -65,7 +66,7 @@ namespace UnrealBuildTool
 				bIsBuildingDLL == Other.bIsBuildingDLL && Architecture == Other.Architecture &&
 				Configuration == Other.Configuration && bOptimizeCode == Other.bOptimizeCode &&
 				bUseInlining == Other.bUseInlining && bUseUnity == Other.bUseUnity &&
-				bCreateDebugInfo == Other.bCreateDebugInfo && bUseAVX == Other.bUseAVX &&
+				bCreateDebugInfo == Other.bCreateDebugInfo && bUseAVX == Other.bUseAVX && AVXSupport == Other.AVXSupport &&
 				bUseDebugCRT == Other.bUseDebugCRT && bUseStaticCRT == Other.bUseStaticCRT &&
 				PrecompiledHeaderAction == Other.PrecompiledHeaderAction && PrecompiledHeaderFile == Other.PrecompiledHeaderFile &&
 				Equals(ForceIncludeFiles, Other.ForceIncludeFiles) && Compiler == Other.Compiler &&
@@ -96,6 +97,7 @@ namespace UnrealBuildTool
 				HashCode = (HashCode * 397) ^ bUseUnity.GetHashCode();
 				HashCode = (HashCode * 397) ^ bCreateDebugInfo.GetHashCode();
 				HashCode = (HashCode * 397) ^ bUseAVX.GetHashCode();
+				HashCode = (HashCode * 397) ^ AVXSupport.GetHashCode();
 				HashCode = (HashCode * 397) ^ bUseDebugCRT.GetHashCode();
 				HashCode = (HashCode * 397) ^ bUseStaticCRT.GetHashCode();
 				HashCode = (HashCode * 397) ^ (PrecompiledHeaderAction != null ? PrecompiledHeaderAction.GetHashCode() : 0);

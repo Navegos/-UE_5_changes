@@ -737,6 +737,12 @@ namespace UnrealBuildTool
 		/// Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable will crash on machines without AVX support.
 		/// </summary>
 		public bool bUseAVX = false;
+		
+		/// <summary>
+		/// Direct the compiler to generate AVX instructions wherever SSE or AVX or AVX-512 intrinsics are used, on the platforms that support it.
+		/// Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable will crash on machines without AVX or AVX-512 support.
+		/// </summary>
+		public AVXSupport AVXSupport = AVXSupport.None;
 
 		/// <summary>
 		/// Enable buffer security checks.  This should usually be enabled as it prevents severe security risks.
@@ -1202,7 +1208,7 @@ namespace UnrealBuildTool
 		/// Specifies which processor to use for compiling this module and to tuneup and optimize to specifics of micro-architectures. This enum should be kept in order, so that toolchains can check whether the requested setting is >= values that they support.
 		/// Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable might cause worse performance or will crash on incompatible processors.
 		/// </summary>
-		public DefaultCPUVersion DefaultCPU = DefaultCPUVersion.Default;
+		public DefaultCPU DefaultCPU = DefaultCPU.Default;
 
 		/// <summary>
 		///  Control visibility of symbols

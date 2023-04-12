@@ -1088,7 +1088,16 @@ namespace UnrealBuildTool
 		[RequiresUniqueBuildEnvironment]
 		[XmlConfigFile(Category = "BuildConfiguration")]
 		public bool bUseAVX = false;
-
+		
+		/// <summary>
+		/// Direct the compiler to generate AVX instructions wherever SSE or AVX or AVX-512 intrinsics are used, on the platforms that support it.
+		/// Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable will crash on machines without AVX or AVX-512 support.
+		/// </summary>
+		[RequiresUniqueBuildEnvironment]
+		/*[CommandLine("-AVX")]*/
+		[XmlConfigFile(Category = "BuildConfiguration")]
+		public AVXSupport AVXSupport = AVXSupport.None;
+		
 		/// <summary>
 		/// Enable exceptions for all modules.
 		/// </summary>
@@ -2017,7 +2026,7 @@ namespace UnrealBuildTool
 		[RequiresUniqueBuildEnvironment]
 		[CommandLine("-CPU")]
 		[XmlConfigFile(Category = "BuildConfiguration")]
-		public DefaultCPUVersion DefaultCPU = DefaultCPUVersion.Default;
+		public DefaultCPU DefaultCPU = DefaultCPU.Default;
 
 		/// <summary>
 		/// Do not allow manifest changes when building this target. Used to cause earlier errors when building multiple targets with a shared build environment.
@@ -3105,6 +3114,11 @@ namespace UnrealBuildTool
 		{
 			get { return Inner.bUseAVX; }
 		}
+		
+		public AVXSupport AVXSupport
+		{
+			get { return Inner.AVXSupport; }
+		}
 
 		public bool bWithServerCode
 		{
@@ -3686,7 +3700,7 @@ namespace UnrealBuildTool
 			get { return Inner.CStandard; }
 		}
 
-		public DefaultCPUVersion DefaultCPU
+		public DefaultCPU DefaultCPU
 		{
 			get { return Inner.DefaultCPU; }
 		}

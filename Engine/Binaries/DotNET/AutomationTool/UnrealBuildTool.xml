@@ -720,6 +720,12 @@
             Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable will crash on machines without AVX support.
             </summary>
         </member>
+        <member name="F:UnrealBuildTool.ModuleRules.AVXSupport">
+            <summary>
+            Direct the compiler to generate AVX instructions wherever SSE or AVX or AVX-512 intrinsics are used, on the platforms that support it.
+            Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable will crash on machines without AVX or AVX-512 support.
+            </summary>
+        </member>
         <member name="F:UnrealBuildTool.ModuleRules.bEnableBufferSecurityChecks">
             <summary>
             Enable buffer security checks.  This should usually be enabled as it prevents severe security risks.
@@ -2333,6 +2339,12 @@
             Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable will crash on machines without AVX support.
             </summary>
         </member>
+        <member name="F:UnrealBuildTool.TargetRules.AVXSupport">
+            <summary>
+            Direct the compiler to generate AVX instructions wherever SSE or AVX or AVX-512 intrinsics are used, on the platforms that support it.
+            Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable will crash on machines without AVX or AVX-512 support.
+            </summary>
+        </member>
         <member name="F:UnrealBuildTool.TargetRules.bForceEnableObjCExceptions">
             <summary>
             Enable exceptions for all modules.
@@ -3917,6 +3929,11 @@
             The directory for this module's object files
             </summary>
         </member>
+        <member name="F:UnrealBuildTool.UEBuildModule.IntermediateDirectoryNoArch">
+            <summary>
+            The directory for this module's generated files that are architecture independent
+            </summary>
+        </member>
         <member name="P:UnrealBuildTool.UEBuildModule.Name">
             <summary>
             The name that uniquely identifies the module.
@@ -4077,12 +4094,13 @@
             If this module or any of its dependencies has Verse code associated with it
             </summary>
         </member>
-        <member name="M:UnrealBuildTool.UEBuildModule.#ctor(UnrealBuildTool.ModuleRules,EpicGames.Core.DirectoryReference,Microsoft.Extensions.Logging.ILogger)">
+        <member name="M:UnrealBuildTool.UEBuildModule.#ctor(UnrealBuildTool.ModuleRules,EpicGames.Core.DirectoryReference,EpicGames.Core.DirectoryReference,Microsoft.Extensions.Logging.ILogger)">
             <summary>
             Constructor
             </summary>
             <param name="Rules">Rules for this module</param>
             <param name="IntermediateDirectory">Intermediate directory for this module</param>
+            <param name="IntermediateDirectoryNoArch">Intermediate directory for this module for files that are architecture independent</param>
             <param name="Logger">Logger for output</param>
         </member>
         <member name="M:UnrealBuildTool.UEBuildModule.LogWarningOrThrowError(Microsoft.Extensions.Logging.ILogger,UnrealBuildTool.WarningLevel,System.String,System.Object[])">
@@ -4398,7 +4416,7 @@
         </member>
         <member name="M:UnrealBuildTool.UEBuildModuleCPP.CreatePrivatePCH(UnrealBuildTool.UEToolChain,UnrealBuildBase.FileItem,UnrealBuildTool.CppCompileEnvironment,UnrealBuildTool.IActionGraphBuilder)">
             <summary>
-            Creates a precompiled header action to generate a new pch file 
+            Creates a precompiled header action to generate a new pch file
             </summary>
             <param name="ToolChain">The toolchain to generate the PCH</param>
             <param name="HeaderFile"></param>
@@ -4477,8 +4495,8 @@
         </member>
         <member name="M:UnrealBuildTool.UEBuildModuleCPP.CreatePCHWrapperFile(EpicGames.Core.FileReference,System.Collections.Generic.IEnumerable{System.String},UnrealBuildBase.FileItem,UnrealBuildTool.IActionGraphBuilder)">
             <summary>
-            Create a header file containing the module definitions, which also includes the PCH itself. Including through another file is necessary on 
-            Clang, since we get warnings about #pragma once otherwise, but it also allows us to consistently define the preprocessor state on all 
+            Create a header file containing the module definitions, which also includes the PCH itself. Including through another file is necessary on
+            Clang, since we get warnings about #pragma once otherwise, but it also allows us to consistently define the preprocessor state on all
             platforms.
             </summary>
             <param name="OutputFile">The output file to create</param>
@@ -5228,18 +5246,18 @@
             </summary>
         </member>
         <member name="M:UnrealBuildTool.UnrealTargetPlatform.GetObjectData(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="Info"></param>
-            <param name="Context"></param>
+             </summary>
+             <param name="Info"></param>
+             <param name="Context"></param>
         </member>
         <member name="M:UnrealBuildTool.UnrealTargetPlatform.#ctor(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="Info"></param>
-            <param name="Context"></param>
+             </summary>
+             <param name="Info"></param>
+             <param name="Context"></param>
         </member>
         <member name="M:UnrealBuildTool.UnrealTargetPlatform.FindOrAddByName(System.String)">
             <summary>
@@ -5257,33 +5275,33 @@
             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealTargetPlatform.op_Equality(UnrealBuildTool.UnrealTargetPlatform,UnrealBuildTool.UnrealTargetPlatform)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="A"></param>
-            <param name="B"></param>
-            <returns></returns>
+             </summary>
+             <param name="A"></param>
+             <param name="B"></param>
+             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealTargetPlatform.op_Inequality(UnrealBuildTool.UnrealTargetPlatform,UnrealBuildTool.UnrealTargetPlatform)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="A"></param>
-            <param name="B"></param>
-            <returns></returns>
+             </summary>
+             <param name="A"></param>
+             <param name="B"></param>
+             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealTargetPlatform.Equals(System.Object)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="B"></param>
-            <returns></returns>
+             </summary>
+             <param name="B"></param>
+             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealTargetPlatform.GetHashCode">
-            <summary>
+             <summary>
             
-            </summary>
-            <returns></returns>
+             </summary>
+             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealTargetPlatform.ToString">
             <summary>
@@ -5292,38 +5310,38 @@
             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealTargetPlatform.TryParse(System.String,UnrealBuildTool.UnrealTargetPlatform@)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="Name"></param>
-            <param name="Platform"></param>
-            <returns></returns>
+             </summary>
+             <param name="Name"></param>
+             <param name="Platform"></param>
+             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealTargetPlatform.Parse(System.String)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="Name"></param>
-            <returns></returns>
+             </summary>
+             <param name="Name"></param>
+             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealTargetPlatform.GetValidPlatforms">
-            <summary>
+             <summary>
             
-            </summary>
-            <returns></returns>
+             </summary>
+             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealTargetPlatform.GetValidPlatformNames">
-            <summary>
+             <summary>
             
-            </summary>
-            <returns></returns>
+             </summary>
+             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealTargetPlatform.IsValidName(System.String)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="Name"></param>
-            <returns></returns>
+             </summary>
+             <param name="Name"></param>
+             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealTargetPlatform.IsInGroup(UnrealBuildTool.UnrealPlatformGroup)">
             <summary>
@@ -5404,18 +5422,18 @@
             </summary>
         </member>
         <member name="M:UnrealBuildTool.UnrealPlatformGroup.GetObjectData(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="Info"></param>
-            <param name="Context"></param>
+             </summary>
+             <param name="Info"></param>
+             <param name="Context"></param>
         </member>
         <member name="M:UnrealBuildTool.UnrealPlatformGroup.#ctor(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="Info"></param>
-            <param name="Context"></param>
+             </summary>
+             <param name="Info"></param>
+             <param name="Context"></param>
         </member>
         <member name="M:UnrealBuildTool.UnrealPlatformGroup.FindOrAddByName(System.String)">
             <summary>
@@ -5425,33 +5443,33 @@
             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealPlatformGroup.op_Equality(UnrealBuildTool.UnrealPlatformGroup,UnrealBuildTool.UnrealPlatformGroup)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="A"></param>
-            <param name="B"></param>
-            <returns></returns>
+             </summary>
+             <param name="A"></param>
+             <param name="B"></param>
+             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealPlatformGroup.op_Inequality(UnrealBuildTool.UnrealPlatformGroup,UnrealBuildTool.UnrealPlatformGroup)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="A"></param>
-            <param name="B"></param>
-            <returns></returns>
+             </summary>
+             <param name="A"></param>
+             <param name="B"></param>
+             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealPlatformGroup.Equals(System.Object)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="B"></param>
-            <returns></returns>
+             </summary>
+             <param name="B"></param>
+             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealPlatformGroup.GetHashCode">
-            <summary>
+             <summary>
             
-            </summary>
-            <returns></returns>
+             </summary>
+             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealPlatformGroup.ToString">
             <summary>
@@ -5460,31 +5478,31 @@
             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealPlatformGroup.TryParse(System.String,UnrealBuildTool.UnrealPlatformGroup@)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="Name"></param>
-            <param name="Group"></param>
-            <returns></returns>
+             </summary>
+             <param name="Name"></param>
+             <param name="Group"></param>
+             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealPlatformGroup.GetValidGroups">
-            <summary>
+             <summary>
             
-            </summary>
-            <returns></returns>
+             </summary>
+             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealPlatformGroup.GetValidGroupNames">
-            <summary>
+             <summary>
             
-            </summary>
-            <returns></returns>
+             </summary>
+             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealPlatformGroup.IsValidName(System.String)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="Name"></param>
-            <returns></returns>
+             </summary>
+             <param name="Name"></param>
+             <returns></returns>
         </member>
         <member name="F:UnrealBuildTool.UnrealPlatformGroup.Windows">
             <summary>
@@ -5542,18 +5560,18 @@
             </summary>
         </member>
         <member name="M:UnrealBuildTool.UnrealArch.GetObjectData(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="Info"></param>
-            <param name="Context"></param>
+             </summary>
+             <param name="Info"></param>
+             <param name="Context"></param>
         </member>
         <member name="M:UnrealBuildTool.UnrealArch.#ctor(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="Info"></param>
-            <param name="Context"></param>
+             </summary>
+             <param name="Info"></param>
+             <param name="Context"></param>
         </member>
         <member name="M:UnrealBuildTool.UnrealArch.FindOrAddByName(System.String,System.Nullable{System.Boolean})">
             <summary>
@@ -5564,33 +5582,33 @@
             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealArch.op_Equality(UnrealBuildTool.UnrealArch,UnrealBuildTool.UnrealArch)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="A"></param>
-            <param name="B"></param>
-            <returns></returns>
+             </summary>
+             <param name="A"></param>
+             <param name="B"></param>
+             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealArch.op_Inequality(UnrealBuildTool.UnrealArch,UnrealBuildTool.UnrealArch)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="A"></param>
-            <param name="B"></param>
-            <returns></returns>
+             </summary>
+             <param name="A"></param>
+             <param name="B"></param>
+             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealArch.Equals(System.Object)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="B"></param>
-            <returns></returns>
+             </summary>
+             <param name="B"></param>
+             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealArch.GetHashCode">
-            <summary>
+             <summary>
             
-            </summary>
-            <returns></returns>
+             </summary>
+             <returns></returns>
         </member>
         <member name="P:UnrealBuildTool.UnrealArch.bIsX64">
             <summary>
@@ -5604,38 +5622,38 @@
             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealArch.TryParse(System.String,UnrealBuildTool.UnrealArch@)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="Name"></param>
-            <param name="Arch"></param>
-            <returns></returns>
+             </summary>
+             <param name="Name"></param>
+             <param name="Arch"></param>
+             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealArch.Parse(System.String)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="Name"></param>
-            <returns></returns>
+             </summary>
+             <param name="Name"></param>
+             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealArch.GetValidPlatforms">
-            <summary>
+             <summary>
             
-            </summary>
-            <returns></returns>
+             </summary>
+             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealArch.GetValidPlatformNames">
-            <summary>
+             <summary>
             
-            </summary>
-            <returns></returns>
+             </summary>
+             <returns></returns>
         </member>
         <member name="M:UnrealBuildTool.UnrealArch.IsValidName(System.String)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="Name"></param>
-            <returns></returns>
+             </summary>
+             <param name="Name"></param>
+             <returns></returns>
         </member>
         <member name="F:UnrealBuildTool.UnrealArch.X64">
             <summary>
@@ -5781,7 +5799,7 @@
         </member>
         <member name="T:UnrealBuildTool.UnrealTargetConfiguration">
             <summary>
-            The type of configuration a target can be built for.  Roughly order by optimization level. 
+            The type of configuration a target can be built for.  Roughly order by optimization level.
             </summary>
         </member>
         <member name="F:UnrealBuildTool.UnrealTargetConfiguration.Unknown">
@@ -5820,32 +5838,32 @@
             </summary>
         </member>
         <member name="F:UnrealBuildTool.BuildManifest.BuildProducts">
-            <summary>
+             <summary>
             
-            </summary>
+             </summary>
         </member>
         <member name="F:UnrealBuildTool.BuildManifest.DeployTargetFiles">
-            <summary>
+             <summary>
             
-            </summary>
+             </summary>
         </member>
         <member name="M:UnrealBuildTool.BuildManifest.#ctor">
-            <summary>
+             <summary>
             
-            </summary>
+             </summary>
         </member>
         <member name="M:UnrealBuildTool.BuildManifest.AddBuildProduct(System.String)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="FileName"></param>
+             </summary>
+             <param name="FileName"></param>
         </member>
         <member name="M:UnrealBuildTool.BuildManifest.AddBuildProduct(System.String,System.String)">
-            <summary>
+             <summary>
             
-            </summary>
-            <param name="FileName"></param>
-            <param name="DebugInfoExtension"></param>
+             </summary>
+             <param name="FileName"></param>
+             <param name="DebugInfoExtension"></param>
         </member>
         <member name="T:UnrealBuildTool.UEBuildTarget">
             <summary>
@@ -6134,12 +6152,12 @@
             <returns>New toolchain instance</returns>
         </member>
         <member name="M:UnrealBuildTool.UEBuildTarget.CleanStaleModules(Microsoft.Extensions.Logging.ILogger)">
-            <summary>
-            Cleans any stale modules that have changed moved output folder.
+             <summary>
+             Cleans any stale modules that have changed moved output folder.
             
-            On Windows, the loader reads imported DLLs from the first location it finds them. If modules are moved from one place to another, we have to be sure to clean up the old versions
-            so that they're not loaded accidentally causing unintuitive import errors.
-            </summary>
+             On Windows, the loader reads imported DLLs from the first location it finds them. If modules are moved from one place to another, we have to be sure to clean up the old versions
+             so that they're not loaded accidentally causing unintuitive import errors.
+             </summary>
         </member>
         <member name="M:UnrealBuildTool.UEBuildTarget.IsEngineToPluginReferenceAllowed(System.String,System.String)">
             <summary>
@@ -6255,11 +6273,12 @@
             <param name="ModuleRules">The rules object created for this module</param>
             <returns>The base output directory for compiled object files for this module</returns>
         </member>
-        <member name="M:UnrealBuildTool.UEBuildTarget.GetModuleIntermediateDirectory(UnrealBuildTool.ModuleRules)">
+        <member name="M:UnrealBuildTool.UEBuildTarget.GetModuleIntermediateDirectory(UnrealBuildTool.ModuleRules,UnrealBuildTool.UnrealArchitectures)">
             <summary>
             Finds the base output directory for a module
             </summary>
             <param name="ModuleRules">The rules object created for this module</param>
+            <param name="Architectures">The architectures (or none) to insert into the directory structure</param>
             <returns>The output directory for compiled object files for this module</returns>
         </member>
         <member name="M:UnrealBuildTool.UEBuildTarget.CreateDynamicLibraryForModule(UnrealBuildTool.UEBuildModuleCPP)">
@@ -10776,8 +10795,8 @@
             The Clang static analyzer can do either Text, which prints the analysis to stdout, or
             html, where it writes out a navigable HTML page for each issue that it finds, per file.
             The HTML is output in the same directory as the object fil that would otherwise have
-            been generated. 
-            All other analyzers default automatically to Text. 
+            been generated.
+            All other analyzers default automatically to Text.
             </summary>
         </member>
         <member name="F:UnrealBuildTool.WindowsStaticAnalyzerOutputType.Text">
@@ -10845,7 +10864,7 @@
         </member>
         <member name="F:UnrealBuildTool.WindowsTargetRules.bUseWindowsSDK10">
             <summary>
-            Enable building with the Win10 SDK instead of the older Win8.1 SDK 
+            Enable building with the Win10 SDK instead of the older Win8.1 SDK
             </summary>
         </member>
         <member name="F:UnrealBuildTool.WindowsTargetRules.bUseCPPWinRT">
@@ -10976,13 +10995,13 @@
         </member>
         <member name="F:UnrealBuildTool.WindowsTargetRules.bUseFastGenProfile">
             <summary>
-            If specified along with -PGOProfile, then /FASTGENPROFILE will be used instead of /GENPROFILE. 
+            If specified along with -PGOProfile, then /FASTGENPROFILE will be used instead of /GENPROFILE.
             This usually means that the PGO data is generated faster, but the resulting data may not yield as efficient optimizations during -PGOOptimize
             </summary>
         </member>
         <member name="F:UnrealBuildTool.WindowsTargetRules.bClangTimeTrace">
             <summary>
-            (Experimental) Appends the -ftime-trace argument to the command line for Clang to output a JSON file containing a timeline for the compile. 
+            (Experimental) Appends the -ftime-trace argument to the command line for Clang to output a JSON file containing a timeline for the compile.
             See http://aras-p.info/blog/2019/01/16/time-trace-timeline-flame-chart-profiler-for-Clang/ for more info.
             </summary>
         </member>
@@ -18569,201 +18588,223 @@
             Latest standard supported by the compiler
             </summary>
         </member>
-        <member name="T:UnrealBuildTool.DefaultCPUVersion">
+        <member name="T:UnrealBuildTool.DefaultCPU">
             <summary>
             Specifies which processor to use for compiling this module and to tuneup and optimize to specifics of micro-architectures. This enum should be kept in order, so that toolchains can check whether the requested setting is >= values that they support.
             Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable might cause worse performance or will crash on incompatible processors.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Generic">
+        <member name="F:UnrealBuildTool.DefaultCPU.Generic">
             <summary>
             A generic CPU with 64-bit extensions.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Native">
+        <member name="F:UnrealBuildTool.DefaultCPU.Native">
             <summary>
             This selects the CPU to generate code for at compilation time by determining the processor type of the compiling machine. Using -march=native enables all instruction subsets supported by the local machine (hence the result might not run on different machines). Using -mtune=native produces code optimized for the local machine under the constraints of the selected instruction set.
             In MSVC defaults to Generic.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Bonnell">
+        <member name="F:UnrealBuildTool.DefaultCPU.Bonnell">
             <summary>
             Intel Bonnell CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3 and SSSE3 instruction set support.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Core2">
+        <member name="F:UnrealBuildTool.DefaultCPU.Core2">
             <summary>
             Intel Core 2 CPU with 64-bit extensions, MMX, SSE, SSE2, SSE3, SSSE3, CX16, SAHF and FXSR instruction set support.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Nehalem">
+        <member name="F:UnrealBuildTool.DefaultCPU.Nehalem">
             <summary>
             Intel Nehalem CPU with 64-bit extensions, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF and FXSR instruction set support.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Westmere">
+        <member name="F:UnrealBuildTool.DefaultCPU.Westmere">
             <summary>
             Intel Westmere CPU with 64-bit extensions, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR and PCLMUL instruction set support.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Sandybridge">
+        <member name="F:UnrealBuildTool.DefaultCPU.Sandybridge">
             <summary>
             Intel Sandy Bridge CPU with 64-bit extensions, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE and PCLMUL instruction set support.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Ivybridge">
+        <member name="F:UnrealBuildTool.DefaultCPU.Ivybridge">
             <summary>
             Intel Ivy Bridge CPU with 64-bit extensions, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND and F16C instruction set support.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Silvermont">
+        <member name="F:UnrealBuildTool.DefaultCPU.Silvermont">
             <summary>
             Intel Silvermont CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, PCLMUL, PREFETCHW and RDRND instruction set support.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Goldmont">
+        <member name="F:UnrealBuildTool.DefaultCPU.Goldmont">
             <summary>
             Intel Goldmont CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, PCLMUL, PREFETCHW, RDRND, AES, SHA, RDSEED, XSAVE, XSAVEC, XSAVES, XSAVEOPT, CLFLUSHOPT and FSGSBASE instruction set support.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Goldmont_plus">
+        <member name="F:UnrealBuildTool.DefaultCPU.Goldmont_plus">
             <summary>
             Intel Goldmont Plus CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, PCLMUL, PREFETCHW, RDRND, AES, SHA, RDSEED, XSAVE, XSAVEC, XSAVES, XSAVEOPT, CLFLUSHOPT, FSGSBASE, PTWRITE, RDPID and SGX instruction set support.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Tremont">
+        <member name="F:UnrealBuildTool.DefaultCPU.Tremont">
             <summary>
             Intel Tremont CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, PCLMUL, PREFETCHW, RDRND, AES, SHA, RDSEED, XSAVE, XSAVEC, XSAVES, XSAVEOPT, CLFLUSHOPT, FSGSBASE, PTWRITE, RDPID, SGX, CLWB, GFNI-SSE, MOVDIRI, MOVDIR64B, CLDEMOTE and WAITPKG instruction set support.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Btver2">
+        <member name="F:UnrealBuildTool.DefaultCPU.Btver2">
             <summary>
             AMD Family 16h cores based CPUs with x86-64 instruction set support. This includes MOVBE, F16C, BMI, AVX, PCLMUL, AES, SSE4.2, SSE4.1, CX16, ABM, SSE4A, SSSE3, SSE3, SSE2, SSE, MMX and 64-bit instruction set extensions.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Bdver1">
+        <member name="F:UnrealBuildTool.DefaultCPU.Bdver1">
             <summary>
             AMD Bulldozer Family 15h core based CPUs with x86-64 instruction set support. This supersets FMA4, AVX, XOP, LWP, AES, PCLMUL, CX16, MMX, SSE, SSE2, SSE3, SSE4A, SSSE3, SSE4.1, SSE4.2, ABM and 64-bit instruction set extensions.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Bdver2">
+        <member name="F:UnrealBuildTool.DefaultCPU.Bdver2">
             <summary>
             AMD Bulldozer Family 15h core based CPUs with x86-64 instruction set support. This supersets BMI, TBM, F16C, FMA, FMA4, AVX, XOP, LWP, AES, PCLMUL, CX16, MMX, SSE, SSE2, SSE3, SSE4A, SSSE3, SSE4.1, SSE4.2, ABM and 64-bit instruction set extensions.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Bdver3">
+        <member name="F:UnrealBuildTool.DefaultCPU.Bdver3">
             <summary>
             AMD Bulldozer Family 15h core based CPUs with x86-64 instruction set support. This supersets BMI, TBM, F16C, FMA, FMA4, FSGSBASE, AVX, XOP, LWP, AES, PCLMUL, CX16, MMX, SSE, SSE2, SSE3, SSE4A, SSSE3, SSE4.1, SSE4.2, ABM and 64-bit instruction set extensions.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Haswell">
+        <member name="F:UnrealBuildTool.DefaultCPU.Haswell">
             <summary>
             Intel Haswell CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE and HLE instruction set support.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Broadwell">
+        <member name="F:UnrealBuildTool.DefaultCPU.Broadwell">
             <summary>
             Intel Broadwell CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX and PREFETCHW instruction set support.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Skylake">
+        <member name="F:UnrealBuildTool.DefaultCPU.Skylake">
             <summary>
             Intel Skylake CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES and SGX instruction set support.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Alderlake">
+        <member name="F:UnrealBuildTool.DefaultCPU.Alderlake">
             <summary>
             Intel Alderlake CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, AES, PREFETCHW, PCLMUL, RDRND, XSAVE, XSAVEC, XSAVES, XSAVEOPT, FSGSBASE, PTWRITE, RDPID, SGX, GFNI-SSE, CLWB, MOVDIRI, MOVDIR64B, CLDEMOTE, WAITPKG, ADCX, AVX, AVX2, BMI, BMI2, F16C, FMA, LZCNT, PCONFIG, PKU, VAES, VPCLMULQDQ, SERIALIZE, HRESET, KL, WIDEKL and AVX-VNNI instruction set support.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Bdver4">
+        <member name="F:UnrealBuildTool.DefaultCPU.Sierraforest">
+            <summary>
+            Intel Sierra Forest CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, AES, PREFETCHW, PCLMUL, RDRND, XSAVE, XSAVEC, XSAVES, XSAVEOPT, FSGSBASE, PTWRITE, RDPID, SGX, GFNI-SSE, CLWB, MOVDIRI, MOVDIR64B, CLDEMOTE, WAITPKG, ADCX, AVX, AVX2, BMI, BMI2, F16C, FMA, LZCNT, PCONFIG, PKU, VAES, VPCLMULQDQ, SERIALIZE, HRESET, KL, WIDEKL, AVX-VNNI, AVXIFMA, AVXVNNIINT8, AVXNECONVERT and CMPCCXADD instruction set support.
+            </summary>
+        </member>
+        <member name="F:UnrealBuildTool.DefaultCPU.Grandridge">
+            <summary>
+            Intel Grand Ridge CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, AES, PREFETCHW, PCLMUL, RDRND, XSAVE, XSAVEC, XSAVES, XSAVEOPT, FSGSBASE, PTWRITE, RDPID, SGX, GFNI-SSE, CLWB, MOVDIRI, MOVDIR64B, CLDEMOTE, WAITPKG, ADCX, AVX, AVX2, BMI, BMI2, F16C, FMA, LZCNT, PCONFIG, PKU, VAES, VPCLMULQDQ, SERIALIZE, HRESET, KL, WIDEKL, AVX-VNNI, AVXIFMA, AVXVNNIINT8, AVXNECONVERT, CMPCCXADD and RAOINT instruction set support.
+            </summary>
+        </member>
+        <member name="F:UnrealBuildTool.DefaultCPU.Bdver4">
             <summary>
             AMD Bulldozer Family 15h core based CPUs with x86-64 instruction set support. This supersets BMI, BMI2, TBM, F16C, FMA, FMA4, FSGSBASE, AVX, AVX2, XOP, LWP, AES, PCLMUL, CX16, MOVBE, MMX, SSE, SSE2, SSE3, SSE4A, SSSE3, SSE4.1, SSE4.2, ABM and 64-bit instruction set extensions.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Znver1">
+        <member name="F:UnrealBuildTool.DefaultCPU.Znver1">
             <summary>
-            AMD Zen1 Ryzen/Epic-7xx1-series Family 17h core based CPUs with x86-64 instruction set support. This supersets BMI, BMI2, F16C, FMA, FSGSBASE, AVX, AVX2, ADCX, RDSEED, MWAITX, SHA, CLZERO, AES, PCLMUL, CX16, MOVBE, MMX, SSE, SSE2, SSE3, SSE4A, SSSE3, SSE4.1, SSE4.2, ABM, XSAVEC, XSAVES, CLFLUSHOPT, POPCNT, and 64-bit instruction set extensions.
+            AMD Zen1 Ryzen/Epic-7xx1-series Family 17h core based CPUs with x86-64 instruction set support. (This supersets BMI, BMI2, F16C, FMA, FSGSBASE, AVX, AVX2, ADCX, RDSEED, MWAITX, SHA, CLZERO, AES, PCLMUL, CX16, MOVBE, MMX, SSE, SSE2, SSE3, SSE4A, SSSE3, SSE4.1, SSE4.2, ABM, XSAVEC, XSAVES, CLFLUSHOPT, POPCNT, and 64-bit instruction set extensions.)
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Znver2">
+        <member name="F:UnrealBuildTool.DefaultCPU.Znver2">
             <summary>
-            AMD Zen2 Ryzen/Epic-7xx2-series Family 17h core based CPUs with x86-64 instruction set support. This supersets BMI, BMI2, CLWB, F16C, FMA, FSGSBASE, AVX, AVX2, ADCX, RDSEED, MWAITX, SHA, CLZERO, AES, PCLMUL, CX16, MOVBE, MMX, SSE, SSE2, SSE3, SSE4A, SSSE3, SSE4.1, SSE4.2, ABM, XSAVEC, XSAVES, CLFLUSHOPT, POPCNT, RDPID, WBNOINVD, and 64-bit instruction set extensions.
+            AMD Zen2 Ryzen/Epic-7xx2-series Family 17h core based CPUs with x86-64 instruction set support. (This supersets BMI, BMI2, CLWB, F16C, FMA, FSGSBASE, AVX, AVX2, ADCX, RDSEED, MWAITX, SHA, CLZERO, AES, PCLMUL, CX16, MOVBE, MMX, SSE, SSE2, SSE3, SSE4A, SSSE3, SSE4.1, SSE4.2, ABM, XSAVEC, XSAVES, CLFLUSHOPT, POPCNT, RDPID, WBNOINVD, and 64-bit instruction set extensions.)
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Znver3">
+        <member name="F:UnrealBuildTool.DefaultCPU.Znver3">
             <summary>
-            AMD Zen3 Ryzen/Epic-7xx3-series Family 19h core based CPUs with x86-64 instruction set support. This supersets BMI, BMI2, CLWB, F16C, FMA, FSGSBASE, AVX, AVX2, ADCX, RDSEED, MWAITX, SHA, CLZERO, AES, PCLMUL, CX16, MOVBE, MMX, SSE, SSE2, SSE3, SSE4A, SSSE3, SSE4.1, SSE4.2, ABM, XSAVEC, XSAVES, CLFLUSHOPT, POPCNT, RDPID, WBNOINVD, PKU, VPCLMULQDQ, VAES, and 64-bit instruction set extensions.
+            AMD Zen3 Ryzen/Epic-7xx3-series Family 19h core based CPUs with x86-64 instruction set support. (This supersets BMI, BMI2, CLWB, F16C, FMA, FSGSBASE, AVX, AVX2, ADCX, RDSEED, MWAITX, SHA, CLZERO, AES, PCLMUL, CX16, MOVBE, MMX, SSE, SSE2, SSE3, SSE4A, SSSE3, SSE4.1, SSE4.2, ABM, XSAVEC, XSAVES, CLFLUSHOPT, POPCNT, RDPID, WBNOINVD, PKU, VPCLMULQDQ, VAES, and 64-bit instruction set extensions.)
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Znver4">
+        <member name="F:UnrealBuildTool.DefaultCPU.Znver4">
             <summary>
-            AMD Zen4 Ryzen/Epic-7xx3-series Family 19h core based CPUs with x86-64 instruction set support. This supersets BMI, BMI2, CLWB, F16C, FMA, FSGSBASE, AVX, AVX2, AVX-512, ADCX, RDSEED, MWAITX, SHA, CLZERO, AES, PCLMUL, CX16, MOVBE, MMX, SSE, SSE2, SSE3, SSE4A, SSSE3, SSE4.1, SSE4.2, ABM, XSAVEC, XSAVES, CLFLUSHOPT, POPCNT, RDPID, WBNOINVD, PKU, VPCLMULQDQ, VAES, and 64-bit instruction set extensions.
+            AMD Zen4 Ryzen/Epic-7xx4-series Family 19h core based CPUs with x86-64 instruction set support. (This supersets BMI, BMI2, CLWB, F16C, FMA, FSGSBASE, AVX, AVX2, ADCX, RDSEED, MWAITX, SHA, CLZERO, AES, PCLMUL, CX16, MOVBE, MMX, SSE, SSE2, SSE3, SSE4A, SSSE3, SSE4.1, SSE4.2, ABM, XSAVEC, XSAVES, CLFLUSHOPT, POPCNT, RDPID, WBNOINVD, PKU, VPCLMULQDQ, VAES, AVX512F, AVX512DQ, AVX512IFMA, AVX512CD, AVX512BW, AVX512VL, AVX512BF16, AVX512VBMI, AVX512VBMI2, AVX512VNNI, AVX512BITALG, AVX512VPOPCNTDQ, GFNI and 64-bit instruction set extensions.)
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Knl">
-            <summary>
-            Intel Knight’s Landing CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AVX512PF, AVX512ER, AVX512F, AVX512CD and PREFETCHWT1 instruction set support.
-            </summary>
-        </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Knm">
-            <summary>
-            Intel Knights Mill CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AVX512PF, AVX512ER, AVX512F, AVX512CD and PREFETCHWT1, AVX5124VNNIW, AVX5124FMAPS and AVX512VPOPCNTDQ instruction set support.
-            </summary>
-        </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Skylake_avx512">
+        <member name="F:UnrealBuildTool.DefaultCPU.Skylake_avx512">
             <summary>
             Intel Skylake Server CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, CLWB, AVX512VL, AVX512BW, AVX512DQ and AVX512CD instruction set support.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Cannonlake">
+        <member name="F:UnrealBuildTool.DefaultCPU.Cannonlake">
             <summary>
             Intel Cannonlake Server CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, AVX512VL, AVX512BW, AVX512DQ, AVX512CD, PKU, AVX512VBMI, AVX512IFMA and SHA instruction set support.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Icelake_client">
+        <member name="F:UnrealBuildTool.DefaultCPU.Icelake_client">
             <summary>
             Intel Icelake Client CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, AVX512VL, AVX512BW, AVX512DQ, AVX512CD, PKU, AVX512VBMI, AVX512IFMA, SHA, AVX512VNNI, GFNI, VAES, AVX512VBMI2 , VPCLMULQDQ, AVX512BITALG, RDPID and AVX512VPOPCNTDQ instruction set support.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Icelake_server">
+        <member name="F:UnrealBuildTool.DefaultCPU.Icelake_server">
             <summary>
             Intel Icelake Server CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, AVX512VL, AVX512BW, AVX512DQ, AVX512CD, PKU, AVX512VBMI, AVX512IFMA, SHA, AVX512VNNI, GFNI, VAES, AVX512VBMI2 , VPCLMULQDQ, AVX512BITALG, RDPID, AVX512VPOPCNTDQ, PCONFIG, WBNOINVD and CLWB instruction set support.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Cascadelake">
+        <member name="F:UnrealBuildTool.DefaultCPU.Cascadelake">
             <summary>
             Intel Cascadelake CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, CLWB, AVX512VL, AVX512BW, AVX512DQ, AVX512CD and AVX512VNNI instruction set support.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Cooperlake">
+        <member name="F:UnrealBuildTool.DefaultCPU.Cooperlake">
             <summary>
-            Intel Cooperlake CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, CLWB, AVX512VL, AVX512BW, AVX512DQ, AVX512CD, AVX512VNNI and AVX512BF16 instruction set support.
+            Intel cooperlake CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, CLWB, AVX512VL, AVX512BW, AVX512DQ, AVX512CD, AVX512VNNI and AVX512BF16 instruction set support.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Tigerlake">
+        <member name="F:UnrealBuildTool.DefaultCPU.Tigerlake">
             <summary>
-            Intel Tigerlake CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, AVX512VL, AVX512BW, AVX512DQ, AVX512CD PKU, AVX512VBMI, AVX512IFMA, SHA, AVX512VNNI, GFNI, VAES, AVX512VBMI2, VPCLMULQDQ, AVX512BITALG, RDPID, AVX512VPOPCNTDQ, MOVDIRI, MOVDIR64B, CLWB, AVX512VP2INTERSECT and KEYLOCKER instruction set support
+            Intel Tigerlake CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, AVX512VL, AVX512BW, AVX512DQ, AVX512CD PKU, AVX512VBMI, AVX512IFMA, SHA, AVX512VNNI, GFNI, VAES, AVX512VBMI2, VPCLMULQDQ, AVX512BITALG, RDPID, AVX512VPOPCNTDQ, MOVDIRI, MOVDIR64B, CLWB, AVX512VP2INTERSECT and KEYLOCKER instruction set support.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Sapphirerapids">
+        <member name="F:UnrealBuildTool.DefaultCPU.Sapphirerapids">
             <summary>
-            Intel Sapphirerapids CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, CLWB, AVX512VL, AVX512BW, AVX512DQ, AVX512CD, AVX512VNNI, AVX512BF16 MOVDIRI, MOVDIR64B, AVX512VP2INTERSECT, ENQCMD, CLDEMOTE, PTWRITE, WAITPKG, SERIALIZE, TSXLDTRK, UINTR, AMX-BF16, AMX-TILE, AMX-INT8, AVX-VNNI and AVX512FP16 instruction set support.
+            Intel sapphirerapids CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, AVX512VL, AVX512BW, AVX512DQ, AVX512CD, PKU, AVX512VBMI, AVX512IFMA, SHA, AVX512VNNI, GFNI, VAES, AVX512VBMI2, VPCLMULQDQ, AVX512BITALG, RDPID, AVX512VPOPCNTDQ, PCONFIG, WBNOINVD, CLWB, MOVDIRI, MOVDIR64B, ENQCMD, CLDEMOTE, PTWRITE, WAITPKG, SERIALIZE, TSXLDTRK, UINTR, AMX-BF16, AMX-TILE, AMX-INT8, AVX-VNNI, AVX512-FP16 and AVX512BF16 instruction set support.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Alderlake_avx512">
-            <summary>
-            Intel Alderlake CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, AES, PREFETCHW, PCLMUL, RDRND, XSAVE, XSAVEC, XSAVES, XSAVEOPT, FSGSBASE, PTWRITE, RDPID, SGX, GFNI-SSE, CLWB, MOVDIRI, MOVDIR64B, CLDEMOTE, WAITPKG, ADCX, AVX, AVX2, BMI, BMI2, F16C, FMA, LZCNT, PCONFIG, PKU, VAES, VPCLMULQDQ, SERIALIZE, HRESET, KL, WIDEKL, AVX-VNNI and AVX512F enabled instruction set support.
-            </summary>
-        </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Rocketlake">
+        <member name="F:UnrealBuildTool.DefaultCPU.Rocketlake">
             <summary>
             Intel Rocketlake CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3 , SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, AVX512F, AVX512VL, AVX512BW, AVX512DQ, AVX512CD PKU, AVX512VBMI, AVX512IFMA, SHA, AVX512VNNI, GFNI, VAES, AVX512VBMI2, VPCLMULQDQ, AVX512BITALG, RDPID and AVX512VPOPCNTDQ instruction set support.
             </summary>
         </member>
-        <member name="F:UnrealBuildTool.DefaultCPUVersion.Default">
+        <member name="F:UnrealBuildTool.DefaultCPU.Graniterapids">
+            <summary>
+            Intel graniterapids CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, AVX512VL, AVX512BW, AVX512DQ, AVX512CD, PKU, AVX512VBMI, AVX512IFMA, SHA, AVX512VNNI, GFNI, VAES, AVX512VBMI2, VPCLMULQDQ, AVX512BITALG, RDPID, AVX512VPOPCNTDQ, PCONFIG, WBNOINVD, CLWB, MOVDIRI, MOVDIR64B, AVX512VP2INTERSECT, ENQCMD, CLDEMOTE, PTWRITE, WAITPKG, SERIALIZE, TSXLDTRK, UINTR, AMX-BF16, AMX-TILE, AMX-INT8, AVX-VNNI, AVX512-FP16, AVX512BF16, AMX-FP16 and PREFETCHI instruction set support.
+            </summary>
+        </member>
+        <member name="F:UnrealBuildTool.DefaultCPU.Default">
             <summary>
             Use the default Generic version
+            </summary>
+        </member>
+        <member name="T:UnrealBuildTool.AVXSupport">
+            <summary>
+            To what extent a module supports AVX version
+            </summary>
+        </member>
+        <member name="F:UnrealBuildTool.AVXSupport.None">
+            <summary>
+            None means code does not compile with AVX.
+            </summary>
+        </member>
+        <member name="F:UnrealBuildTool.AVXSupport.AVX256">
+            <summary>
+            Direct the compiler to generate AVX instructions wherever SSE or AVX intrinsics are used, on the platforms that support it.
+            Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable will crash on machines without AVX support.
+            </summary>
+        </member>
+        <member name="F:UnrealBuildTool.AVXSupport.AVX512">
+            <summary>
+            Direct the compiler to generate AVX instructions wherever SSE or AVX or AVX-512 intrinsics are used, on the platforms that support it.
+            Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable will crash on machines without AVX and AVX-512 support.
             </summary>
         </member>
         <member name="T:UnrealBuildTool.CSharpTargetConfiguration">
@@ -18862,6 +18903,12 @@
             Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable will crash on machines without AVX support.
             </summary>
         </member>
+        <member name="F:UnrealBuildTool.CppCompileEnvironment.AVXSupport">
+            <summary>
+            Direct the compiler to generate AVX instructions wherever SSE or AVX or AVX-512 intrinsics are used, on the platforms that support it.
+            Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable will crash on machines without AVX or AVX-512 support.
+            </summary>
+        </member>
         <member name="F:UnrealBuildTool.CppCompileEnvironment.bEnableBufferSecurityChecks">
             <summary>
             Enable buffer security checks.   This should usually be enabled as it prevents severe security risks.
@@ -18907,7 +18954,7 @@
         <member name="F:UnrealBuildTool.CppCompileEnvironment.bEnableObjCAutomaticReferenceCounting">
             <summary>
             Enable objective C automatic reference counting (ARC)
-            If you set this to true you should not use shared PCHs for this module. The engine won't be extensively using ARC in the short term  
+            If you set this to true you should not use shared PCHs for this module. The engine won't be extensively using ARC in the short term
             Not doing this will result in a compile errors because shared PCHs were compiled with different flags than consumer
             </summary>
         </member>
@@ -19046,7 +19093,7 @@
         </member>
         <member name="F:UnrealBuildTool.CppCompileEnvironment.bAllowLTCG">
             <summary>
-            Whether to allow the use of LTCG (link time code generation) 
+            Whether to allow the use of LTCG (link time code generation)
             </summary>
         </member>
         <member name="F:UnrealBuildTool.CppCompileEnvironment.bPGOProfile">
@@ -19178,7 +19225,7 @@
         </member>
         <member name="F:UnrealBuildTool.CppCompileEnvironment.bEnableCoroutines">
             <summary>
-            Enable C++ coroutine support. 
+            Enable C++ coroutine support.
             For MSVC, adds "/await:strict" to the command line. Program should #include &lt;coroutine&gt;
             For Clang, adds "-fcoroutines-ts" to the command line. Program should #include &lt;experimental/coroutine&gt; (not supported in every clang toolchain)
             </summary>

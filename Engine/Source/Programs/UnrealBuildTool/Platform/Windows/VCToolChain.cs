@@ -55,7 +55,7 @@ namespace UnrealBuildTool
 				}
 			}
 		}
-		
+
 		public override FileReference? GetCppCompilerPath()
 		{
 			return EnvVars.CompilerPath;
@@ -279,7 +279,7 @@ namespace UnrealBuildTool
 				// Sync the compatibility version with the MSVC toolchain version (14.xx which maps to advertised
 				// compiler version of 19.xx).
 				Arguments.Add($"-fms-compatibility-version=19.{EnvVars.ToolChainVersion.GetComponent(1)}");
-				
+
 				if (Target.StaticAnalyzer == StaticAnalyzer.Default && CompileEnvironment.PrecompiledHeaderAction != PrecompiledHeaderAction.Create && !CompileEnvironment.bDisableStaticAnalysis)
 				{
 					Arguments.Add("-Wno-unused-command-line-argument");
@@ -300,7 +300,7 @@ namespace UnrealBuildTool
 					// Needed for some of the C++ checkers.
 					Arguments.Add("-Xclang -analyzer-config -Xclang aggressive-binary-operation-simplification=true");
 
-					// If writing to HTML, use the source filename as a basis for the report filename. 
+					// If writing to HTML, use the source filename as a basis for the report filename.
 					Arguments.Add("-Xclang -analyzer-config -Xclang stable-report-filename=true");
 					Arguments.Add("-Xclang -analyzer-config -Xclang report-in-main-source-file=true");
 					Arguments.Add("-Xclang -analyzer-config -Xclang path-diagnostics-alternate=true");
@@ -402,7 +402,7 @@ namespace UnrealBuildTool
 				Arguments.Add("/FC");
 			}
 
-			if (Target.WindowsPlatform.Compiler.IsClang() && Target.Platform.IsInGroup(UnrealPlatformGroup.Windows))
+			if (Target.WindowsPlatform.Compiler.IsClang() && CompileEnvironment.Architecture.bIsX64)
 			{
 				// Tell the Clang compiler to generate 64-bit code
 				Arguments.Add("--target=x86_64-pc-windows-msvc");
@@ -410,83 +410,6 @@ namespace UnrealBuildTool
 				// DevelVitorF pushing it a bit further
 				if (CompileEnvironment.bUseAVX)
 				{
-					// Define /arch:AVX for the current compilation unit.  Machines without AVX support will crash on any SSE/AVX instructions if they run this compilation unit.
-					//Arguments.AddRange(new string[] { "-mavx2", "-mfma" } );
-					//Arguments.AddRange(new string[] { "/clang:-march=broadwell", "/clang:-mtune=broadwell", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8",  "-mllvm -force-vector-interleave=4" } );
-					//Arguments.AddRange(new string[] { "/clang:-march=core-avx2", "/clang:-mtune=core-avx2", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8",  "-mllvm -force-vector-interleave=4" } );
-					//Arguments.AddRange(new string[] { "/clang:-march=znver3", "/clang:-mtune=znver3", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8",  "-mllvm -force-vector-interleave=4" } );
-
-					switch (CompileEnvironment.DefaultCPU)
-					{
-						case DefaultCPUVersion.Native:
-							Arguments.AddRange(new string[] { "/clang:-march=native", "/clang:-mtune=native", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8",  "-mllvm -force-vector-interleave=4" } );
-							break;
-						case DefaultCPUVersion.Haswell:
-							Arguments.AddRange(new string[] { "/clang:-march=haswell", "/clang:-mtune=haswell", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8",  "-mllvm -force-vector-interleave=4" } );
-							break;
-						case DefaultCPUVersion.Broadwell:
-							Arguments.AddRange(new string[] { "/clang:-march=broadwell", "/clang:-mtune=broadwell", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8",  "-mllvm -force-vector-interleave=4" } );
-							break;
-						case DefaultCPUVersion.Skylake:
-							Arguments.AddRange(new string[] { "/clang:-march=skylake", "/clang:-mtune=skylake", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8",  "-mllvm -force-vector-interleave=4" } );
-							break;
-						case DefaultCPUVersion.Alderlake:
-							Arguments.AddRange(new string[] { "/clang:-march=alderlake", "/clang:-mtune=alderlake", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8",  "-mllvm -force-vector-interleave=4" } );
-							break;
-						case DefaultCPUVersion.Bdver4:
-							Arguments.AddRange(new string[] { "/clang:-march=bdver4", "/clang:-mtune=bdver4", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8",  "-mllvm -force-vector-interleave=4" } );
-							break;
-						case DefaultCPUVersion.Znver1:
-							Arguments.AddRange(new string[] { "/clang:-march=znver1", "/clang:-mtune=znver1", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8",  "-mllvm -force-vector-interleave=4" } );
-							break;
-						case DefaultCPUVersion.Znver2:
-							Arguments.AddRange(new string[] { "/clang:-march=znver2", "/clang:-mtune=znver2", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8",  "-mllvm -force-vector-interleave=4" } );
-							break;
-						case DefaultCPUVersion.Znver3:
-							Arguments.AddRange(new string[] { "/clang:-march=znver3", "/clang:-mtune=znver3", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8",  "-mllvm -force-vector-interleave=4" } );
-							break;
-						case DefaultCPUVersion.Znver4:
-							Arguments.AddRange(new string[] { "/clang:-march=znver4", "/clang:-mtune=znver4", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8", "-mllvm -force-vector-interleave=4" });
-							break;
-						case DefaultCPUVersion.Knl:
-							Arguments.AddRange(new string[] { "/clang:-march=knl", "/clang:-mtune=knl", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8",  "-mllvm -force-vector-interleave=4" } );
-							break;
-						case DefaultCPUVersion.Knm:
-							Arguments.AddRange(new string[] { "/clang:-march=knm", "/clang:-mtune=knm", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8",  "-mllvm -force-vector-interleave=4" } );
-							break;
-						case DefaultCPUVersion.Skylake_avx512:
-							Arguments.AddRange(new string[] { "/clang:-march=skylake-avx512", "/clang:-mtune=skylake-avx512", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8",  "-mllvm -force-vector-interleave=4" } );
-							break;
-						case DefaultCPUVersion.Cannonlake:
-							Arguments.AddRange(new string[] { "/clang:-march=cannonlake", "/clang:-mtune=cannonlake", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8",  "-mllvm -force-vector-interleave=4" } );
-							break;
-						case DefaultCPUVersion.Icelake_client:
-							Arguments.AddRange(new string[] { "/clang:-march=icelake-client", "/clang:-mtune=icelake-client", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8",  "-mllvm -force-vector-interleave=4" } );
-							break;
-						case DefaultCPUVersion.Icelake_server:
-							Arguments.AddRange(new string[] { "/clang:-march=icelake-server", "/clang:-mtune=icelake-server", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8",  "-mllvm -force-vector-interleave=4" } );
-							break;
-						case DefaultCPUVersion.Cascadelake:
-							Arguments.AddRange(new string[] { "/clang:-march=cascadelake", "/clang:-mtune=cascadelake", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8",  "-mllvm -force-vector-interleave=4" } );
-							break;
-						case DefaultCPUVersion.Cooperlake:
-							Arguments.AddRange(new string[] { "/clang:-march=cooperlake", "/clang:-mtune=cooperlake", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8",  "-mllvm -force-vector-interleave=4" } );
-							break;
-						case DefaultCPUVersion.Tigerlake:
-							Arguments.AddRange(new string[] { "/clang:-march=tigerlake", "/clang:-mtune=tigerlake", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8",  "-mllvm -force-vector-interleave=4" } );
-							break;
-						case DefaultCPUVersion.Sapphirerapids:
-							Arguments.AddRange(new string[] { "/clang:-march=sapphirerapids", "/clang:-mtune=sapphirerapids", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8",  "-mllvm -force-vector-interleave=4" } );
-							break;
-						case DefaultCPUVersion.Alderlake_avx512:
-						case DefaultCPUVersion.Rocketlake:
-							Arguments.AddRange(new string[] { "/clang:-march=rocketlake", "/clang:-mtune=rocketlake", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8",  "-mllvm -force-vector-interleave=4" } );
-							break;
-						default:
-							Arguments.AddRange(new string[] { "/clang:-march=haswell", "/clang:-mtune=haswell", "-Xclang -mprefer-vector-width=256", "-mllvm -force-vector-width=8",  "-mllvm -force-vector-interleave=4" } );
-							break;
-					}
-
 					// AVX available implies sse4 and sse2 available.
 					// Inform Unreal code that we have sse2, sse4, and AVX, both available to compile and available to run
 					// By setting the ALWAYS_HAS defines, we we direct Unreal code to skip cpuid checks to verify that the running hardware supports sse/avx.
@@ -497,63 +420,259 @@ namespace UnrealBuildTool
 					AddDefinition(Arguments, "PLATFORM_MAYBE_HAS_AVX=1");
 					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_AVX=1");
 					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_AVX_2=1");
+					AddDefinition(Arguments, "PLATFORM_SUPPORTS_AVX=1");
+					AddDefinition(Arguments, "PLATFORM_SUPPORTS_AVX_2=1");
 					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_FMA3=1");
 					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_F16C=1");
+					// Define /arch:AVX for the current compilation unit.  Machines without AVX support will crash on any SSE/AVX instructions if they run this compilation unit.
+					if (CompileEnvironment.AVXSupport == AVXSupport.AVX512)
+					{
+						switch (CompileEnvironment.DefaultCPU)
+						{
+							case DefaultCPU.Native:
+								Arguments.Add("/clang:-march=native /clang:-mtune=native -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
+								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								break;
+							case DefaultCPU.Znver4:
+								Arguments.Add("/clang:-march=znver4 /clang:-mtune=znver4 -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BF16=1");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1");
+								break;
+							// This processors requires CPU checks, most of UE required AVX512 CPU features are not supported at all in this Intel processors.
+							/*case DefaultCPU.Knl:
+								Arguments.Add("/clang:-march=knl /clang:-mtune=knl -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
+								break;
+							case DefaultCPU.Knm:
+								Arguments.Add("/clang:-march=knm /clang:-mtune=knm -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
+								break;*/
+							case DefaultCPU.Skylake_avx512:
+								Arguments.Add("/clang:-march=skylake-avx512 /clang:-mtune=skylake-avx512 -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1");
+								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								break;
+							case DefaultCPU.Cannonlake:
+								Arguments.Add("/clang:-march=cannonlake /clang:-mtune=cannonlake -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1");
+								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								break;
+							case DefaultCPU.Icelake_client:
+								Arguments.Add("/clang:-march=icelake-client /clang:-mtune=icelake-client -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1");
+								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								break;
+							case DefaultCPU.Icelake_server:
+								Arguments.Add("/clang:-march=icelake-server /clang:-mtune=icelake-server -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1");
+								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								break;
+							case DefaultCPU.Cascadelake:
+								Arguments.Add("/clang:-march=cascadelake /clang:-mtune=cascadelake -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1");
+								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								break;
+							case DefaultCPU.Cooperlake:
+								Arguments.Add("/clang:-march=cooperlake /clang:-mtune=cooperlake -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BF16=1");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1");
+								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								break;
+							case DefaultCPU.Tigerlake:
+								Arguments.Add("/clang:-march=tigerlake /clang:-mtune=tigerlake -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VP2INTERSECT=1");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_VP2INTERSECT=1");
+								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								break;
+							case DefaultCPU.Sapphirerapids:
+								Arguments.Add("/clang:-march=sapphirerapids /clang:-mtune=sapphirerapids -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BF16=1 /DPLATFORM_ALWAYS_HAS_AVX_512_FP16=1");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1 /DPLATFORM_SUPPORTS_AVX_512_FP16=1");
+								break;
+							/*case DefaultCPU.Alderlake_avx512:*/ // Intel fused of AVX512. Removed.
+							case DefaultCPU.Rocketlake:
+								Arguments.Add("/clang:-march=rocketlake /clang:-mtune=rocketlake -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1");
+								break;
+							case DefaultCPU.Graniterapids:
+								Arguments.Add("/clang:-march=graniterapids /clang:-mtune=graniterapids -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BF16=1 /DPLATFORM_ALWAYS_HAS_AVX_512_FP16=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VP2INTERSECT=1");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1 /DPLATFORM_SUPPORTS_AVX_512_FP16=1 /DPLATFORM_SUPPORTS_AVX_512_VP2INTERSECT=1");
+								break;
+							default:
+								Arguments.Add("/clang:-march=native /clang:-mtune=native -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
+								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								break;
+						}
+					}
+					else
+					{
+						switch (CompileEnvironment.DefaultCPU)
+						{
+							case DefaultCPU.Native:
+								Arguments.Add("/clang:-march=native /clang:-mtune=native -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								break;
+							case DefaultCPU.Haswell:
+								Arguments.Add("/clang:-march=haswell /clang:-mtune=haswell -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								break;
+							case DefaultCPU.Broadwell:
+								Arguments.Add("/clang:-march=broadwell /clang:-mtune=broadwell -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								break;
+							case DefaultCPU.Skylake:
+								Arguments.Add("/clang:-march=skylake /clang:-mtune=skylake -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								break;
+							case DefaultCPU.Alderlake:
+								Arguments.Add("/clang:-march=alderlake /clang:-mtune=alderlake -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								break;
+							case DefaultCPU.Sierraforest:
+								Arguments.Add("/clang:-march=sierraforest /clang:-mtune=sierraforest -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								break;
+							case DefaultCPU.Grandridge:
+								Arguments.Add("/clang:-march=grandridge /clang:-mtune=grandridge -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								break;
+							case DefaultCPU.Bdver4:
+								Arguments.Add("/clang:-march=bdver4 /clang:-mtune=bdver4 -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								break;
+							case DefaultCPU.Znver1:
+								Arguments.Add("/clang:-march=znver1 /clang:-mtune=znver1 -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								break;
+							case DefaultCPU.Znver2:
+								Arguments.Add("/clang:-march=znver2 /clang:-mtune=znver2 -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								break;
+							case DefaultCPU.Znver3:
+								Arguments.Add("/clang:-march=znver3 /clang:-mtune=znver3 -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								break;
+							case DefaultCPU.Znver4:
+								Arguments.Add("/clang:-march=znver4 /clang:-mtune=znver4 -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1");
+								break;
+							/*case DefaultCPU.Knl: // Removed, incompatible for use with accelerators processors
+								Arguments.Add("/clang:-march=knl /clang:-mtune=knl -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								break;
+							case DefaultCPU.Knm:
+								Arguments.Add("/clang:-march=knm /clang:-mtune=knm -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								break;*/
+							case DefaultCPU.Skylake_avx512:
+								Arguments.Add("/clang:-march=skylake-avx512 /clang:-mtune=skylake-avx512 -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1");
+								break;
+							case DefaultCPU.Cannonlake:
+								Arguments.Add("/clang:-march=cannonlake /clang:-mtune=cannonlake -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1");
+								break;
+							case DefaultCPU.Icelake_client:
+								Arguments.Add("/clang:-march=icelake-client /clang:-mtune=icelake-client -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1");
+								break;
+							case DefaultCPU.Icelake_server:
+								Arguments.Add("/clang:-march=icelake-server /clang:-mtune=icelake-server -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1");
+								break;
+							case DefaultCPU.Cascadelake:
+								Arguments.Add("/clang:-march=cascadelake /clang:-mtune=cascadelake -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1");
+								break;
+							case DefaultCPU.Cooperlake:
+								Arguments.Add("/clang:-march=cooperlake /clang:-mtune=cooperlake -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1");
+								break;
+							case DefaultCPU.Tigerlake:
+								Arguments.Add("/clang:-march=tigerlake /clang:-mtune=tigerlake -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_VP2INTERSECT=1");
+								break;
+							case DefaultCPU.Sapphirerapids:
+								Arguments.Add("/clang:-march=sapphirerapids /clang:-mtune=sapphirerapids -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1 /DPLATFORM_SUPPORTS_AVX_512_FP16=1");
+								break;
+							/*case DefaultCPU.Alderlake_avx512:*/ // Intel fused of AVX512. Removed.
+							case DefaultCPU.Rocketlake:
+								Arguments.Add("/clang:-march=rocketlake /clang:-mtune=rocketlake -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1");
+								break;
+							case DefaultCPU.Graniterapids:
+								Arguments.Add("/clang:-march=graniterapids /clang:-mtune=graniterapids -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1 /DPLATFORM_SUPPORTS_AVX_512_FP16=1 /DPLATFORM_SUPPORTS_AVX_512_VP2INTERSECT=1");
+								break;
+							default:
+								Arguments.Add("/clang:-march=native /clang:-mtune=native -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								break;
+						}
+					}
+
+					if (Target.WindowsPlatform.Compiler == WindowsCompiler.Intel)
+					{
+						Arguments.Add("/Qfma");
+					}
 				}
 				else
 				{
-					//Arguments.AddRange(new string[] { "/clang:-march=westmere", "-Xclang -mprefer-vector-width=128", "-mllvm -force-vector-width=4",  "-mllvm -force-vector-interleave=2" } );
-
-					switch (CompileEnvironment.DefaultCPU)
-					{
-						case DefaultCPUVersion.Native:
-							Arguments.AddRange(new string[] { "/clang:-march=native", "/clang:-mtune=native", "-Xclang -mprefer-vector-width=128", "-mllvm -force-vector-width=4",  "-mllvm -force-vector-interleave=2" } );
-							break;
-						case DefaultCPUVersion.Nehalem:
-							Arguments.AddRange(new string[] { "/clang:-march=nehalem", "/clang:-mtune=nehalem", "-Xclang -mprefer-vector-width=128", "-mllvm -force-vector-width=4",  "-mllvm -force-vector-interleave=2" } );
-							break;
-						case DefaultCPUVersion.Westmere:
-							Arguments.AddRange(new string[] { "/clang:-march=westmere", "/clang:-mtune=westmere", "-Xclang -mprefer-vector-width=128", "-mllvm -force-vector-width=4",  "-mllvm -force-vector-interleave=2" } );
-							break;
-						case DefaultCPUVersion.Sandybridge:
-							Arguments.AddRange(new string[] { "/clang:-march=sandybridge", "/clang:-mtune=sandybridge", "-Xclang -mprefer-vector-width=128", "-mllvm -force-vector-width=4",  "-mllvm -force-vector-interleave=2" } );
-							break;
-						case DefaultCPUVersion.Ivybridge:
-							Arguments.AddRange(new string[] { "/clang:-march=ivybridge", "/clang:-mtune=ivybridge", "-Xclang -mprefer-vector-width=128", "-mllvm -force-vector-width=4",  "-mllvm -force-vector-interleave=2" } );
-							break;
-						case DefaultCPUVersion.Silvermont:
-							Arguments.AddRange(new string[] { "/clang:-march=silvermont", "/clang:-mtune=silvermont", "-Xclang -mprefer-vector-width=128", "-mllvm -force-vector-width=4",  "-mllvm -force-vector-interleave=2" } );
-							break;
-						case DefaultCPUVersion.Goldmont:
-							Arguments.AddRange(new string[] { "/clang:-march=goldmont", "/clang:-mtune=goldmont", "-Xclang -mprefer-vector-width=128", "-mllvm -force-vector-width=4",  "-mllvm -force-vector-interleave=2" } );
-							break;
-						case DefaultCPUVersion.Goldmont_plus:
-							Arguments.AddRange(new string[] { "/clang:-march=goldmont-plus", "/clang:-mtune=goldmont-plus", "-Xclang -mprefer-vector-width=128", "-mllvm -force-vector-width=4",  "-mllvm -force-vector-interleave=2" } );
-							break;
-						case DefaultCPUVersion.Tremont:
-							Arguments.AddRange(new string[] { "/clang:-march=tremont", "/clang:-mtune=tremont", "-Xclang -mprefer-vector-width=128", "-mllvm -force-vector-width=4",  "-mllvm -force-vector-interleave=2" } );
-							break;
-						case DefaultCPUVersion.Btver2:
-							Arguments.AddRange(new string[] { "/clang:-march=btver2", "/clang:-mtune=btver2", "-Xclang -mprefer-vector-width=128", "-mllvm -force-vector-width=4",  "-mllvm -force-vector-interleave=2" } );
-							break;
-						case DefaultCPUVersion.Bdver1:
-							Arguments.AddRange(new string[] { "/clang:-march=bdver1", "/clang:-mtune=bdver1", "-Xclang -mprefer-vector-width=128", "-mllvm -force-vector-width=4",  "-mllvm -force-vector-interleave=2" } );
-							break;
-						case DefaultCPUVersion.Bdver2:
-							Arguments.AddRange(new string[] { "/clang:-march=bdver2", "/clang:-mtune=bdver2", "-Xclang -mprefer-vector-width=128", "-mllvm -force-vector-width=4",  "-mllvm -force-vector-interleave=2" } );
-							break;
-						case DefaultCPUVersion.Bdver3:
-							Arguments.AddRange(new string[] { "/clang:-march=bdver3", "/clang:-mtune=bdver3", "-Xclang -mprefer-vector-width=128", "-mllvm -force-vector-width=4",  "-mllvm -force-vector-interleave=2" } );
-							break;
-						default:
-							Arguments.AddRange(new string[] { "/clang:-march=nehalem", "/clang:-mtune=nehalem", "-Xclang -mprefer-vector-width=128", "-mllvm -force-vector-width=4",  "-mllvm -force-vector-interleave=2" } );
-							break;
-					}
-
 					AddDefinition(Arguments, "PLATFORM_ENABLE_VECTORINTRINSICS=1");
 					AddDefinition(Arguments, "PLATFORM_MAYBE_HAS_SSE4_1=1");
 					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_SSE4_1=1");
 					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_SSE4_2=1");
+					//Arguments.Add("/clang:-march=westmere -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+					switch (CompileEnvironment.DefaultCPU)
+					{
+						case DefaultCPU.Native:
+							Arguments.Add("/clang:-march=native /clang:-mtune=native -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+							break;
+						case DefaultCPU.Nehalem:
+							Arguments.Add("/clang:-march=nehalem /clang:-mtune=nehalem -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+							break;
+						case DefaultCPU.Westmere:
+							Arguments.Add("/clang:-march=westmere /clang:-mtune=westmere -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+							break;
+						case DefaultCPU.Sandybridge:
+							Arguments.Add("/clang:-march=sandybridge /clang:-mtune=sandybridge -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+							break;
+						case DefaultCPU.Ivybridge:
+							Arguments.Add("/clang:-march=ivybridge /clang:-mtune=ivybridge -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+							Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1");
+							break;
+						case DefaultCPU.Silvermont:
+							Arguments.Add("/clang:-march=silvermont /clang:-mtune=silvermont -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+							break;
+						case DefaultCPU.Goldmont:
+							Arguments.Add("/clang:-march=goldmont /clang:-mtune=goldmont -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+							break;
+						case DefaultCPU.Goldmont_plus:
+							Arguments.Add("/clang:-march=goldmont-plus /clang:-mtune=goldmont-plus -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+							break;
+						case DefaultCPU.Tremont:
+							Arguments.Add("/clang:-march=tremont /clang:-mtune=tremont -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+							break;
+						case DefaultCPU.Btver2:
+							Arguments.Add("/clang:-march=btver2 /clang:-mtune=btver2 -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+							Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1");
+							break;
+						case DefaultCPU.Bdver1:
+							Arguments.Add("/clang:-march=bdver1 /clang:-mtune=bdver1 -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+							break;
+						case DefaultCPU.Bdver2:
+							Arguments.Add("/clang:-march=bdver2 /clang:-mtune=bdver2 -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+							Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1 /DPLATFORM_ALWAYS_HAS_FMA3=1");
+							break;
+						case DefaultCPU.Bdver3:
+							Arguments.Add("/clang:-march=bdver3 /clang:-mtune=bdver3 -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+							Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1 /DPLATFORM_ALWAYS_HAS_FMA3=1");
+							break;
+						default:
+							Arguments.Add("/clang:-march=native /clang:-mtune=native -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+							break;
+					}
+				}
+
+				if ((CompileEnvironment.DefaultCPU >= DefaultCPU.Nehalem && CompileEnvironment.DefaultCPU <= DefaultCPU.Tremont) || (CompileEnvironment.DefaultCPU >= DefaultCPU.Haswell && CompileEnvironment.DefaultCPU <= DefaultCPU.Grandridge) || (CompileEnvironment.DefaultCPU >= DefaultCPU.Skylake_avx512 && CompileEnvironment.DefaultCPU <= DefaultCPU.Graniterapids))
+				{
+					AddDefinition(Arguments, "PLATFORM_FAVOR_INTEL=1");
+				}
+				else if ((CompileEnvironment.DefaultCPU >= DefaultCPU.Btver2 && CompileEnvironment.DefaultCPU <= DefaultCPU.Bdver3) || (CompileEnvironment.DefaultCPU >= DefaultCPU.Bdver4 && CompileEnvironment.DefaultCPU <= DefaultCPU.Znver4))
+				{
+					AddDefinition(Arguments, "PLATFORM_FAVOR_AMD=1");
 				}
 
 				// UE5 minspec is 4.2
@@ -561,39 +680,26 @@ namespace UnrealBuildTool
 
 				// Use tpause on supported processors.
 				Arguments.Add("-mwaitpkg");
-				
-				if ((CompileEnvironment.DefaultCPU >= DefaultCPUVersion.Nehalem && CompileEnvironment.DefaultCPU <= DefaultCPUVersion.Tremont)
-					|| (CompileEnvironment.DefaultCPU >= DefaultCPUVersion.Haswell && CompileEnvironment.DefaultCPU <= DefaultCPUVersion.Alderlake)
-					|| (CompileEnvironment.DefaultCPU >= DefaultCPUVersion.Knl && CompileEnvironment.DefaultCPU <= DefaultCPUVersion.Rocketlake)
-				   )
-				{
-					AddDefinition(Arguments, "PLATFORM_FAVOR_INTEL=1");
-				}
-				else if ((CompileEnvironment.DefaultCPU >= DefaultCPUVersion.Btver2 && CompileEnvironment.DefaultCPU <= DefaultCPUVersion.Bdver3)
-						 || (CompileEnvironment.DefaultCPU >= DefaultCPUVersion.Bdver4 && CompileEnvironment.DefaultCPU <= DefaultCPUVersion.Znver4)
-						)
-				{
-					AddDefinition(Arguments, "PLATFORM_FAVOR_AMD=1");
-				}
 
 				// This matches Intel oneAPI clang compiler
 				//if (EnvVars.CompilerVersion >= 202110)
 				//{
-				//	AddDefinition(Arguments, "PLATFORM_MAYBE_HAS_SVML=1");
 				//	AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_SVML=1");
 				//}
+
+				if (Target.WindowsPlatform.Compiler == WindowsCompiler.Intel)
+				{
+					Arguments.Add("/Qimf-precision:high");
+					Arguments.Add("/Qimf-use-svml:true");
+					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_SVML=1");
+				}
 			}
 
-			if (Target.WindowsPlatform.Compiler.IsMSVC() && Target.Platform.IsInGroup(UnrealPlatformGroup.Windows))
+			if (Target.WindowsPlatform.Compiler.IsMSVC() && CompileEnvironment.Architecture.bIsX64)
 			{
-				//
-				//	PC
-				//
+				// DevelVitorF pushing it a bit further
 				if (CompileEnvironment.bUseAVX)
 				{
-					// Define /arch:AVX for the current compilation unit.  Machines without AVX support will crash on any SSE/AVX instructions if they run this compilation unit.
-					Arguments.Add("/arch:AVX2");
-
 					// AVX available implies sse4 and sse2 available.
 					// Inform Unreal code that we have sse2, sse4, and AVX, both available to compile and available to run
 					// By setting the ALWAYS_HAS defines, we we direct Unreal code to skip cpuid checks to verify that the running hardware supports sse/avx.
@@ -604,37 +710,209 @@ namespace UnrealBuildTool
 					AddDefinition(Arguments, "PLATFORM_MAYBE_HAS_AVX=1");
 					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_AVX=1");
 					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_AVX_2=1");
+					AddDefinition(Arguments, "PLATFORM_SUPPORTS_AVX=1");
+					AddDefinition(Arguments, "PLATFORM_SUPPORTS_AVX_2=1");
 					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_FMA3=1");
+					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_F16C=1");
+					// Define /arch:AVX for the current compilation unit.  Machines without AVX support will crash on any SSE/AVX instructions if they run this compilation unit.
+					if (CompileEnvironment.AVXSupport == AVXSupport.AVX512)
+					{
+						Arguments.Add("/arch:AVX512");
+						switch (CompileEnvironment.DefaultCPU)
+						{
+							case DefaultCPU.Native:
+								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								break;
+							case DefaultCPU.Znver4:
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BF16=1");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1");
+								break;
+							// This processors requires CPU checks, most of UE required AVX512 CPU features are not supported at all in this Intel processors.
+							/*case DefaultCPU.Knl:
+								break;
+							case DefaultCPU.Knm:
+								break;*/
+							case DefaultCPU.Skylake_avx512:
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1");
+								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								break;
+							case DefaultCPU.Cannonlake:
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1");
+								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								break;
+							case DefaultCPU.Icelake_client:
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1");
+								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								break;
+							case DefaultCPU.Icelake_server:
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1");
+								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								break;
+							case DefaultCPU.Cascadelake:
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1");
+								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								break;
+							case DefaultCPU.Cooperlake:
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BF16=1");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1");
+								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								break;
+							case DefaultCPU.Tigerlake:
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VP2INTERSECT=1");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_VP2INTERSECT=1");
+								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								break;
+							case DefaultCPU.Sapphirerapids:
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BF16=1 /DPLATFORM_ALWAYS_HAS_AVX_512_FP16=1");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1 /DPLATFORM_SUPPORTS_AVX_512_FP16=1");
+								break;
+							/*case DefaultCPU.Alderlake_avx512:*/ // Intel fused of AVX512. Removed.
+							case DefaultCPU.Rocketlake:
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1");
+								break;
+							case DefaultCPU.Graniterapids:
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BF16=1 /DPLATFORM_ALWAYS_HAS_AVX_512_FP16=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VP2INTERSECT=1");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1 /DPLATFORM_SUPPORTS_AVX_512_FP16=1 /DPLATFORM_SUPPORTS_AVX_512_VP2INTERSECT=1");
+								break;
+							default:
+								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								break;
+						}
+					}
+					else
+					{
+						Arguments.Add("/arch:AVX2");
+						switch (CompileEnvironment.DefaultCPU)
+						{
+							case DefaultCPU.Native:
+								break;
+							case DefaultCPU.Haswell:
+								break;
+							case DefaultCPU.Broadwell:
+								break;
+							case DefaultCPU.Skylake:
+								break;
+							case DefaultCPU.Alderlake:
+								break;
+							case DefaultCPU.Sierraforest:
+								break;
+							case DefaultCPU.Grandridge:
+								break;
+							case DefaultCPU.Bdver4:
+								break;
+							case DefaultCPU.Znver1:
+								break;
+							case DefaultCPU.Znver2:
+								break;
+							case DefaultCPU.Znver3:
+								break;
+							case DefaultCPU.Znver4:
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1");
+								break;
+							/*case DefaultCPU.Knl: // Removed, incompatible for use with accelerators processors
+								break;
+							case DefaultCPU.Knm:
+								break;*/
+							case DefaultCPU.Skylake_avx512:
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1");
+								break;
+							case DefaultCPU.Cannonlake:
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1");
+								break;
+							case DefaultCPU.Icelake_client:
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1");
+								break;
+							case DefaultCPU.Icelake_server:
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1");
+								break;
+							case DefaultCPU.Cascadelake:
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1");
+								break;
+							case DefaultCPU.Cooperlake:
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1");
+								break;
+							case DefaultCPU.Tigerlake:
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_VP2INTERSECT=1");
+								break;
+							case DefaultCPU.Sapphirerapids:
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1 /DPLATFORM_SUPPORTS_AVX_512_FP16=1");
+								break;
+							/*case DefaultCPU.Alderlake_avx512:*/ // Intel fused of AVX512. Removed.
+							case DefaultCPU.Rocketlake:
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1");
+								break;
+							case DefaultCPU.Graniterapids:
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1 /DPLATFORM_SUPPORTS_AVX_512_FP16=1 /DPLATFORM_SUPPORTS_AVX_512_VP2INTERSECT=1");
+								break;
+							default:
+								break;
+						}
+					}
 				}
 				else
 				{
-					Arguments.Add("/arch:SSE2");
 					AddDefinition(Arguments, "PLATFORM_ENABLE_VECTORINTRINSICS=1");
 					AddDefinition(Arguments, "PLATFORM_MAYBE_HAS_SSE4_1=1");
 					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_SSE4_1=1");
 					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_SSE4_2=1");
+					Arguments.Add("/arch:SSE2");
+					switch (CompileEnvironment.DefaultCPU)
+					{
+						case DefaultCPU.Native:
+							break;
+						case DefaultCPU.Nehalem:
+							break;
+						case DefaultCPU.Westmere:
+							break;
+						case DefaultCPU.Sandybridge:
+							break;
+						case DefaultCPU.Ivybridge:
+							Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1");
+							break;
+						case DefaultCPU.Silvermont:
+							break;
+						case DefaultCPU.Goldmont:
+							break;
+						case DefaultCPU.Goldmont_plus:
+							break;
+						case DefaultCPU.Tremont:
+							break;
+						case DefaultCPU.Btver2:
+							Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1");
+							break;
+						case DefaultCPU.Bdver1:
+							break;
+						case DefaultCPU.Bdver2:
+							Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1 /DPLATFORM_ALWAYS_HAS_FMA3=1");
+							break;
+						case DefaultCPU.Bdver3:
+							Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1 /DPLATFORM_ALWAYS_HAS_FMA3=1");
+							break;
+						default:
+							break;
+					}
 				}
 
-				if ((CompileEnvironment.DefaultCPU >= DefaultCPUVersion.Nehalem && CompileEnvironment.DefaultCPU <= DefaultCPUVersion.Tremont)
-				    || (CompileEnvironment.DefaultCPU >= DefaultCPUVersion.Haswell && CompileEnvironment.DefaultCPU <= DefaultCPUVersion.Alderlake)
-				    || (CompileEnvironment.DefaultCPU >= DefaultCPUVersion.Knl && CompileEnvironment.DefaultCPU <= DefaultCPUVersion.Rocketlake)
-				   )
+				if ((CompileEnvironment.DefaultCPU >= DefaultCPU.Nehalem && CompileEnvironment.DefaultCPU <= DefaultCPU.Tremont) || (CompileEnvironment.DefaultCPU >= DefaultCPU.Haswell && CompileEnvironment.DefaultCPU <= DefaultCPU.Grandridge) || (CompileEnvironment.DefaultCPU >= DefaultCPU.Skylake_avx512 && CompileEnvironment.DefaultCPU <= DefaultCPU.Graniterapids))
 				{
 					Arguments.Add("/favor:INTEL64");
 					AddDefinition(Arguments, "PLATFORM_FAVOR_INTEL=1");
 				}
-				else if ((CompileEnvironment.DefaultCPU >= DefaultCPUVersion.Btver2 && CompileEnvironment.DefaultCPU <= DefaultCPUVersion.Bdver3)
-						 || (CompileEnvironment.DefaultCPU >= DefaultCPUVersion.Bdver4 && CompileEnvironment.DefaultCPU <= DefaultCPUVersion.Znver4)
-						)
+				else if ((CompileEnvironment.DefaultCPU >= DefaultCPU.Btver2 && CompileEnvironment.DefaultCPU <= DefaultCPU.Bdver3) || (CompileEnvironment.DefaultCPU >= DefaultCPU.Bdver4 && CompileEnvironment.DefaultCPU <= DefaultCPU.Znver4))
 				{
 					Arguments.Add("/favor:AMD64");
 					AddDefinition(Arguments, "PLATFORM_FAVOR_AMD=1");
 					//	Arguments.Add("/d2vzeroupper-");  // DevelVitorF probably poor performance in Intel arch.
 				}
 
-				if (EnvVars.CompilerVersion >= new VersionNumber(14, 20, 0))
+				if (EnvVars.CompilerVersion >= new VersionNumber(14, 20, 0) && Target.WindowsPlatform.Compiler >= WindowsCompiler.VisualStudio2019)
 				{
-					AddDefinition(Arguments, "PLATFORM_MAYBE_HAS_SVML=1");
 					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_SVML=1");
 				}
 			}
@@ -836,6 +1114,14 @@ namespace UnrealBuildTool
 					// Maximum optimizations.
 					Arguments.Add("/Ox");
 
+					if (Target.WindowsPlatform.Compiler == WindowsCompiler.Intel)
+					{
+						Arguments.Add("/Qvec");
+						Arguments.Add("/Qvec-with-mask");
+						Arguments.Add("/Qvec-peel-loops");
+						Arguments.Add("/Qvec-remainder-loops");
+					}
+
 					if (CompileEnvironment.OptimizationLevel != OptimizationMode.Speed)
 					{
 						Arguments.Add("/Os");
@@ -978,9 +1264,41 @@ namespace UnrealBuildTool
 			// Pack struct members on 8-byte boundaries.
 			Arguments.Add("/Zp8");
 
-			if (CompileEnvironment.DefaultWarningLevel == WarningLevel.Error)
+			 // LLVM status indicates that clang-cl's /W4 `-Wall` maps to `-Weverything`, turns too much warnings on.
+			if (Target.WindowsPlatform.Compiler.IsClang())
 			{
-				Arguments.Add("/WX");
+				// Disable specific warnings that cause problems with Clang
+				// NOTE: These must appear after we set the MSVC warning level
+
+				// @todo clang: Ideally we want as few warnings disabled as possible
+				//
+
+				// Treat all warnings as errors by default
+				//Arguments.Add("-Werror");
+				//Arguments.Add("-Wall");
+				//Arguments.Add("-Wextra");
+				Arguments.Add("-W4");
+				if (CompileEnvironment.bWarningsAsErrors || CompileEnvironment.DefaultWarningLevel == WarningLevel.Error)
+				{
+					// Treat all warnings as errors by default
+					Arguments.Add("-Werror");
+				}
+				else
+				{
+					Arguments.Add("-Wno-error");
+				}
+			}
+			else
+			{
+				// Set warning level.
+				// Restrictive during regular compilation.
+				Arguments.Add("/W4");
+
+				// Treat warnings as errors
+				if (CompileEnvironment.bWarningsAsErrors || CompileEnvironment.DefaultWarningLevel == WarningLevel.Error)
+				{
+					Arguments.Add("/WX");
+				}
 			}
 
 			if (CompileEnvironment.DeprecationWarningLevel == WarningLevel.Off)
@@ -1103,57 +1421,86 @@ namespace UnrealBuildTool
 				Arguments.Add("/GR-");
 			}
 
-			// Set warning level.
-			// Restrictive during regular compilation.
-			Arguments.Add("/W4");
-
-
-			// Treat warnings as errors
-			if (CompileEnvironment.bWarningsAsErrors)
+			if (Target.WindowsPlatform.Compiler.IsClang())
 			{
-				Arguments.Add("/WX");
-			}
+				switch (CompileEnvironment.CppStandard)
+				{
+					case CppStandardVersion.Cpp14:
+						Arguments.Add("/clang:-std=c++14");
+						//Arguments.Add("/clang:-Wc++14-compat /clang:-Wc++14-extensions");
+						break;
+					case CppStandardVersion.Cpp17:
+						Arguments.Add("/clang:-std=c++17");
+						//Arguments.Add("/clang:-Wc++17-compat /clang:-Wc++17-extensions");
+						break;
+					case CppStandardVersion.Cpp20:
+						Arguments.Add("/clang:-std=c++20");
+						//Arguments.Add("/clang:-Wc++20-compat /clang:-Wc++20-extensions");
 
-			switch (CompileEnvironment.CppStandard)
+						// warning C5054: operator ___: deprecated between enumerations of different types
+						// re: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1120r0.html
+
+						// It seems unclear whether the deprecation will be enacted in C++23 or not
+						// e.g. http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2020/p2139r2.html
+						// Until the path forward is clearer, it seems reasonable to leave things as they are.
+						Arguments.Add("/wd5054");
+
+						break;
+					case CppStandardVersion.Latest:
+						Arguments.Add("/clang:-std=c++2b");
+						//Arguments.Add("/clang:-Wc++2a-compat /clang:-Wc++2a-extensions /clang:-Wc++2b-extensions");
+
+						// warning C5054: operator ___: deprecated between enumerations of different types
+						// re: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1120r0.html
+
+						// It seems unclear whether the deprecation will be enacted in C++23 or not
+						// e.g. http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2020/p2139r2.html
+						// Until the path forward is clearer, it seems reasonable to leave things as they are.
+						Arguments.Add("/wd5054");
+
+						break;
+					default:
+						throw new BuildException($"Unsupported C++ standard type set: {CompileEnvironment.CppStandard}");
+				}
+			}
+			else
 			{
-				case CppStandardVersion.Cpp14:
-					Arguments.Add("/std:c++14");
-					break;
-				case CppStandardVersion.Cpp17:
-					Arguments.Add("/std:c++17");
-					break;
-				case CppStandardVersion.Cpp20:
-					Arguments.Add("/std:c++20");
-					
-					// warning C5054: operator ___: deprecated between enumerations of different types
-					// re: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1120r0.html
-						
-					// It seems unclear whether the deprecation will be enacted in C++23 or not
-					// e.g. http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2020/p2139r2.html
-					// Until the path forward is clearer, it seems reasonable to leave things as they are.
-					Arguments.Add("/wd5054");
+				switch (CompileEnvironment.CppStandard)
+				{
+					case CppStandardVersion.Cpp14:
+						Arguments.Add("/std:c++14");
+						break;
+					case CppStandardVersion.Cpp17:
+						Arguments.Add("/std:c++17");
+						break;
+					case CppStandardVersion.Cpp20:
+						Arguments.Add("/std:c++20");
 
-					break;
-				case CppStandardVersion.Latest:
-					Arguments.Add("/std:c++latest");
-						
-					// warning C5054: operator ___: deprecated between enumerations of different types
-					// re: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1120r0.html
-						
-					// It seems unclear whether the deprecation will be enacted in C++23 or not
-					// e.g. http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2020/p2139r2.html
-					// Until the path forward is clearer, it seems reasonable to leave things as they are.
-					Arguments.Add("/wd5054");
-						
-					break;
-				default:
-					throw new BuildException($"Unsupported C++ standard type set: {CompileEnvironment.CppStandard}");
+						// warning C5054: operator ___: deprecated between enumerations of different types
+						// re: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1120r0.html
+
+						// It seems unclear whether the deprecation will be enacted in C++23 or not
+						// e.g. http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2020/p2139r2.html
+						// Until the path forward is clearer, it seems reasonable to leave things as they are.
+						Arguments.Add("/wd5054");
+
+						break;
+					case CppStandardVersion.Latest:
+						Arguments.Add("/std:c++latest");
+
+						// warning C5054: operator ___: deprecated between enumerations of different types
+						// re: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1120r0.html
+
+						// It seems unclear whether the deprecation will be enacted in C++23 or not
+						// e.g. http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2020/p2139r2.html
+						// Until the path forward is clearer, it seems reasonable to leave things as they are.
+						Arguments.Add("/wd5054");
+
+						break;
+					default:
+						throw new BuildException($"Unsupported C++ standard type set: {CompileEnvironment.CppStandard}");
+				}
 			}
-
-            if (Target.WindowsPlatform.Compiler.IsMSVC())
-            {
-                Arguments.Add("/Zc:__cplusplus");
-            }
 
 			if (CompileEnvironment.bEnableCoroutines)
 			{
@@ -1173,25 +1520,6 @@ namespace UnrealBuildTool
 				if (Target.WindowsPlatform.Compiler == WindowsCompiler.Clang && Target.WindowsPlatform.bAllowClangLinker)
 				{
 					Arguments.Add("-gcodeview-ghash");
-				}
-
-				// Disable specific warnings that cause problems with Clang
-				// NOTE: These must appear after we set the MSVC warning level
-
-				// @todo clang: Ideally we want as few warnings disabled as possible
-				//
-
-				// Treat all warnings as errors by default
-				//Arguments.Add("-Werror");
-				Arguments.Add("-Wall");
-				Arguments.Add("-Wextra");
-				if (CompileEnvironment.bWarningsAsErrors)
-				{
-					Arguments.Add("-Werror");
-				}
-				else
-				{
-					Arguments.Add("-Wno-error");
 				}
 
 				// Allow Microsoft-specific syntax to slide, even though it may be non-standard.  Needed for Windows headers.
@@ -1275,10 +1603,15 @@ namespace UnrealBuildTool
 				// Sometimes we compare 'this' pointers against nullptr, which Clang warns about by default
 				Arguments.Add("-Wno-undefined-bool-conversion");
 
+				// Enumeration value is outside the valid range of values [0, 3] for this enumeration (D3D12Resource.h G:914,78) trick D3D12_RESOURCE_BARRIER_FLAGS
+				Arguments.Add("-Wno-enum-constexpr-conversion");
+
 				// @todo clang: Disabled warnings were copied from MacToolChain for the most part
 				Arguments.Add("-Wno-deprecated-declarations");
 				Arguments.Add("-Wno-deprecated-writable-strings");
 				Arguments.Add("-Wno-deprecated-register");
+				Arguments.Add("-Wno-deprecated-copy");							// needed implicitly copy assignment operator
+				Arguments.Add("-Wno-deprecated-copy-with-user-provided-copy");  // needed templates user provided copy assignment
 				Arguments.Add("-Wno-switch-enum");
 				Arguments.Add("-Wno-logical-op-parentheses");	// needed for external headers we shan't change
 				Arguments.Add("-Wno-null-arithmetic");			// needed for external headers we shan't change
@@ -1519,8 +1852,8 @@ namespace UnrealBuildTool
 			}
 
 			// Enable incremental linking if wanted. ( avoid /INCREMENTAL getting ignored (LNK4075) due to /LTCG, /RELEASE, and /OPT:ICF )
-			if (LinkEnvironment.bUseIncrementalLinking && 
-				LinkEnvironment.Configuration != CppConfiguration.Shipping && 
+			if (LinkEnvironment.bUseIncrementalLinking &&
+				LinkEnvironment.Configuration != CppConfiguration.Shipping &&
 				!Target.WindowsPlatform.bMergeIdenticalCOMDATs &&
 				!LinkEnvironment.bAllowLTCG &&
 				Target.WindowsPlatform.Architecture == UnrealArch.X64)
@@ -1597,7 +1930,7 @@ namespace UnrealBuildTool
 			BaseCompileAction.IncludePaths.AddRange(CompileEnvironment.UserIncludePaths);
 			BaseCompileAction.SystemIncludePaths.AddRange(CompileEnvironment.SystemIncludePaths);
 			BaseCompileAction.SystemIncludePaths.AddRange(EnvVars.IncludePaths);
-			
+
 			// Remember the architecture
 			BaseCompileAction.Architecture = CompileEnvironment.Architecture;
 
@@ -2030,7 +2363,7 @@ namespace UnrealBuildTool
 					"pgosweep.exe",
 				};
 				foreach (string PGOFile in PGOFiles)
-				{			
+				{
 					FileReference SrcFile = FileReference.Combine(EnvVars.ToolChainDir, "bin", "Hostx64", "x64", PGOFile);
 					FileReference DstFile = FileReference.Combine(ExeDir, PGOFile);
 					TargetFileToSourceFile[DstFile] = SrcFile;
@@ -2066,7 +2399,7 @@ namespace UnrealBuildTool
 				// Resource tool can run remotely if possible
 				CompileAction.bCanExecuteRemotely = true;
 				CompileAction.bCanExecuteRemotelyWithSNDBS = false;	// no tool template for SN-DBS results in warnings
-			
+
 				List<string> Arguments = new List<string>();
 
 				// Suppress header spew
@@ -2358,10 +2691,10 @@ namespace UnrealBuildTool
 				}
 			}
 
-			// If we're building either an executable or a DLL, make sure we link in the 
+			// If we're building either an executable or a DLL, make sure we link in the
 			// correct address sanitizer helper libs.
 			// Note: As of MSVC 16.9, this is automatically done if the /fsanitize=address flag is used.
-			if (!bBuildImportLibraryOnly && !LinkEnvironment.bIsBuildingLibrary && Target.WindowsPlatform.bEnableAddressSanitizer && 
+			if (!bBuildImportLibraryOnly && !LinkEnvironment.bIsBuildingLibrary && Target.WindowsPlatform.bEnableAddressSanitizer &&
 			    EnvVars.CompilerVersion < new VersionNumber(14, 28, 0))
 			{
 				String ASanArchSuffix = "";
