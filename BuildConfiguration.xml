@@ -6,7 +6,7 @@
          <bIncludeShaderSource>true</bIncludeShaderSource>
          <bIncludeBuildSystemFiles>true</bIncludeBuildSystemFiles>
          <bIncludeConfigFiles>true</bIncludeConfigFiles>
-         <IncludeEnginePrograms>true</IncludeEnginePrograms>
+         <bIncludeEnginePrograms>true</bIncludeEnginePrograms>
          <bIncludeDotNetPrograms>true</bIncludeDotNetPrograms>
          <bKeepSourceSubDirectories>true</bKeepSourceSubDirectories>
 	</ProjectFileGenerator>
@@ -17,34 +17,97 @@
          <bDisableDebugInfoForGeneratedCode>true</bDisableDebugInfoForGeneratedCode>
          <bDisableDebugInfo>true</bDisableDebugInfo>
          <bUseUnityBuild>true</bUseUnityBuild>
+         <bForceUnityBuild>true</bForceUnityBuild>
+         <bMergeModuleAndGeneratedUnityFiles>true</bMergeModuleAndGeneratedUnityFiles>
+         <bUseAdaptiveUnityBuild>true</bUseAdaptiveUnityBuild>
+         <bAdaptiveUnityDisablesOptimizations>false</bAdaptiveUnityDisablesOptimizations>
+         <bAdaptiveUnityDisablesPCH>false</bAdaptiveUnityDisablesPCH>
+         <bAdaptiveUnityCreatesDedicatedPCH>false</bAdaptiveUnityCreatesDedicatedPCH>
+         <bAdaptiveUnityEnablesEditAndContinue>false</bAdaptiveUnityEnablesEditAndContinue>
+         <bAdaptiveUnityCompilesHeaderFiles>false</bAdaptiveUnityCompilesHeaderFiles>
+         <MinGameModuleSourceFilesForUnityBuild>32</MinGameModuleSourceFilesForUnityBuild>
          <bUseSharedPCHs>true</bUseSharedPCHs>
          <bUseInlining>true</bUseInlining>
-         <DefaultCPU>Znver3</DefaultCPU>
          <bUseAVX>true</bUseAVX>
-         <bCheckLicenseViolations>false</bCheckLicenseViolations>
-         <bBreakBuildOnLicenseViolation>false</bBreakBuildOnLicenseViolation>
-         <bFlushBuildDirOnRemoteMac>true</bFlushBuildDirOnRemoteMac>
-         <CppStandard>Cpp17</CppStandard>
-         <bIgnoreOutdatedImportLibraries>false</bIgnoreOutdatedImportLibraries>
+         <DefaultCPU>Znver3</DefaultCPU>
+         <AVXSupport>AVX256</AVXSupport>
+         <bCheckLicenseViolations>true</bCheckLicenseViolations>
+         <bBreakBuildOnLicenseViolation>true</bBreakBuildOnLicenseViolation>
+         <CppStandard>Cpp20</CppStandard>
+         <CStandard>C17</CStandard>
          <bUseUBTMakefiles>true</bUseUBTMakefiles>
          <bAllowXGE>true</bAllowXGE>
          <bUseXGEController>true</bUseXGEController>
          <bShowXGEMonitor>true</bShowXGEMonitor>
          <bXGENoWatchdogThread>true</bXGENoWatchdogThread>
+         <bStopXGECompilationAfterErrors>false</bStopXGECompilationAfterErrors>
          <bAllowFASTBuild>true</bAllowFASTBuild>
          <bAllowSNDBS>false</bAllowSNDBS>
          <MaxParallelActions>32</MaxParallelActions>
+         <bAllCores>true</bAllCores>
+         <bAllowHybridExecutor>false</bAllowHybridExecutor>
+         <bAllowHordeCompute>false</bAllowHordeCompute>
+         <bIgnoreOutdatedImportLibraries>true</bIgnoreOutdatedImportLibraries>
+         <bPrintDebugInfo>false</bPrintDebugInfo>
+         <bUseDebugLiveCodingConsole>false</bUseDebugLiveCodingConsole>
+         <bCheckSystemHeadersForModification>true</bCheckSystemHeadersForModification>
+         <bUsePerFileIntellisense>true</bUsePerFileIntellisense>
+         <bWarningsAsErrors>false</bWarningsAsErrors>
+         <UnsafeTypeCastWarningLevel>Off</UnsafeTypeCastWarningLevel>
+         <bUndefinedIdentifierErrors>true</bUndefinedIdentifierErrors>
+         <bUseFastMonoCalls>true</bUseFastMonoCalls>
+         <bDisableModuleNumIncludedBytesPerUnityCPPOverride>false</bDisableModuleNumIncludedBytesPerUnityCPPOverride>
+         <bStressTestUnity>false</bStressTestUnity>
+         <bDetailedUnityFiles>true</bDetailedUnityFiles>
+         <bUsePDBFiles>false</bUsePDBFiles>
+         <bUsePCHFiles>true</bUsePCHFiles>
+         <bDeterministic>false</bDeterministic>
+         <bForceDeterministic>false</bForceDeterministic>
+         <bForceIncludePCHHeadersForGenCppFilesWhenPCHIsDisabled>true</bForceIncludePCHHeadersForGenCppFilesWhenPCHIsDisabled>
+         <bPreprocessDepends>false</bPreprocessDepends>
+         <StaticAnalyzer>None</StaticAnalyzer>
+         <StaticAnalyzerOutputType>Text</StaticAnalyzerOutputType>
+         <StaticAnalyzerMode>Deep</StaticAnalyzerMode>
+         <MinFilesUsingPrecompiledHeader>6</MinFilesUsingPrecompiledHeader>
+         <bForcePrecompiledHeaderForGameModules>true</bForcePrecompiledHeaderForGameModules>
+         <bUseIncrementalLinking>false</bUseIncrementalLinking>
+         <bPreferThinLTO>false</bPreferThinLTO>
+         <ThinLTOCacheDirectory>""</ThinLTOCacheDirectory>
+         <ThinLTOCachePruningArguments>""</ThinLTOCachePruningArguments>
+         <bPGOProfile>false</bPGOProfile>
+         <bPGOOptimize>false</bPGOOptimize>
+         <bSupportEditAndContinue>false</bSupportEditAndContinue>
+         <bUseMallocProfiler>false</bUseMallocProfiler>
+         <bShaderCompilerWorkerTrace>false</bShaderCompilerWorkerTrace>
+         <bCreateMapFile>false</bCreateMapFile>
+         <bAllowRuntimeSymbolFiles>true</bAllowRuntimeSymbolFiles>
+         <PackagePath>""</PackagePath>
+         <CrashDiagnosticDirectory>""</CrashDiagnosticDirectory>
+         <bFlushBuildDirOnRemoteMac>false</bFlushBuildDirOnRemoteMac>
+         <bPrintToolChainTimingInfo>false</bPrintToolChainTimingInfo>
+         <bParseTimingInfoForTracing>false</bParseTimingInfoForTracing>
+         <bPublicSymbolsByDefault>false</bPublicSymbolsByDefault>
+         <!--<bDisableInliningGenCpps>false</bDisableInliningGenCpps>-->
+         <bUseVerse>true</bUseVerse>
 	</BuildConfiguration>
+	<XGE>
+         <bAllowOverVpn>true</bAllowOverVpn>
+         <!--<VpnSubnets>""</VpnSubnets>-->
+         <bAllowRemoteLinking>false</bAllowRemoteLinking>
+         <bUseVCCompilerMode>false</bUseVCCompilerMode>
+         <MinActions>2</MinActions>
+         <bUnavailableIfInUse>false</bUnavailableIfInUse>
+	</XGE>
 	<BuildMode>
          <bIgnoreJunk>false</bIgnoreJunk>
 	</BuildMode>
-	<HybridExecutor>
-         <MaxLocalActions>32</MaxLocalActions>
-	</HybridExecutor>
 	<ParallelExecutor>
          <ProcessorCountMultiplier>2.0</ProcessorCountMultiplier>
-         <MaxProcessorCount>32</MaxProcessorCount>
          <bStopCompilationAfterErrors>false</bStopCompilationAfterErrors>
+         <bShowCompilationTimes>false</bShowCompilationTimes>
+         <bShowPerActionCompilationTimes>false</bShowPerActionCompilationTimes>
+         <bLogActionCommandLines>false</bLogActionCommandLines>
+         <bPrintActionTargetNames>false</bPrintActionTargetNames>
 	</ParallelExecutor>
 	<FASTBuild>
          <FBuildExecutablePath>"C:/VisualStudio/FBuild/FBuild.exe"</FBuildExecutablePath>
@@ -53,7 +116,7 @@
          <bEnableCaching>true</bEnableCaching>
          <CacheMode>ReadWrite</CacheMode>
          <FBuildCachePath>\\KRADWORKRY9\FbuildCache</FBuildCachePath>
-         <bStopOnError>true</bStopOnError>
+         <bStopOnError>false</bStopOnError>
 	</FASTBuild>
      <VCProjectFileGenerator>
          <Version>VisualStudio2022</Version>
@@ -67,6 +130,7 @@
      </UEBuildConfiguration>
      <WindowsPlatform>
          <Compiler>VisualStudio2022</Compiler>
+         <!--<Compiler>Intel</Compiler>-->
          <CompilerVersion>Latest</CompilerVersion>
          <WindowsSdkVersion>Latest</WindowsSdkVersion>
      </WindowsPlatform>
