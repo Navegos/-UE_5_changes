@@ -642,8 +642,8 @@ FORCEINLINE constexpr VectorRegister4Int MakeVectorRegisterIntConstant(int32 X, 
 #error Big-endian unimplemented
 #elif defined(_MSC_VER) && !defined(__clang__)
     return {static_cast<char>(X >> 0), static_cast<char>(X >> 8), static_cast<char>(X >> 16), static_cast<char>(X >> 24),
-            static_cast<char>(Y >> 0), static_cast<char>(Y >> 8), static_cast<char>(Y >> 16), static_cast<char>(Y >> 24),
-            static_cast<char>(Z >> 0), static_cast<char>(Z >> 8), static_cast<char>(Z >> 16), static_cast<char>(Z >> 24),
+            static_cast<char>(Y >> 0), static_cast<char>(Y >> 8), static_cast<char>(Y >> 16), static_cast<char>(Y >> 24), 
+            static_cast<char>(Z >> 0), static_cast<char>(Z >> 8), static_cast<char>(Z >> 16), static_cast<char>(Z >> 24), 
             static_cast<char>(W >> 0), static_cast<char>(W >> 8), static_cast<char>(W >> 16), static_cast<char>(W >> 24)};
 #else
 	uint64 XY = uint64(uint32(X)) | (uint64(uint32(Y)) << 32);
@@ -805,7 +805,7 @@ FORCEINLINE VectorRegister4Double VectorLoadFloat3(const double* Ptr)
 	return Result;
 #else
 	return _mm256_maskload_pd(Ptr, _mm256_castpd_si256(GlobalVectorConstants::DoubleXYZMask()));
-#endif
+#endif	
 }
 
 /**
@@ -827,7 +827,7 @@ FORCEINLINE VectorRegister4Double VectorLoadFloat3_W1(const double* Ptr)
 	Result = _mm256_maskload_pd(Ptr, _mm256_castpd_si256(GlobalVectorConstants::DoubleXYZMask()));
 	Result = _mm256_blend_pd(Result, VectorOneDouble(), 0b1000);
 	return Result;
-#endif
+#endif	
 }
 
 /**
@@ -889,8 +889,10 @@ FORCEINLINE VectorRegister4Double VectorLoadDouble1(const double* Ptr)
  */
 FORCEINLINE VectorRegister4Float VectorLoadFloat2(const float* Ptr)
 {
-	// This intentionally casts to a double* to be able to load 64 bits of data using the "load 1 double" instruction to fill in the two 32-bit floats.
-	return _mm_castpd_ps(_mm_load1_pd(reinterpret_cast<const double*>(Ptr))); // -V615
+	// Switched from _mm_load1_pd and a cast to avoid a compiler bug in VC. This has the benefit of
+	// being very clear about not needing any alignment, and the optimizer will still result in
+	// movsd and movlhps in both clang and vc.
+	return _mm_setr_ps(Ptr[0], Ptr[1], Ptr[0], Ptr[1]);
 }
 
 FORCEINLINE VectorRegister4Double VectorLoadFloat2(const double* Ptr)
@@ -906,7 +908,7 @@ FORCEINLINE VectorRegister4Double VectorLoadFloat2(const double* Ptr)
 	return Result;
 }
 
-/**
+/** 
  * Loads 4 unaligned floats - 2 from the first pointer, 2 from the second, and packs
  * them in to 1 vector.
  *
@@ -1296,7 +1298,7 @@ namespace SSEPermuteHelpers
 
 	// When index pairs are within the same lane, SelectVectorShuffle first efficiently blends elements from the two vectors,
 	// then efficiently swizzles within 128-bit lanes using specializations for indices [0..1][0..1][2..3][2..3]
-	//
+	// 
 	// [0..1][0..1][2..3][2..3]
 	template <int Index0, int Index1, int Index2, int Index3, typename std::enable_if< InLane0(Index0, Index1) && InLane1(Index2, Index3), bool >::type = true>
 	FORCEINLINE VectorRegister4Double SelectVectorShuffle(const VectorRegister4Double& Vec1, const VectorRegister4Double& Vec2)
@@ -1358,7 +1360,7 @@ namespace SSEPermuteHelpers
 		);
 	}
 
-	// AVX Double Shuffle specializations
+	// AVX Double Shuffle specializations 
 	// Shuffles of 128-bit pairs, ie combinations of [0,1][2,3].
 	template<> FORCEINLINE VectorRegister4Double SelectVectorShuffle<0, 1, 0, 1>(const VectorRegister4Double& Vec1, const VectorRegister4Double& Vec2) { return ShuffleLanes<0, 0>(Vec1, Vec2); }
 	template<> FORCEINLINE VectorRegister4Double SelectVectorShuffle<0, 1, 2, 3>(const VectorRegister4Double& Vec1, const VectorRegister4Double& Vec2) { return ShuffleLanes<0, 1>(Vec1, Vec2); }
@@ -1794,7 +1796,7 @@ FORCEINLINE VectorRegister4Double VectorDot3(const VectorRegister4Double& Vec1, 
 	T = _mm_shuffle_pd(T, T, SHUFFLEMASK2(0, 0));
 	// Replicate in full (X,X,X,X)
 	return VectorRegister4Double(T, T);
-#endif
+#endif	
 }
 
 /**
@@ -1889,7 +1891,7 @@ FORCEINLINE VectorRegister4Double VectorCompareNE(const VectorRegister4Double& V
 	Result.XY = _mm_cmpneq_pd(Vec1.XY, Vec2.XY);
 	Result.ZW = _mm_cmpneq_pd(Vec1.ZW, Vec2.ZW);
 #else
-	// For X != Y, if either is NaN it should return true (this matches the normal C behavior).
+	// For X != Y, if either is NaN it should return true (this matches the normal C behavior). 
 	// We use the *unordered* comparison operation that is true if either value is NaN.
 	Result = _mm256_cmp_pd(Vec1, Vec2, _CMP_NEQ_UQ);
 #endif
@@ -2206,7 +2208,7 @@ FORCEINLINE VectorRegister4Float VectorReciprocalSqrtEstimate(const VectorRegist
 /**
  * Return the reciprocal of the square root of each component
  *
- * @param Vector		Vector
+ * @param Vector		Vector 
  * @return			VectorRegister4Float(1/sqrt(Vec.X), 1/sqrt(Vec.Y), 1/sqrt(Vec.Z), 1/sqrt(Vec.W))
  */
 FORCEINLINE VectorRegister4Float VectorReciprocalSqrt(const VectorRegister4Float& Vec)
@@ -2230,7 +2232,7 @@ FORCEINLINE VectorRegister4Float VectorReciprocalSqrt(const VectorRegister4Float
 	// => 1/(x^2) = v
 	// => F(x) = x^-2 - v
 	//    F'(x) = -2x^-3
-
+	
 	//    x1 = x0 - F(x0)/F'(x0)
 	// => x1 = x0 + 0.5 * (x0^-2 - Vec) * x0^3
 	// => x1 = x0 + 0.5 * (x0 - Vec * x0^3)
@@ -2339,13 +2341,13 @@ FORCEINLINE VectorRegister4Float VectorReciprocal(const VectorRegister4Float& Ve
 	//   x1 = x0 - f(x0) / f'(x0)
 	//
 	//    1 / Vec = x
-	// => x * Vec = 1
+	// => x * Vec = 1 
 	// => F(x) = x * Vec - 1
 	//    F'(x) = Vec
 	// => x1 = x0 - (x0 * Vec - 1) / Vec
 	//
 	// Since 1/Vec is what we're trying to solve, use an estimate for it, x0
-	// => x1 = x0 - (x0 * Vec - 1) * x0 = 2 * x0 - Vec * x0^2
+	// => x1 = x0 - (x0 * Vec - 1) * x0 = 2 * x0 - Vec * x0^2 
 
 	// Initial estimate
 	const VectorRegister4Float x0 = VectorReciprocalEstimate(Vec);
@@ -2436,20 +2438,26 @@ CORE_API void VectorMatrixMultiply(FMatrix44f* Result, const FMatrix44f* Matrix1
 CORE_API void VectorMatrixMultiply(FMatrix44d* Result, const FMatrix44d* Matrix1, const FMatrix44d* Matrix2);
 
 /**
- * Calculate the inverse of an FMatrix.
+ * Calculate the inverse of an FMatrix44.  Src == Dst is allowed
  *
- * @param DstMatrix		FMatrix pointer to where the result should be stored
- * @param SrcMatrix		FMatrix pointer to the Matrix to be inversed
+ * @param DstMatrix		FMatrix44 pointer to where the result should be stored
+ * @param SrcMatrix		FMatrix44 pointer to the Matrix to be inversed
+ * @return bool			returns false if matrix is not invertable and stores identity 
+ *
  */
-CORE_API void VectorMatrixInverse(FMatrix44f* DstMatrix, const FMatrix44f* SrcMatrix);
-CORE_API void VectorMatrixInverse(FMatrix44d* DstMatrix, const FMatrix44d* SrcMatrix);
-
-
+FORCEINLINE bool VectorMatrixInverse(FMatrix44d* DstMatrix, const FMatrix44d* SrcMatrix)
+{
+	return FMath::MatrixInverse(DstMatrix,SrcMatrix);
+}
+FORCEINLINE bool VectorMatrixInverse(FMatrix44f* DstMatrix, const FMatrix44f* SrcMatrix)
+{
+	return FMath::MatrixInverse(DstMatrix,SrcMatrix);
+}
 
 /**
  * Calculate Homogeneous transform.
  *
- * @param VecP			VectorRegister4Float
+ * @param VecP			VectorRegister4Float 
  * @param MatrixM		FMatrix pointer to the Matrix to apply transform
  * @return VectorRegister4Float = VecP*MatrixM
  */
@@ -3004,7 +3012,7 @@ FORCEINLINE VectorRegister2Double TruncateVectorRegister2d(const VectorRegister2
 	VectorRegister2Double A = _mm_cvtsi64_sd(V, X); // Converts to lowest element, copies upper.
 	VectorRegister2Double B = _mm_cvtsi64_sd(V, Y); // Converts to lowest element, copies upper.
 	return _mm_shuffle_pd(A, B, SHUFFLEMASK2(0, 0));
-#endif // UE_PLATFORM_MATH_USE_SSE4_1
+#endif // UE_PLATFORM_MATH_USE_SSE4_1	
 }
 
 FORCEINLINE VectorRegister4Double VectorTruncate(const VectorRegister4Double& V)
@@ -3116,7 +3124,7 @@ FORCEINLINE VectorRegister4Float VectorMod(const VectorRegister4Float& X, const 
 	VectorRegister4Float Result = XFloats.ToVectorRegister();
 #endif
 
-	// Return 0 where divisor Y was too small
+	// Return 0 where divisor Y was too small	
 	Result = VectorSelect(InvalidDivisorMask, GlobalVectorConstants::FloatZero, Result);
 	return Result;
 }
@@ -3642,7 +3650,7 @@ FORCEINLINE VectorRegister4Int VectorIntAbs(const VectorRegister4Int& A)
 	return VectorIntSelect(Mask, A, VectorIntNegate(A));
 }
 
-FORCEINLINE VectorRegister4Int VectorIntClamp(const VectorRegister4Int& Vec1, const VectorRegister4Int& Vec2, const VectorRegister4Int& Vec3)
+FORCEINLINE VectorRegister4Int VectorIntClamp(const VectorRegister4Int& Vec1, const VectorRegister4Int& Vec2, const VectorRegister4Int& Vec3) 
 {
 	return VectorIntMin(VectorIntMax(Vec1, Vec2), Vec3);
 }
@@ -3672,6 +3680,7 @@ FORCEINLINE VectorRegister4Int VectorFloatToInt(const VectorRegister4Double& A)
 * @param Ptr	Memory pointer
 */
 #define VectorIntStore( Vec, Ptr )			_mm_storeu_si128( (VectorRegister4Int*)(Ptr), Vec )
+#define VectorIntStore_16( Vec, Ptr )       _mm_storeu_si64( (VectorRegister4Int*)(Ptr), Vec )
 
 /**
 * Loads 4 int32s from unaligned memory.
@@ -3703,7 +3712,8 @@ FORCEINLINE VectorRegister4Int VectorFloatToInt(const VectorRegister4Double& A)
 * @param Ptr	Unaligned memory pointer to the 4 int32s
 * @return		VectorRegister4Int(*Ptr, *Ptr, *Ptr, *Ptr)
 */
-#define VectorIntLoad1( Ptr )	_mm_set1_epi32(*(Ptr))
+#define VectorIntLoad1(Ptr)                         _mm_set1_epi32(*(Ptr))
+#define VectorIntLoad1_16(Ptr)                      _mm_set1_epi16(*(Ptr))
 #define VectorSetZero()								_mm_setzero_si128()
 #define VectorSet1(F)								_mm_set1_ps(F)
 #define VectorIntSet1(F)							_mm_set1_epi32(F)

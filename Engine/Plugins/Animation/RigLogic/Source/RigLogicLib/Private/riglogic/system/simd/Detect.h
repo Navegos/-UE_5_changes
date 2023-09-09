@@ -10,13 +10,19 @@
 #define RL_BUILD_WITH_SSE
 #endif  // RL_BUILD_WITH_SSE
 
-#if (defined(PLATFORM_ALWAYS_HAS_F16C) && (PLATFORM_ALWAYS_HAS_F16C > 0)) && !defined(RL_USE_HALF_FLOATS) && !defined(RL_BUILD_WITH_AVX) && !defined(RL_BUILD_WITH_SSE)
+#if (defined(PLATFORM_ALWAYS_HAS_NEON) && (PLATFORM_ALWAYS_HAS_NEON > 0)) && !defined(RL_BUILD_WITH_NEON)
+#define RL_BUILD_WITH_NEON
+#endif  // RL_BUILD_WITH_NEON
+
+#if ((defined(PLATFORM_ALWAYS_HAS_F16C) && (PLATFORM_ALWAYS_HAS_F16C > 0)) || (defined(PLATFORM_ALWAYS_HAS_NEON_FP16) && (PLATFORM_ALWAYS_HAS_NEON_FP16 > 0))) && !defined(RL_USE_HALF_FLOATS) //&& !defined(RL_BUILD_WITH_AVX) && !defined(RL_BUILD_WITH_SSE) && !defined(RL_BUILD_WITH_NEON)
 #define RL_USE_HALF_FLOATS
 #endif  // RL_USE_HALF_FLOATS
 
 #if defined(RL_AUTODETECT_SSE) && !defined(RL_BUILD_WITH_SSE)
     // Assume any x86 architecture we try to build on will support SSE
-    #if defined(i386) || defined(__i386) || defined(__i386__) || defined(__IA32__) || defined(_M_IX86) || defined(__X86__) || defined(_X86_) || defined(__THW_INTEL__) || defined(__I86__) || defined(__amd64__) || defined(__amd64) || defined(__x86_64__) || defined(__x86_64) || defined(_M_X64) || defined(_M_AMD64)
+    #if defined(i386) || defined(__i386) || defined(__i386__) || defined(__IA32__) || defined(_M_IX86) || defined(__X86__) || \
+    defined(_X86_) || defined(__THW_INTEL__) || defined(__I86__) || defined(__amd64__) || defined(__amd64) || \
+    defined(__x86_64__) || defined(__x86_64) || defined(_M_X64) || defined(_M_AMD64)
         #define RL_BUILD_WITH_SSE 1
     #endif
 #endif  // RL_AUTODETECT_SSE

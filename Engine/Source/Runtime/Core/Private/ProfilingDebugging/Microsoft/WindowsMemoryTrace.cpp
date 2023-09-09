@@ -233,7 +233,7 @@ private:
 	static bool				bLight;
 	static LPVOID WINAPI	VmAlloc(LPVOID Address, SIZE_T Size, DWORD Type, DWORD Protect);
 	static LPVOID WINAPI	VmAllocEx(HANDLE Process, LPVOID Address, SIZE_T Size, DWORD Type, DWORD Protect);
-	static LPVOID WINAPI	VmAlloc2(HANDLE Process, PVOID BaseAddress, SIZE_T Size, ULONG AllocationType, ULONG PageProtection, MEM_EXTENDED_PARAMETER*  /*void**/ ExtendedParameters, ULONG ParameterCount);
+	static PVOID WINAPI		VmAlloc2(HANDLE Process, PVOID BaseAddress, SIZE_T Size, ULONG AllocationType, ULONG PageProtection, MEM_EXTENDED_PARAMETER*  /*void**/ ExtendedParameters, ULONG ParameterCount);
 	static BOOL WINAPI		VmFree(LPVOID Address, SIZE_T Size, DWORD Type);
 	static BOOL WINAPI		VmFreeEx(HANDLE Process, LPVOID Address, SIZE_T Size, DWORD Type);
 	static LPVOID			(WINAPI *VmAllocOrig)(LPVOID, SIZE_T, DWORD, DWORD);
@@ -263,7 +263,7 @@ void FVirtualWinApiHooks::Initialize(bool bInLight)
 	// Note that hooking alloc functions is done last as applying the hook can
 	// allocate some memory pages.
 
-	VmFreeOrig = Editor.Hook(VirtualFree, &FVirtualWinApiHooks::VmFree); 
+	VmFreeOrig = Editor.Hook(VirtualFree, &FVirtualWinApiHooks::VmFree);
 	VmFreeExOrig = Editor.Hook(VirtualFreeEx, &FVirtualWinApiHooks::VmFreeEx);
 
 #if PLATFORM_WINDOWS
@@ -300,9 +300,11 @@ void FVirtualWinApiHooks::Initialize(bool bInLight)
 LPVOID WINAPI FVirtualWinApiHooks::VmAlloc(LPVOID Address, SIZE_T Size, DWORD Type, DWORD Protect)
 {
 	LPVOID Ret = VmAllocOrig(Address, Size, Type, Protect);
+
 	// Track any reserve for now. Going forward we need events to differentiate reserves/commits and
 	// corresponding information on frees.
-	if (Ret != nullptr && (Type & MEM_RESERVE))
+	if (Ret != nullptr &&
+		((Type & MEM_RESERVE) || ((Type & MEM_COMMIT) && Address == nullptr)))
 	{
 		MemoryTrace_Alloc((uint64)Ret, Size, 0, EMemoryTraceRootHeap::SystemMemory);
 		MemoryTrace_MarkAllocAsHeap((uint64)Ret, EMemoryTraceRootHeap::SystemMemory);
@@ -316,8 +318,10 @@ BOOL WINAPI FVirtualWinApiHooks::VmFree(LPVOID Address, SIZE_T Size, DWORD Type)
 {
 	if (Type & MEM_RELEASE)
 	{
+		MemoryTrace_UnmarkAllocAsHeap((uint64)Address, EMemoryTraceRootHeap::SystemMemory);
 		MemoryTrace_Free((uint64)Address, EMemoryTraceRootHeap::SystemMemory);
 	}
+
 	return VmFreeOrig(Address, Size, Type);
 }
 
@@ -325,9 +329,11 @@ BOOL WINAPI FVirtualWinApiHooks::VmFree(LPVOID Address, SIZE_T Size, DWORD Type)
 LPVOID WINAPI FVirtualWinApiHooks::VmAllocEx(HANDLE Process, LPVOID Address, SIZE_T Size, DWORD Type, DWORD Protect)
 {
 	LPVOID Ret = VmAllocExOrig(Process, Address, Size, Type, Protect);
-	if (Process == GetCurrentProcess() && Ret != nullptr && (Type & MEM_RESERVE))
+
+	if (Process == GetCurrentProcess() && Ret != nullptr &&
+		((Type & MEM_RESERVE) || ((Type & MEM_COMMIT) && Address == nullptr)))
 	{
-		MemoryTrace_Alloc((uint64)Ret, Size, 0);
+		MemoryTrace_Alloc((uint64)Ret, Size, 0, EMemoryTraceRootHeap::SystemMemory);
 		MemoryTrace_MarkAllocAsHeap((uint64)Ret, EMemoryTraceRootHeap::SystemMemory);
 	}
 
@@ -339,6 +345,7 @@ BOOL WINAPI FVirtualWinApiHooks::VmFreeEx(HANDLE Process, LPVOID Address, SIZE_T
 {
 	if (Process == GetCurrentProcess() && (Type & MEM_RELEASE))
 	{
+		MemoryTrace_UnmarkAllocAsHeap((uint64)Address, EMemoryTraceRootHeap::SystemMemory);
 		MemoryTrace_Free((uint64)Address, EMemoryTraceRootHeap::SystemMemory);
 	}
 
@@ -348,10 +355,12 @@ BOOL WINAPI FVirtualWinApiHooks::VmFreeEx(HANDLE Process, LPVOID Address, SIZE_T
 ////////////////////////////////////////////////////////////////////////////////
 PVOID WINAPI FVirtualWinApiHooks::VmAlloc2(HANDLE Process, PVOID BaseAddress, SIZE_T Size, ULONG Type, ULONG PageProtection, MEM_EXTENDED_PARAMETER*  /*void**/ ExtendedParameters, ULONG ParameterCount)
 {
-	LPVOID Ret = VmAlloc2Orig(Process, BaseAddress, Size, Type, PageProtection, ExtendedParameters, ParameterCount);
-	if (Process == GetCurrentProcess() && Ret != nullptr && (Type & MEM_RESERVE))
+	PVOID Ret = VmAlloc2Orig(Process, BaseAddress, Size, Type, PageProtection, ExtendedParameters, ParameterCount);
+
+	if (Process == GetCurrentProcess() && Ret != nullptr &&
+		((Type & MEM_RESERVE) || ((Type & MEM_COMMIT) && BaseAddress == nullptr)))
 	{
-		MemoryTrace_Alloc((uint64)Ret, Size, 0);
+		MemoryTrace_Alloc((uint64)Ret, Size, 0, EMemoryTraceRootHeap::SystemMemory);
 		MemoryTrace_MarkAllocAsHeap((uint64)Ret, EMemoryTraceRootHeap::SystemMemory);
 	}
 

@@ -10,7 +10,6 @@ namespace UnrealBuildTool
 	sealed class ToolchainInfo : IEquatable<ToolchainInfo>
 	{
 		public CppStandardVersion CppStandard;
-		public DefaultCPU DefaultCPU;
 		public bool bUseRTTI;
 		public bool bEnableExceptions;
 		public bool bIsBuildingLibrary;
@@ -21,8 +20,8 @@ namespace UnrealBuildTool
 		public bool bUseInlining;
 		public bool bUseUnity;
 		public bool bCreateDebugInfo;
-		public bool bUseAVX;
-		public AVXSupport AVXSupport;
+		public DefaultCpuArchitectureX64 DefaultCpuArchX64;
+		public MinimumCpuArchitectureX64 MinCpuArchX64;
 		public bool bUseDebugCRT;
 		public bool bUseStaticCRT;
 		public string? PrecompiledHeaderAction;
@@ -36,16 +35,25 @@ namespace UnrealBuildTool
 		{
 			foreach (FieldInfo FieldInfo in typeof(ToolchainInfo).GetFields())
 			{
-				if(FieldInfo.GetValue(this) == null) continue;
+				if (FieldInfo.GetValue(this) == null)
+				{
+					continue;
+				}
+
 				if (typeof(List<string>).IsAssignableFrom(FieldInfo.FieldType))
 				{
-					List<string> LocalField = (List<string>) FieldInfo.GetValue(this)!;
+					List<string> LocalField = (List<string>)FieldInfo.GetValue(this)!;
 					HashSet<string> OtherField = new HashSet<string>((List<string>)FieldInfo.GetValue(Other)!);
 					IEnumerable<string> Result = LocalField.Where(Item => OtherField.Contains(Item));
-					if(Result.Any()) yield return new Tuple<string, object?>(FieldInfo.Name, Result);
+					if (Result.Any())
+					{
+						yield return new Tuple<string, object?>(FieldInfo.Name, Result);
+					}
 				}
 				else if (!FieldInfo.GetValue(this)!.Equals(FieldInfo.GetValue(Other)))
+				{
 					yield return new Tuple<string, object?>(FieldInfo.Name, FieldInfo.GetValue(this));
+				}
 			}
 		}
 
@@ -59,14 +67,22 @@ namespace UnrealBuildTool
 
 		public bool Equals(ToolchainInfo? Other)
 		{
-			if (ReferenceEquals(null, Other)) return false;
-			if (ReferenceEquals(this, Other)) return true;
-			return CppStandard == Other.CppStandard && DefaultCPU == Other.DefaultCPU && bUseRTTI == Other.bUseRTTI &&
+			if (ReferenceEquals(null, Other))
+			{
+				return false;
+			}
+
+			if (ReferenceEquals(this, Other))
+			{
+				return true;
+			}
+
+			return CppStandard == Other.CppStandard && bUseRTTI == Other.bUseRTTI &&
 				bEnableExceptions == Other.bEnableExceptions && bIsBuildingLibrary == Other.bIsBuildingLibrary &&
 				bIsBuildingDLL == Other.bIsBuildingDLL && Architecture == Other.Architecture &&
 				Configuration == Other.Configuration && bOptimizeCode == Other.bOptimizeCode &&
 				bUseInlining == Other.bUseInlining && bUseUnity == Other.bUseUnity &&
-				bCreateDebugInfo == Other.bCreateDebugInfo && bUseAVX == Other.bUseAVX && AVXSupport == Other.AVXSupport &&
+				bCreateDebugInfo == Other.bCreateDebugInfo && DefaultCpuArchX64 == Other.DefaultCpuArchX64 && MinCpuArchX64 == Other.MinCpuArchX64 &&
 				bUseDebugCRT == Other.bUseDebugCRT && bUseStaticCRT == Other.bUseStaticCRT &&
 				PrecompiledHeaderAction == Other.PrecompiledHeaderAction && PrecompiledHeaderFile == Other.PrecompiledHeaderFile &&
 				Equals(ForceIncludeFiles, Other.ForceIncludeFiles) && Compiler == Other.Compiler &&
@@ -75,17 +91,24 @@ namespace UnrealBuildTool
 
 		public override bool Equals(object? Obj)
 		{
-			if (ReferenceEquals(null, Obj)) return false;
-			if (ReferenceEquals(this, Obj)) return true;
-			return Obj is ToolchainInfo && Equals((ToolchainInfo) Obj);
+			if (ReferenceEquals(null, Obj))
+			{
+				return false;
+			}
+
+			if (ReferenceEquals(this, Obj))
+			{
+				return true;
+			}
+
+			return Obj is ToolchainInfo info && Equals(info);
 		}
 
 		public override int GetHashCode()
 		{
 			unchecked
 			{
-				var HashCode = (int) CppStandard;
-				HashCode = (HashCode * 397) ^ DefaultCPU.GetHashCode();
+				int HashCode = (int)CppStandard;
 				HashCode = (HashCode * 397) ^ bUseRTTI.GetHashCode();
 				HashCode = (HashCode * 397) ^ bEnableExceptions.GetHashCode();
 				HashCode = (HashCode * 397) ^ bIsBuildingLibrary.GetHashCode();
@@ -96,8 +119,8 @@ namespace UnrealBuildTool
 				HashCode = (HashCode * 397) ^ bUseInlining.GetHashCode();
 				HashCode = (HashCode * 397) ^ bUseUnity.GetHashCode();
 				HashCode = (HashCode * 397) ^ bCreateDebugInfo.GetHashCode();
-				HashCode = (HashCode * 397) ^ bUseAVX.GetHashCode();
-				HashCode = (HashCode * 397) ^ AVXSupport.GetHashCode();
+				HashCode = (HashCode * 397) ^ DefaultCpuArchX64.GetHashCode();
+				HashCode = (HashCode * 397) ^ MinCpuArchX64.GetHashCode();
 				HashCode = (HashCode * 397) ^ bUseDebugCRT.GetHashCode();
 				HashCode = (HashCode * 397) ^ bUseStaticCRT.GetHashCode();
 				HashCode = (HashCode * 397) ^ (PrecompiledHeaderAction != null ? PrecompiledHeaderAction.GetHashCode() : 0);

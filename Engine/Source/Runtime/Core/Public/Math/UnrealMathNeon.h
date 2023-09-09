@@ -49,24 +49,24 @@ PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 #	define UE_PLATFORM_MATH_USE_WINML				PLATFORM_ALWAYS_HAS_WINML
 #endif
 
-#ifndef UE_PLATFORM_MATH_USE_ARM_NEON
-#	define UE_PLATFORM_MATH_USE_ARM_NEON			PLATFORM_ALWAYS_HAS_ARM_NEON
+#ifndef UE_PLATFORM_MATH_USE_NEON
+#	define UE_PLATFORM_MATH_USE_NEON			PLATFORM_ALWAYS_HAS_NEON
 #endif
 
-#ifndef UE_PLATFORM_MATH_USE_ARM_NEON_FMA
-#	define UE_PLATFORM_MATH_USE_ARM_NEON_FMA			PLATFORM_ALWAYS_HAS_ARM_NEON_FMA
+#ifndef UE_PLATFORM_MATH_USE_NEON_FMA
+#	define UE_PLATFORM_MATH_USE_NEON_FMA			PLATFORM_ALWAYS_HAS_NEON_FMA
 #endif
 
-#ifndef UE_PLATFORM_MATH_USE_ARM_NEON_FP16
-#	define UE_PLATFORM_MATH_USE_ARM_NEON_FP16			PLATFORM_ALWAYS_HAS_ARM_NEON_FP16
+#ifndef UE_PLATFORM_MATH_USE_NEON_FP16
+#	define UE_PLATFORM_MATH_USE_NEON_FP16			PLATFORM_ALWAYS_HAS_NEON_FP16
 #endif
 
-#ifndef UE_PLATFORM_MATH_USE_ARM_NEON_BF16
-#	define UE_PLATFORM_MATH_USE_ARM_NEON_BF16			PLATFORM_ALWAYS_HAS_ARM_NEON_BF16
+#ifndef UE_PLATFORM_MATH_USE_NEON_BF16
+#	define UE_PLATFORM_MATH_USE_NEON_BF16			PLATFORM_ALWAYS_HAS_NEON_BF16
 #endif
 
-#ifndef UE_PLATFORM_MATH_FAVOR_ARM_NEON
-#	define UE_PLATFORM_MATH_FAVOR_ARM_NEON				PLATFORM_FAVOR_ARM_NEON
+#ifndef UE_PLATFORM_MATH_FAVOR_NEON
+#	define UE_PLATFORM_MATH_FAVOR_NEON				PLATFORM_FAVOR_NEON
 #endif
 
 /*=============================================================================
@@ -1975,178 +1975,20 @@ FORCEINLINE void VectorMatrixMultiply(FMatrix44d* Result, const FMatrix44d* Matr
 }
 
 /**
- * Calculate the inverse of an FMatrix.
+ * Calculate the inverse of an FMatrix44.  Src == Dst is allowed
  *
- * @param DstMatrix		FMatrix pointer to where the result should be stored
- * @param SrcMatrix		FMatrix pointer to the Matrix to be inversed
+ * @param DstMatrix		FMatrix44 pointer to where the result should be stored
+ * @param SrcMatrix		FMatrix44 pointer to the Matrix to be inversed
+ * @return bool			returns false if matrix is not invertable and stores identity 
+ *
  */
-// OPTIMIZE ME: stolen from UnMathFpu.h
-FORCEINLINE void VectorMatrixInverse(FMatrix44f* DstMatrix, const FMatrix44f* SrcMatrix )
+FORCEINLINE bool VectorMatrixInverse(FMatrix44d* DstMatrix, const FMatrix44d* SrcMatrix)
 {
-	typedef float Float4x4[4][4];
-	const Float4x4& M = *((const Float4x4*) SrcMatrix);
-	Float4x4 Result;
-	float Det[4];
-	Float4x4 Tmp;
-	
-	Tmp[0][0]       = M[2][2] * M[3][3] - M[2][3] * M[3][2];
-	Tmp[0][1]       = M[1][2] * M[3][3] - M[1][3] * M[3][2];
-	Tmp[0][2]       = M[1][2] * M[2][3] - M[1][3] * M[2][2];
-	
-	Tmp[1][0]       = M[2][2] * M[3][3] - M[2][3] * M[3][2];
-	Tmp[1][1]       = M[0][2] * M[3][3] - M[0][3] * M[3][2];
-	Tmp[1][2]       = M[0][2] * M[2][3] - M[0][3] * M[2][2];
-	
-	Tmp[2][0]       = M[1][2] * M[3][3] - M[1][3] * M[3][2];
-	Tmp[2][1]       = M[0][2] * M[3][3] - M[0][3] * M[3][2];
-	Tmp[2][2]       = M[0][2] * M[1][3] - M[0][3] * M[1][2];
-	
-	Tmp[3][0]       = M[1][2] * M[2][3] - M[1][3] * M[2][2];
-	Tmp[3][1]       = M[0][2] * M[2][3] - M[0][3] * M[2][2];
-	Tmp[3][2]       = M[0][2] * M[1][3] - M[0][3] * M[1][2];
-	
-	Det[0]          = M[1][1]*Tmp[0][0] - M[2][1]*Tmp[0][1] + M[3][1]*Tmp[0][2];
-	Det[1]          = M[0][1]*Tmp[1][0] - M[2][1]*Tmp[1][1] + M[3][1]*Tmp[1][2];
-	Det[2]          = M[0][1]*Tmp[2][0] - M[1][1]*Tmp[2][1] + M[3][1]*Tmp[2][2];
-	Det[3]          = M[0][1]*Tmp[3][0] - M[1][1]*Tmp[3][1] + M[2][1]*Tmp[3][2];
-	
-	float Determinant = M[0][0]*Det[0] - M[1][0]*Det[1] + M[2][0]*Det[2] - M[3][0]*Det[3];
-	const float     RDet = 1.0f / Determinant;
-	
-	Result[0][0] =  RDet * Det[0];
-	Result[0][1] = -RDet * Det[1];
-	Result[0][2] =  RDet * Det[2];
-	Result[0][3] = -RDet * Det[3];
-	Result[1][0] = -RDet * (M[1][0]*Tmp[0][0] - M[2][0]*Tmp[0][1] + M[3][0]*Tmp[0][2]);
-	Result[1][1] =  RDet * (M[0][0]*Tmp[1][0] - M[2][0]*Tmp[1][1] + M[3][0]*Tmp[1][2]);
-	Result[1][2] = -RDet * (M[0][0]*Tmp[2][0] - M[1][0]*Tmp[2][1] + M[3][0]*Tmp[2][2]);
-	Result[1][3] =  RDet * (M[0][0]*Tmp[3][0] - M[1][0]*Tmp[3][1] + M[2][0]*Tmp[3][2]);
-	Result[2][0] =  RDet * (
-							M[1][0] * (M[2][1] * M[3][3] - M[2][3] * M[3][1]) -
-							M[2][0] * (M[1][1] * M[3][3] - M[1][3] * M[3][1]) +
-							M[3][0] * (M[1][1] * M[2][3] - M[1][3] * M[2][1])
-							);
-	Result[2][1] = -RDet * (
-							M[0][0] * (M[2][1] * M[3][3] - M[2][3] * M[3][1]) -
-							M[2][0] * (M[0][1] * M[3][3] - M[0][3] * M[3][1]) +
-							M[3][0] * (M[0][1] * M[2][3] - M[0][3] * M[2][1])
-							);
-	Result[2][2] =  RDet * (
-							M[0][0] * (M[1][1] * M[3][3] - M[1][3] * M[3][1]) -
-							M[1][0] * (M[0][1] * M[3][3] - M[0][3] * M[3][1]) +
-							M[3][0] * (M[0][1] * M[1][3] - M[0][3] * M[1][1])
-							);
-	Result[2][3] = -RDet * (
-							M[0][0] * (M[1][1] * M[2][3] - M[1][3] * M[2][1]) -
-							M[1][0] * (M[0][1] * M[2][3] - M[0][3] * M[2][1]) +
-							M[2][0] * (M[0][1] * M[1][3] - M[0][3] * M[1][1])
-							);
-	Result[3][0] = -RDet * (
-							M[1][0] * (M[2][1] * M[3][2] - M[2][2] * M[3][1]) -
-							M[2][0] * (M[1][1] * M[3][2] - M[1][2] * M[3][1]) +
-							M[3][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1])
-							);
-	Result[3][1] =  RDet * (
-							M[0][0] * (M[2][1] * M[3][2] - M[2][2] * M[3][1]) -
-							M[2][0] * (M[0][1] * M[3][2] - M[0][2] * M[3][1]) +
-							M[3][0] * (M[0][1] * M[2][2] - M[0][2] * M[2][1])
-							);
-	Result[3][2] = -RDet * (
-							M[0][0] * (M[1][1] * M[3][2] - M[1][2] * M[3][1]) -
-							M[1][0] * (M[0][1] * M[3][2] - M[0][2] * M[3][1]) +
-							M[3][0] * (M[0][1] * M[1][2] - M[0][2] * M[1][1])
-							);
-	Result[3][3] =  RDet * (
-							M[0][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1]) -
-							M[1][0] * (M[0][1] * M[2][2] - M[0][2] * M[2][1]) +
-							M[2][0] * (M[0][1] * M[1][2] - M[0][2] * M[1][1])
-							);
-	
-	memcpy( DstMatrix, &Result, sizeof(Result) );
+	return FMath::MatrixInverse(DstMatrix,SrcMatrix);
 }
-
-FORCEINLINE void VectorMatrixInverse(FMatrix44d* DstMatrix, const FMatrix44d* SrcMatrix)
+FORCEINLINE bool VectorMatrixInverse(FMatrix44f* DstMatrix, const FMatrix44f* SrcMatrix)
 {
-	typedef double Double4x4[4][4];
-	const Double4x4& M = *((const Double4x4*)SrcMatrix);
-	Double4x4 Result;
-	double Det[4];
-	Double4x4 Tmp;
-
-	Tmp[0][0] = M[2][2] * M[3][3] - M[2][3] * M[3][2];
-	Tmp[0][1] = M[1][2] * M[3][3] - M[1][3] * M[3][2];
-	Tmp[0][2] = M[1][2] * M[2][3] - M[1][3] * M[2][2];
-
-	Tmp[1][0] = M[2][2] * M[3][3] - M[2][3] * M[3][2];
-	Tmp[1][1] = M[0][2] * M[3][3] - M[0][3] * M[3][2];
-	Tmp[1][2] = M[0][2] * M[2][3] - M[0][3] * M[2][2];
-
-	Tmp[2][0] = M[1][2] * M[3][3] - M[1][3] * M[3][2];
-	Tmp[2][1] = M[0][2] * M[3][3] - M[0][3] * M[3][2];
-	Tmp[2][2] = M[0][2] * M[1][3] - M[0][3] * M[1][2];
-
-	Tmp[3][0] = M[1][2] * M[2][3] - M[1][3] * M[2][2];
-	Tmp[3][1] = M[0][2] * M[2][3] - M[0][3] * M[2][2];
-	Tmp[3][2] = M[0][2] * M[1][3] - M[0][3] * M[1][2];
-
-	Det[0] = M[1][1] * Tmp[0][0] - M[2][1] * Tmp[0][1] + M[3][1] * Tmp[0][2];
-	Det[1] = M[0][1] * Tmp[1][0] - M[2][1] * Tmp[1][1] + M[3][1] * Tmp[1][2];
-	Det[2] = M[0][1] * Tmp[2][0] - M[1][1] * Tmp[2][1] + M[3][1] * Tmp[2][2];
-	Det[3] = M[0][1] * Tmp[3][0] - M[1][1] * Tmp[3][1] + M[2][1] * Tmp[3][2];
-
-	double Determinant = M[0][0] * Det[0] - M[1][0] * Det[1] + M[2][0] * Det[2] - M[3][0] * Det[3];
-	const double RDet = 1.0 / Determinant;
-
-	Result[0][0] = RDet * Det[0];
-	Result[0][1] = -RDet * Det[1];
-	Result[0][2] = RDet * Det[2];
-	Result[0][3] = -RDet * Det[3];
-	Result[1][0] = -RDet * (M[1][0] * Tmp[0][0] - M[2][0] * Tmp[0][1] + M[3][0] * Tmp[0][2]);
-	Result[1][1] = RDet * (M[0][0] * Tmp[1][0] - M[2][0] * Tmp[1][1] + M[3][0] * Tmp[1][2]);
-	Result[1][2] = -RDet * (M[0][0] * Tmp[2][0] - M[1][0] * Tmp[2][1] + M[3][0] * Tmp[2][2]);
-	Result[1][3] = RDet * (M[0][0] * Tmp[3][0] - M[1][0] * Tmp[3][1] + M[2][0] * Tmp[3][2]);
-	Result[2][0] = RDet * (
-		M[1][0] * (M[2][1] * M[3][3] - M[2][3] * M[3][1]) -
-		M[2][0] * (M[1][1] * M[3][3] - M[1][3] * M[3][1]) +
-		M[3][0] * (M[1][1] * M[2][3] - M[1][3] * M[2][1])
-		);
-	Result[2][1] = -RDet * (
-		M[0][0] * (M[2][1] * M[3][3] - M[2][3] * M[3][1]) -
-		M[2][0] * (M[0][1] * M[3][3] - M[0][3] * M[3][1]) +
-		M[3][0] * (M[0][1] * M[2][3] - M[0][3] * M[2][1])
-		);
-	Result[2][2] = RDet * (
-		M[0][0] * (M[1][1] * M[3][3] - M[1][3] * M[3][1]) -
-		M[1][0] * (M[0][1] * M[3][3] - M[0][3] * M[3][1]) +
-		M[3][0] * (M[0][1] * M[1][3] - M[0][3] * M[1][1])
-		);
-	Result[2][3] = -RDet * (
-		M[0][0] * (M[1][1] * M[2][3] - M[1][3] * M[2][1]) -
-		M[1][0] * (M[0][1] * M[2][3] - M[0][3] * M[2][1]) +
-		M[2][0] * (M[0][1] * M[1][3] - M[0][3] * M[1][1])
-		);
-	Result[3][0] = -RDet * (
-		M[1][0] * (M[2][1] * M[3][2] - M[2][2] * M[3][1]) -
-		M[2][0] * (M[1][1] * M[3][2] - M[1][2] * M[3][1]) +
-		M[3][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1])
-		);
-	Result[3][1] = RDet * (
-		M[0][0] * (M[2][1] * M[3][2] - M[2][2] * M[3][1]) -
-		M[2][0] * (M[0][1] * M[3][2] - M[0][2] * M[3][1]) +
-		M[3][0] * (M[0][1] * M[2][2] - M[0][2] * M[2][1])
-		);
-	Result[3][2] = -RDet * (
-		M[0][0] * (M[1][1] * M[3][2] - M[1][2] * M[3][1]) -
-		M[1][0] * (M[0][1] * M[3][2] - M[0][2] * M[3][1]) +
-		M[3][0] * (M[0][1] * M[1][2] - M[0][2] * M[1][1])
-		);
-	Result[3][3] = RDet * (
-		M[0][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1]) -
-		M[1][0] * (M[0][1] * M[2][2] - M[0][2] * M[2][1]) +
-		M[2][0] * (M[0][1] * M[1][2] - M[0][2] * M[1][1])
-		);
-
-	memcpy(DstMatrix, &Result, sizeof(Result));
+	return FMath::MatrixInverse(DstMatrix,SrcMatrix);
 }
 
 /**
@@ -3038,6 +2880,7 @@ FORCEINLINE VectorRegister4Int VectorFloatToInt(const VectorRegister4Double& A)
 * @param Ptr	Memory pointer
 */
 #define VectorIntStore( Vec, Ptr )			vst1q_s32( (int32*)(Ptr), Vec )
+#define VectorIntStore_16( Vec, Ptr )		vst1q_s16( (int16*)(Ptr), Vec )
 
 /**
 * Loads 4 int32s from unaligned memory.
@@ -3069,7 +2912,8 @@ FORCEINLINE VectorRegister4Int VectorFloatToInt(const VectorRegister4Double& A)
 * @param Ptr	Unaligned memory pointer to the 4 int32s
 * @return		VectorRegister4Int(*Ptr, *Ptr, *Ptr, *Ptr)
 */
-#define VectorIntLoad1( Ptr )	vld1q_dup_s32((int32*)(Ptr))
+#define VectorIntLoad1( Ptr )	                    vld1q_dup_s32((int32*)(Ptr))
+#define VectorIntLoad1_16(Ptr)                      vld1q_dup_s16((int16*)(Ptr))
 
 #define VectorIntSet1(F)                            vdupq_n_s32(F)
 #define VectorSetZero()                             vdupq_n_s32(0)
@@ -3086,7 +2930,7 @@ FORCEINLINE VectorRegister4Int VectorRoundToIntHalfToEven(const VectorRegister4F
 	return vcvtnq_s32_f32(Vec);
 }
 
-inline VectorRegister4i VectorIntExpandLow16To32(VectorRegister4i V) {
+FORCEINLINE VectorRegister4i VectorIntExpandLow16To32(VectorRegister4i V) {
 	int16x4x2_t res = vzip_s16(vget_low_u16(V), vdup_n_u16(0));
 	return vcombine_s16(res.val[0], res.val[1]);
 }

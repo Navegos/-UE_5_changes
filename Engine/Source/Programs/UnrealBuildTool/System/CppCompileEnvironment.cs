@@ -1,11 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.IO;
 using EpicGames.Core;
 using UnrealBuildBase;
 
@@ -29,7 +24,7 @@ namespace UnrealBuildTool
 	public enum CppStandardVersion
 	{
 		/// <summary>
-		/// Supports C++14
+		/// Supports C++14. No longer maintained, will be removed in 5.5
 		/// </summary>
 		Cpp14,
 
@@ -49,9 +44,14 @@ namespace UnrealBuildTool
 		Latest,
 
 		/// <summary>
-		/// Use the default standard version
+		/// Use the default standard version (BuildSettingsVersion.V1-V3: Cpp17, V4: Cpp20)
 		/// </summary>
-		Default = Cpp17,
+		Default = Cpp20,
+
+		/// <summary>
+		/// Use the default standard version for engine modules
+		/// </summary>
+		EngineDefault = Cpp20,
 	}
 
 	/// <summary>
@@ -60,9 +60,9 @@ namespace UnrealBuildTool
 	public enum CStandardVersion
 	{
 		/// <summary>
-		/// Use the default standard version
+		/// Supports no additional standard version flag
 		/// </summary>
-		Default,
+		None,
 
 		/// <summary>
 		/// Supports C89
@@ -88,18 +88,28 @@ namespace UnrealBuildTool
 		/// Latest standard supported by the compiler
 		/// </summary>
 		Latest,
+
+		/// <summary>
+		/// Use the default standard version
+		/// </summary>
+		Default = None,
 	}
 
 	/// <summary>
 	/// Specifies which processor to use for compiling this module and to tuneup and optimize to specifics of micro-architectures. This enum should be kept in order, so that toolchains can check whether the requested setting is >= values that they support.
 	/// Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable might cause worse performance or will crash on incompatible processors.
 	/// </summary>
-	public enum DefaultCPU
+	public enum DefaultCpuArchitectureX64
 	{
 		/// <summary>
 		/// A generic CPU with 64-bit extensions.
 		/// </summary>
 		Generic,
+		
+		/// <summary>
+		/// A No CPU with 64-bit extensions.
+		/// </summary>
+		None = Generic,
 
 		/// <summary>
 		/// This selects the CPU to generate code for at compilation time by determining the processor type of the compiling machine. Using -march=native enables all instruction subsets supported by the local machine (hence the result might not run on different machines). Using -mtune=native produces code optimized for the local machine under the constraints of the selected instruction set.
@@ -234,7 +244,7 @@ namespace UnrealBuildTool
 		//AVX512 Supported CPUs
 
 		/// <summary>
-		/// AMD Zen4 Ryzen/Epic-7xx4-series Family 19h core based CPUs with x86-64 instruction set support. (This supersets BMI, BMI2, CLWB, F16C, FMA, FSGSBASE, AVX, AVX2, ADCX, RDSEED, MWAITX, SHA, CLZERO, AES, PCLMUL, CX16, MOVBE, MMX, SSE, SSE2, SSE3, SSE4A, SSSE3, SSE4.1, SSE4.2, ABM, XSAVEC, XSAVES, CLFLUSHOPT, POPCNT, RDPID, WBNOINVD, PKU, VPCLMULQDQ, VAES, AVX512F, AVX512DQ, AVX512IFMA, AVX512CD, AVX512BW, AVX512VL, AVX512BF16, AVX512VBMI, AVX512VBMI2, AVX512VNNI, AVX512BITALG, AVX512VPOPCNTDQ, GFNI and 64-bit instruction set extensions.)
+		/// AMD Zen4 Ryzen/Epic-7xx4-series Family 19h core based CPUs with x86-64 instruction set support. (This supersets BMI, BMI2, CLWB, F16C, FMA, FSGSBASE, AVX, AVX2, ADCX, RDSEED, MWAITX, SHA, CLZERO, AES, PCLMUL, CX16, MOVBE, MMX, SSE, SSE2, SSE3, SSE4A, SSSE3, SSE4.1, SSE4.2, ABM, XSAVEC, XSAVES, CLFLUSHOPT, POPCNT, RDPID, WBNOINVD, PKU, VPCLMULQDQ, VAES, AVX512F, AVX512DQ, AVX512IFMA, AVX512CD, AVX512BW, AVX512VL, AVX512-BF16, AVX512VBMI, AVX512VBMI2, AVX512VNNI, AVX512BITALG, AVX512VPOPCNTDQ, GFNI and 64-bit instruction set extensions.)
 		/// </summary>
 		Znver4,
 
@@ -242,7 +252,7 @@ namespace UnrealBuildTool
 		// Start of. This Intel accelerators processors only runs AVX512.
 		// Removed, incompatible for use with accelerators processors.
 		// <summary>
-		// Intel Knight’s Landing CPU with 64-bit extensions, AVX512PF, AVX512ER, AVX512F, AVX512CD and PREFETCHWT1 instruction set support.
+		// Intel Knights Landing CPU with 64-bit extensions, AVX512PF, AVX512ER, AVX512F, AVX512CD and PREFETCHWT1 instruction set support.
 		// </summary>
 		/*Knl,*/
 
@@ -279,7 +289,7 @@ namespace UnrealBuildTool
 		Cascadelake,
 
 		/// <summary>
-		/// Intel cooperlake CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, CLWB, AVX512VL, AVX512BW, AVX512DQ, AVX512CD, AVX512VNNI and AVX512BF16 instruction set support.
+		/// Intel cooperlake CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, CLWB, AVX512VL, AVX512BW, AVX512DQ, AVX512CD, AVX512VNNI and AVX512-BF16 instruction set support.
 		/// </summary>
 		Cooperlake,
 
@@ -289,7 +299,7 @@ namespace UnrealBuildTool
 		Tigerlake,
 
 		/// <summary>
-		/// Intel sapphirerapids CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, AVX512VL, AVX512BW, AVX512DQ, AVX512CD, PKU, AVX512VBMI, AVX512IFMA, SHA, AVX512VNNI, GFNI, VAES, AVX512VBMI2, VPCLMULQDQ, AVX512BITALG, RDPID, AVX512VPOPCNTDQ, PCONFIG, WBNOINVD, CLWB, MOVDIRI, MOVDIR64B, ENQCMD, CLDEMOTE, PTWRITE, WAITPKG, SERIALIZE, TSXLDTRK, UINTR, AMX-BF16, AMX-TILE, AMX-INT8, AVX-VNNI, AVX512-FP16 and AVX512BF16 instruction set support.
+		/// Intel sapphirerapids CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, AVX512VL, AVX512BW, AVX512DQ, AVX512CD, PKU, AVX512VBMI, AVX512IFMA, SHA, AVX512VNNI, GFNI, VAES, AVX512VBMI2, VPCLMULQDQ, AVX512BITALG, RDPID, AVX512VPOPCNTDQ, PCONFIG, WBNOINVD, CLWB, MOVDIRI, MOVDIR64B, ENQCMD, CLDEMOTE, PTWRITE, WAITPKG, SERIALIZE, TSXLDTRK, UINTR, AMX-BF16, AMX-TILE, AMX-INT8, AVX-VNNI, AVX512-FP16 and AVX512-BF16 instruction set support.
 		/// </summary>
 		Sapphirerapids,
 
@@ -306,37 +316,52 @@ namespace UnrealBuildTool
 		Rocketlake,
 
 		/// <summary>
-		/// Intel graniterapids CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, AVX512VL, AVX512BW, AVX512DQ, AVX512CD, PKU, AVX512VBMI, AVX512IFMA, SHA, AVX512VNNI, GFNI, VAES, AVX512VBMI2, VPCLMULQDQ, AVX512BITALG, RDPID, AVX512VPOPCNTDQ, PCONFIG, WBNOINVD, CLWB, MOVDIRI, MOVDIR64B, AVX512VP2INTERSECT, ENQCMD, CLDEMOTE, PTWRITE, WAITPKG, SERIALIZE, TSXLDTRK, UINTR, AMX-BF16, AMX-TILE, AMX-INT8, AVX-VNNI, AVX512-FP16, AVX512BF16, AMX-FP16 and PREFETCHI instruction set support.
+		/// Intel graniterapids CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, AVX512VL, AVX512BW, AVX512DQ, AVX512CD, PKU, AVX512VBMI, AVX512IFMA, SHA, AVX512VNNI, GFNI, VAES, AVX512VBMI2, VPCLMULQDQ, AVX512BITALG, RDPID, AVX512VPOPCNTDQ, PCONFIG, WBNOINVD, CLWB, MOVDIRI, MOVDIR64B, ENQCMD, CLDEMOTE, PTWRITE, WAITPKG, SERIALIZE, TSXLDTRK, UINTR, AMX-BF16, AMX-TILE, AMX-INT8, AVX-VNNI, AVX512-FP16, AVX512-BF16, AMX-FP16 and PREFETCHI instruction set support.
 		/// </summary>
 		Graniterapids,
 
 		/// <summary>
+		/// Intel graniterapids D CPU with 64-bit extensions, MOVBE, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE, RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW, AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, AVX512VL, AVX512BW, AVX512DQ, AVX512CD, PKU, AVX512VBMI, AVX512IFMA, SHA, AVX512VNNI, GFNI, VAES, AVX512VBMI2, VPCLMULQDQ, AVX512BITALG, RDPID, AVX512VPOPCNTDQ, PCONFIG, WBNOINVD, CLWB, MOVDIRI, MOVDIR64B, ENQCMD, CLDEMOTE, PTWRITE, WAITPKG, SERIALIZE, TSXLDTRK, UINTR, AMX-BF16, AMX-TILE, AMX-INT8, AVX-VNNI, AVX512-FP16, AVX512-BF16, AMX-FP16, PREFETCHI and AMX-COMPLEX instruction set support.
+		/// </summary>
+		Graniterapids_d,
+
+		/// <summary>
 		/// Use the default Generic version
 		/// </summary>
-		Default = Generic,
+		Default = Native,
 	}
 
 	/// <summary>
-	/// To what extent a module supports AVX version
+	/// Specifies the architecture for code generation on x64 for windows platforms.
+	/// Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable will crash on machines without AVX support.
+	/// For more details please see https://learn.microsoft.com/en-us/cpp/build/reference/arch-x64
 	/// </summary>
-	public enum AVXSupport
+	public enum MinimumCpuArchitectureX64
 	{
 		/// <summary>
-		/// None means code does not compile with AVX.
+		/// No minimum architecure
 		/// </summary>
 		None,
 
 		/// <summary>
-		/// Direct the compiler to generate AVX instructions wherever SSE or AVX intrinsics are used, on the platforms that support it.
-		/// Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable will crash on machines without AVX support.
+		/// Enables the use of Intel Advanced Vector Extensions instructions
 		/// </summary>
-		AVX256,
+		AVX,
 
 		/// <summary>
-		/// Direct the compiler to generate AVX instructions wherever SSE or AVX or AVX-512 intrinsics are used, on the platforms that support it.
-		/// Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable will crash on machines without AVX and AVX-512 support.
+		/// Enables the use of Intel Advanced Vector Extensions 2 instructions
+		/// </summary>
+		AVX2,
+
+		/// <summary>
+		/// Enables the use of Intel Advanced Vector Extensions 512 instructions
 		/// </summary>
 		AVX512,
+
+		/// <summary>
+		/// Use the default minimum architecure
+		/// </summary>
+		Default = None,
 	}
 
 	/// <summary>
@@ -379,6 +404,19 @@ namespace UnrealBuildTool
 			{
 				PerArchPrecompiledHeaderFiles[Architecture] = Other.PrecompiledHeaderFile;
 			}
+		}
+
+		public FileItem? GetPrecompiledHeaderFile(UnrealArch Architecture)
+		{
+			if (PerArchPrecompiledHeaderFiles != null)
+			{
+				PerArchPrecompiledHeaderFiles.TryGetValue(Architecture, out FileItem? PerArchPrecompiledHeaderFile);
+				if (PerArchPrecompiledHeaderFile != null)
+				{
+					return PerArchPrecompiledHeaderFile;
+				}
+			}
+			return PrecompiledHeaderFile;
 		}
 	}
 
@@ -458,21 +496,19 @@ namespace UnrealBuildTool
 		public bool bCompileISPC = false;
 
 		/// <summary>
-		/// Direct the compiler to generate AVX instructions wherever SSE or AVX intrinsics are used.
-		/// Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable will crash on machines without AVX support.
-		/// </summary>
-		public bool bUseAVX = false;
-
-		/// <summary>
-		/// Direct the compiler to generate AVX instructions wherever SSE or AVX or AVX-512 intrinsics are used, on the platforms that support it.
-		/// Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable will crash on machines without AVX or AVX-512 support.
-		/// </summary>
-		public AVXSupport AVXSupport = AVXSupport.None;
-
-		/// <summary>
 		/// Enable buffer security checks.   This should usually be enabled as it prevents severe security risks.
 		/// </summary>
 		public bool bEnableBufferSecurityChecks = true;
+
+		/// <summary>
+		/// Whether the AutoRTFM compiler is being used or not.
+		/// </summary>
+		public bool bUseAutoRTFMCompiler = false;
+
+		/// <summary>
+		/// Enables AutoRTFM instrumentation to this cpp file only when AutoRTFMCompiler is enabled
+		/// </summary>
+		public bool bAllowAutoRTFMInstrumentation = false;
 
 		/// <summary>
 		/// If unity builds are enabled this can be used to override if this specific module will build using Unity.
@@ -513,7 +549,7 @@ namespace UnrealBuildTool
 
 		/// <summary>
 		/// Enable objective C automatic reference counting (ARC)
-		/// If you set this to true you should not use shared PCHs for this module. The engine won't be extensively using ARC in the short term
+		/// If you set this to true you should not use shared PCHs for this module. The engine won't be extensively using ARC in the short term  
 		/// Not doing this will result in a compile errors because shared PCHs were compiled with different flags than consumer
 		/// </summary>
 		public bool bEnableObjCAutomaticReferenceCounting = false;
@@ -592,9 +628,19 @@ namespace UnrealBuildTool
 		public bool bOptimizeCode = false;
 
 		/// <summary>
+		/// True if the compilation should produce tracing output for code coverage.
+		/// </summary>
+		public bool bCodeCoverage = false;
+
+		/// <summary>
 		/// Allows to fine tune optimizations level for speed and\or code size
 		/// </summary>
 		public OptimizationMode OptimizationLevel = OptimizationMode.Speed;
+
+		/// <summary>
+		/// Determines the FP semantics.
+		/// </summary>
+		public FPSemanticsMode FPSemantics = FPSemanticsMode.Default;
 
 		/// <summary>
 		/// True if debug info should be created.
@@ -642,6 +688,11 @@ namespace UnrealBuildTool
 		public bool bPreprocessOnly = false;
 
 		/// <summary>
+		/// Should an assembly file be generated while compiling. Works exclusively on MSVC compilers for now.
+		/// </summary>
+		public bool bWithAssembly = false;
+
+		/// <summary>
 		/// Whether to support edit and continue.  Only works on Microsoft compilers in 32-bit compiles.
 		/// </summary>
 		public bool bSupportEditAndContinue;
@@ -652,7 +703,7 @@ namespace UnrealBuildTool
 		public bool bUseIncrementalLinking;
 
 		/// <summary>
-		/// Whether to allow the use of LTCG (link time code generation)
+		/// Whether to allow the use of LTCG (link time code generation) 
 		/// </summary>
 		public bool bAllowLTCG;
 
@@ -698,6 +749,18 @@ namespace UnrealBuildTool
 		public HashSet<DirectoryReference> SystemIncludePaths;
 
 		/// <summary>
+		/// The include paths which were previously in UserIncludePaths, but are now in a shared response file, persisted in the environment for validation.
+		/// Do not add to this set unless a shared response is in use, and only when removing those headers from UserIncludePaths.
+		/// </summary>
+		public HashSet<DirectoryReference> SharedUserIncludePaths;
+
+		/// <summary>
+		/// The include paths which were previously in SystemIncludePaths, but are now in a shared response file, persisted in the environment for validation.
+		/// Do not add to this set unless a shared response is in use, and only when removing those headers from SystemIncludePaths.
+		/// </summary>
+		public HashSet<DirectoryReference> SharedSystemIncludePaths;
+
+		/// <summary>
 		/// List of paths to search for compiled module interface (*.ifc) files
 		/// </summary>
 		public HashSet<DirectoryReference> ModuleInterfacePaths;
@@ -723,9 +786,24 @@ namespace UnrealBuildTool
 		public Dictionary<FileItem, List<FileItem>> FileInlineGenCPPMap = new();
 
 		/// <summary>
+		/// FileItems with colliding names. (Which means they would overwrite each other in intermediate folder
+		/// </summary>
+		public HashSet<FileItem>? CollidingNames;
+
+		/// <summary>
 		/// The C++ preprocessor definitions to use.
 		/// </summary>
 		public List<string> Definitions = new List<string>();
+
+		/// <summary>
+		/// Additional response files that will be used by main response file
+		/// </summary>
+		public List<FileItem> AdditionalResponseFiles = new();
+
+		/// <summary>
+		/// Whether the compile environment has a response file in AdditionalResponseFiles that contains global compiler arguments.
+		/// </summary>
+		public bool bHasSharedResponseFile = false;
 
 		/// <summary>
 		/// Additional arguments to pass to the compiler.
@@ -738,14 +816,29 @@ namespace UnrealBuildTool
 		public List<UEBuildFramework> AdditionalFrameworks = new List<UEBuildFramework>();
 
 		/// <summary>
-		/// The file containing the precompiled header data.
-		/// </summary>
-		public FileItem? PrecompiledHeaderFile = null;
-
-		/// <summary>
 		/// A dictionary of PCH files for multiple architectures
 		/// </summary>
-		public Dictionary<UnrealArch, FileItem>? PerArchPrecompiledHeaderFiles = null;
+		public Dictionary<UnrealArch, FileItem>? PerArchPrecompiledHeaderFiles => PCHInstance?.Output.PerArchPrecompiledHeaderFiles;
+
+		/// <summary>
+		/// The instance containing the precompiled header data.
+		/// </summary>
+		public PrecompiledHeaderInstance? PCHInstance = null;
+
+		/// <summary>
+		/// The file containing the precompiled header data.
+		/// </summary>
+		public FileItem? PrecompiledHeaderFile => GetPrecompiledHeaderFile(PCHInstance);
+
+		/// <summary>
+		/// The parent PCH instance used when creating this PCH.
+		/// </summary>
+		public PrecompiledHeaderInstance? ParentPCHInstance = null;
+
+		/// <summary>
+		/// The parent's PCH header file.
+		/// </summary>
+		public FileItem? ParentPrecompiledHeaderFile => GetPrecompiledHeaderFile(ParentPCHInstance);
 
 		/// <summary>
 		/// True if a single PRecompiledHeader exists, or at least one PerArchPrecompiledHeaderFile exists
@@ -763,6 +856,11 @@ namespace UnrealBuildTool
 		public bool bHideSymbolsByDefault = true;
 
 		/// <summary>
+		/// Which C++ standard to support for engine modules. CppStandard will be set to this for engine modules and CppStandardEngine should not be checked in any toolchain. May not be compatible with all platforms.
+		/// </summary>
+		public CppStandardVersion CppStandardEngine = CppStandardVersion.EngineDefault;
+
+		/// <summary>
 		/// Which C++ standard to support. May not be compatible with all platforms.
 		/// </summary>
 		public CppStandardVersion CppStandard = CppStandardVersion.Default;
@@ -776,7 +874,13 @@ namespace UnrealBuildTool
 		/// Specifies which processor to use for compiling this module and to tuneup and optimize to specifics of micro-architectures. This enum should be kept in order, so that toolchains can check whether the requested setting is >= values that they support.
 		/// Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable might cause worse performance or will crash on incompatible processors.
 		/// </summary>
-		public DefaultCPU DefaultCPU = DefaultCPU.Default;
+		public DefaultCpuArchitectureX64 DefaultCpuArchX64 = DefaultCpuArchitectureX64.Default;
+
+		/// <summary>
+		/// Direct the compiler to generate AVX instructions wherever SSE or AVX intrinsics are used.
+		/// Note that by enabling this you are changing the minspec for the PC platform, and the resultant executable will crash on machines without AVX support.
+		/// </summary>
+		public MinimumCpuArchitectureX64 MinCpuArchX64 = MinimumCpuArchitectureX64.Default;
 
 		/// <summary>
 		/// The amount of the stack usage to report static analysis warnings.
@@ -784,7 +888,7 @@ namespace UnrealBuildTool
 		public int AnalyzeStackSizeWarning = 300000;
 
 		/// <summary>
-		/// Enable C++ coroutine support.
+		/// Enable C++ coroutine support. 
 		/// For MSVC, adds "/await:strict" to the command line. Program should #include &lt;coroutine&gt;
 		/// For Clang, adds "-fcoroutines-ts" to the command line. Program should #include &lt;experimental/coroutine&gt; (not supported in every clang toolchain)
 		/// </summary>
@@ -796,9 +900,19 @@ namespace UnrealBuildTool
 		public EngineIncludeOrderVersion IncludeOrderVersion = EngineIncludeOrderVersion.Latest;
 
 		/// <summary>
-		/// Set flags for determinstic compiles (experimental).
+		/// Set flags for determinstic compiles.
 		/// </summary>
-		public bool bDeterministic = false;
+		public bool bDeterministic;
+
+		/// <summary>
+		/// Set flags for determinstic compile warnings.
+		/// </summary>
+		public WarningLevel DeterministicWarningLevel = WarningLevel.Off;
+
+		/// <summary>
+		/// Emits compilation errors for incorrect UE_LOG format strings.
+		/// </summary>
+		public bool bValidateFormatStrings = true;
 
 		/// <summary>
 		/// Directory where to put crash report files for platforms that support it
@@ -814,10 +928,12 @@ namespace UnrealBuildTool
 			this.Configuration = Configuration;
 			this.Architectures = Architectures;
 			this.MetadataCache = MetadataCache;
-			this.SharedPCHs = new List<PrecompiledHeaderTemplate>();
-			this.UserIncludePaths = new HashSet<DirectoryReference>();
-			this.SystemIncludePaths = new HashSet<DirectoryReference>();
-			this.ModuleInterfacePaths = new HashSet<DirectoryReference>();
+			SharedPCHs = new List<PrecompiledHeaderTemplate>();
+			UserIncludePaths = new HashSet<DirectoryReference>();
+			SystemIncludePaths = new HashSet<DirectoryReference>();
+			SharedUserIncludePaths = new HashSet<DirectoryReference>();
+			SharedSystemIncludePaths = new HashSet<DirectoryReference>();
+			ModuleInterfacePaths = new HashSet<DirectoryReference>();
 		}
 
 		/// <summary>
@@ -832,10 +948,6 @@ namespace UnrealBuildTool
 			MetadataCache = Other.MetadataCache;
 			SharedPCHs = Other.SharedPCHs;
 			PrecompiledHeaderIncludeFilename = Other.PrecompiledHeaderIncludeFilename;
-			if (Other.PerArchPrecompiledHeaderFiles != null)
-			{
-				PerArchPrecompiledHeaderFiles = new(Other.PerArchPrecompiledHeaderFiles);
-			}
 			PrecompiledHeaderAction = Other.PrecompiledHeaderAction;
 			bUseSharedBuildEnvironment = Other.bUseSharedBuildEnvironment;
 			bUseRTTI = Other.bUseRTTI;
@@ -843,8 +955,6 @@ namespace UnrealBuildTool
 			bUseStackProtection = Other.bUseStackProtection;
 			bUseInlining = Other.bUseInlining;
 			bCompileISPC = Other.bCompileISPC;
-			bUseAVX = Other.bUseAVX;
-			AVXSupport = Other.AVXSupport;
 			bUseUnity = Other.bUseUnity;
 			MinSourceFilesForUnityBuildOverride = Other.MinSourceFilesForUnityBuildOverride;
 			MinFilesUsingPrecompiledHeaderOverride = Other.MinFilesUsingPrecompiledHeaderOverride;
@@ -865,7 +975,11 @@ namespace UnrealBuildTool
 			StaticAnalyzerDisabledCheckers = new HashSet<string>(Other.StaticAnalyzerDisabledCheckers);
 			StaticAnalyzerAdditionalCheckers = new HashSet<string>(Other.StaticAnalyzerAdditionalCheckers);
 			bOptimizeCode = Other.bOptimizeCode;
+			bUseAutoRTFMCompiler = Other.bUseAutoRTFMCompiler;
+			bAllowAutoRTFMInstrumentation = Other.bAllowAutoRTFMInstrumentation;
+			bCodeCoverage = Other.bCodeCoverage;
 			OptimizationLevel = Other.OptimizationLevel;
+			FPSemantics = Other.FPSemantics;
 			bCreateDebugInfo = Other.bCreateDebugInfo;
 			bIsBuildingLibrary = Other.bIsBuildingLibrary;
 			bIsBuildingDLL = Other.bIsBuildingDLL;
@@ -875,6 +989,7 @@ namespace UnrealBuildTool
 			bEnableOSX109Support = Other.bEnableOSX109Support;
 			bUsePDBFiles = Other.bUsePDBFiles;
 			bPreprocessOnly = Other.bPreprocessOnly;
+			bWithAssembly = Other.bWithAssembly;
 			bSupportEditAndContinue = Other.bSupportEditAndContinue;
 			bUseIncrementalLinking = Other.bUseIncrementalLinking;
 			bAllowLTCG = Other.bAllowLTCG;
@@ -886,42 +1001,44 @@ namespace UnrealBuildTool
 			bAllowRemotelyCompiledPCHs = Other.bAllowRemotelyCompiledPCHs;
 			UserIncludePaths = new HashSet<DirectoryReference>(Other.UserIncludePaths);
 			SystemIncludePaths = new HashSet<DirectoryReference>(Other.SystemIncludePaths);
+			SharedUserIncludePaths = new HashSet<DirectoryReference>(Other.SharedUserIncludePaths);
+			SharedSystemIncludePaths = new HashSet<DirectoryReference>(Other.SharedSystemIncludePaths);
 			ModuleInterfacePaths = new HashSet<DirectoryReference>(Other.ModuleInterfacePaths);
 			bCheckSystemHeadersForModification = Other.bCheckSystemHeadersForModification;
 			ForceIncludeFiles.AddRange(Other.ForceIncludeFiles);
 			AdditionalPrerequisites.AddRange(Other.AdditionalPrerequisites);
+			CollidingNames = Other.CollidingNames;
 			FileInlineGenCPPMap = new Dictionary<FileItem, List<FileItem>>(Other.FileInlineGenCPPMap);
 			Definitions.AddRange(Other.Definitions);
+			AdditionalResponseFiles.AddRange(Other.AdditionalResponseFiles);
 			AdditionalArguments = Other.AdditionalArguments;
 			AdditionalFrameworks.AddRange(Other.AdditionalFrameworks);
-			PrecompiledHeaderFile = Other.PrecompiledHeaderFile;
+			PCHInstance = Other.PCHInstance;
+			ParentPCHInstance = Other.ParentPCHInstance;
 			bHackHeaderGenerator = Other.bHackHeaderGenerator;
 			bHideSymbolsByDefault = Other.bHideSymbolsByDefault;
+			CppStandardEngine = Other.CppStandardEngine;
 			CppStandard = Other.CppStandard;
 			CStandard = Other.CStandard;
-			DefaultCPU = Other.DefaultCPU;
+			DefaultCpuArchX64 = Other.DefaultCpuArchX64;
+			MinCpuArchX64 = Other.MinCpuArchX64;
 			bEnableCoroutines = Other.bEnableCoroutines;
 			IncludeOrderVersion = Other.IncludeOrderVersion;
 			bDeterministic = Other.bDeterministic;
+			DeterministicWarningLevel = Other.DeterministicWarningLevel;
 			CrashDiagnosticDirectory = Other.CrashDiagnosticDirectory;
+			bValidateFormatStrings = Other.bValidateFormatStrings;
 		}
 
 		public CppCompileEnvironment(CppCompileEnvironment Other, UnrealArch OverrideArchitecture)
 			: this(Other)
 		{
 			Architectures = new UnrealArchitectures(OverrideArchitecture);
-			if (Other.PerArchPrecompiledHeaderFiles != null)
-			{
-				Other.PerArchPrecompiledHeaderFiles.TryGetValue(OverrideArchitecture, out PrecompiledHeaderFile);
-			}
-			else
-			{
-				PrecompiledHeaderFile = null;
-			}
-			if (PrecompiledHeaderFile == null && PrecompiledHeaderAction == PrecompiledHeaderAction.Include)
-			{
-				Console.WriteLine("badness");
-			}
+		}
+
+		private FileItem? GetPrecompiledHeaderFile(PrecompiledHeaderInstance? Instance)
+		{
+			return Instance?.Output.GetPrecompiledHeaderFile(Architectures.SingleArchitecture);
 		}
 	}
 }

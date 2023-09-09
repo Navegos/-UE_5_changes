@@ -2,17 +2,14 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using Microsoft.Win32;
+using System.Runtime.Versioning;
 using System.Text;
 using EpicGames.Core;
-using UnrealBuildBase;
-using System.Runtime.Versioning;
-using Microsoft.Extensions.Logging;
 using Microsoft.CodeAnalysis;
+using Microsoft.Extensions.Logging;
+using UnrealBuildBase;
 
 namespace UnrealBuildTool
 {
@@ -37,7 +34,7 @@ namespace UnrealBuildTool
 			: base(Logger)
 		{
 			this.Target = Target;
-			this.EnvVars = Target.WindowsPlatform.Environment!;
+			EnvVars = Target.WindowsPlatform.Environment!;
 
 			Logger.LogDebug("Compiler: {Path}", EnvVars.CompilerPath);
 			Logger.LogDebug("Linker: {Path}", EnvVars.LinkerPath);
@@ -87,13 +84,22 @@ namespace UnrealBuildTool
 		/// <returns>String describing the current toolchain</returns>
 		public override void GetVersionInfo(List<string> Lines)
 		{
-			if(EnvVars.Compiler == EnvVars.ToolChain)
+			if (EnvVars.Compiler == EnvVars.ToolChain)
 			{
 				Lines.Add($"Using {WindowsPlatform.GetCompilerName(EnvVars.Compiler)} {EnvVars.ToolChainVersion} toolchain ({EnvVars.ToolChainDir}) and Windows {EnvVars.WindowsSdkVersion} SDK ({EnvVars.WindowsSdkDir}).");
+			}
+			else if (EnvVars.Compiler == WindowsCompiler.Intel)
+			{
+				Lines.Add($"Using {WindowsPlatform.GetCompilerName(EnvVars.Compiler)} {EnvVars.CompilerVersion} compiler ({EnvVars.CompilerDir}) based on Clang {MicrosoftPlatformSDK.GetClangVersionForIntelCompiler(EnvVars.CompilerPath)} with {WindowsPlatform.GetCompilerName(EnvVars.ToolChain)} {EnvVars.ToolChainVersion} runtime ({EnvVars.ToolChainDir}) and Windows {EnvVars.WindowsSdkVersion} SDK ({EnvVars.WindowsSdkDir}).");
 			}
 			else
 			{
 				Lines.Add($"Using {WindowsPlatform.GetCompilerName(EnvVars.Compiler)} {EnvVars.CompilerVersion} compiler ({EnvVars.CompilerDir}) with {WindowsPlatform.GetCompilerName(EnvVars.ToolChain)} {EnvVars.ToolChainVersion} runtime ({EnvVars.ToolChainDir}) and Windows {EnvVars.WindowsSdkVersion} SDK ({EnvVars.WindowsSdkDir}).");
+			}
+
+			if (EnvVars.ToolChain == WindowsCompiler.VisualStudio2019)
+			{
+				Lines.Add($"Notice: {WindowsPlatform.GetCompilerName(WindowsCompiler.VisualStudio2019)} will no longer be supported for the installed engine in UE 5.3. Compiling code for Microsoft platforms will require {WindowsPlatform.GetCompilerName(WindowsCompiler.VisualStudio2022)} in UE 5.4 and beyond.");
 			}
 		}
 
@@ -103,7 +109,7 @@ namespace UnrealBuildTool
 			ExternalDependencies.Add(FileItem.GetItemByFileReference(EnvVars.LinkerPath));
 		}
 
-		static public void AddDefinition(List<string> Arguments, string Definition)
+		public static void AddDefinition(List<string> Arguments, string Definition)
 		{
 			// Split the definition into name and value
 			int ValueIdx = Definition.IndexOf('=');
@@ -117,10 +123,10 @@ namespace UnrealBuildTool
 			}
 		}
 
-		static public void AddDefinition(List<string> Arguments, string Variable, string? Value)
+		public static void AddDefinition(List<string> Arguments, string Variable, string? Value)
 		{
 			// If the value has a space in it and isn't wrapped in quotes, do that now
-			if (Value != null && !Value.StartsWith("\"") && (Value.Contains(" ") || Value.Contains("$")))
+			if (Value != null && !Value.StartsWith("\"") && (Value.Contains(' ') || Value.Contains('$')))
 			{
 				Value = "\"" + Value + "\"";
 			}
@@ -251,6 +257,25 @@ namespace UnrealBuildTool
 			Arguments.Add($"/Fo\"{ObjectFileString}\"");
 		}
 
+		public static void AddAssemblyFile(List<string> Arguments, FileItem AssemblyFile)
+		{
+			string AssemblyFileString = NormalizeCommandLinePath(AssemblyFile);
+			Arguments.Add("/FAs");// Write out an assembly file (.asm) with the c++ code embedded in it via comments
+			Arguments.Add($"/Fa\"{AssemblyFileString}\""); // Set the output patj for the asm file
+		}
+
+		public static void AddAnalyzeLogFile(List<string> Arguments, FileItem AnalyzeLogFile)
+		{
+			string AnalyzeLogFileString = NormalizeCommandLinePath(AnalyzeLogFile);
+			Arguments.Add("/analyze:log " + Utils.MakePathSafeToUseWithCommandLine(AnalyzeLogFileString));
+		}
+
+		public static void AddExperimentalLogFile(List<string> Arguments, FileItem ExperimentalLogFile)
+		{
+			string ExperimentalLogFileString = NormalizeCommandLinePath(ExperimentalLogFile);
+			Arguments.Add("/experimental:log " + Utils.MakePathSafeToUseWithCommandLine(ExperimentalLogFileString));
+		}
+
 		public static void AddSourceDependenciesFile(List<string> Arguments, FileItem SourceDependenciesFile)
 		{
 			string SourceDependenciesFileString = NormalizeCommandLinePath(SourceDependenciesFile);
@@ -300,13 +325,16 @@ namespace UnrealBuildTool
 					// Needed for some of the C++ checkers.
 					Arguments.Add("-Xclang -analyzer-config -Xclang aggressive-binary-operation-simplification=true");
 
-					// If writing to HTML, use the source filename as a basis for the report filename.
+					// If writing to HTML, use the source filename as a basis for the report filename. 
 					Arguments.Add("-Xclang -analyzer-config -Xclang stable-report-filename=true");
 					Arguments.Add("-Xclang -analyzer-config -Xclang report-in-main-source-file=true");
 					Arguments.Add("-Xclang -analyzer-config -Xclang path-diagnostics-alternate=true");
 
 					// Run shallow analyze if requested.
-					if (Target.StaticAnalyzerMode == StaticAnalyzerMode.Shallow) Arguments.Add("-Xclang -analyzer-config -Xclang mode=shallow");
+					if (Target.StaticAnalyzerMode == StaticAnalyzerMode.Shallow)
+					{
+						Arguments.Add("-Xclang -analyzer-config -Xclang mode=shallow");
+					}
 
 					if (CompileEnvironment.StaticAnalyzerCheckers.Count > 0)
 					{
@@ -402,18 +430,25 @@ namespace UnrealBuildTool
 				Arguments.Add("/FC");
 			}
 
-			if (Target.WindowsPlatform.Compiler.IsClang() && CompileEnvironment.Architecture.bIsX64)
+			if (Target.WindowsPlatform.Compiler.IsClang() && Target.Platform.IsInGroup(UnrealPlatformGroup.Windows) && CompileEnvironment.Architecture == UnrealArch.X64)
 			{
 				// Tell the Clang compiler to generate 64-bit code
 				Arguments.Add("--target=x86_64-pc-windows-msvc");
 
+				// UE5 minspec is 4.2
+				Arguments.Add("-msse4.2");
+
 				// DevelVitorF pushing it a bit further
-				if (CompileEnvironment.bUseAVX)
+				// Not all the new Cpu's have AVX512- enabled, playing it safe and refine the cpu specs. // Dont mix engine modules/plugins mixed specs, it will break at some point.
+				if (CompileEnvironment.MinCpuArchX64 >= MinimumCpuArchitectureX64.AVX2)
 				{
+					Arguments.Add("-mavx -mbmi -mavx2");
+
 					// AVX available implies sse4 and sse2 available.
 					// Inform Unreal code that we have sse2, sse4, and AVX, both available to compile and available to run
 					// By setting the ALWAYS_HAS defines, we we direct Unreal code to skip cpuid checks to verify that the running hardware supports sse/avx.
 					AddDefinition(Arguments, "PLATFORM_ENABLE_VECTORINTRINSICS=1");
+					AddDefinition(Arguments, "PLATFORM_PERFORMANT_TYPES=1");
 					AddDefinition(Arguments, "PLATFORM_MAYBE_HAS_SSE4_1=1");
 					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_SSE4_1=1");
 					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_SSE4_2=1");
@@ -425,83 +460,100 @@ namespace UnrealBuildTool
 					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_FMA3=1");
 					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_F16C=1");
 					// Define /arch:AVX for the current compilation unit.  Machines without AVX support will crash on any SSE/AVX instructions if they run this compilation unit.
-					if (CompileEnvironment.AVXSupport == AVXSupport.AVX512)
+					if (CompileEnvironment.MinCpuArchX64 == MinimumCpuArchitectureX64.AVX512)
 					{
-						switch (CompileEnvironment.DefaultCPU)
+						switch (CompileEnvironment.DefaultCpuArchX64)
 						{
-							case DefaultCPU.Native:
+							case DefaultCpuArchitectureX64.Native:
 								Arguments.Add("/clang:-march=native /clang:-mtune=native -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
 								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
 								break;
-							case DefaultCPU.Znver4:
+							case DefaultCpuArchitectureX64.Znver4:
 								Arguments.Add("/clang:-march=znver4 /clang:-mtune=znver4 -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
 								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BF16=1");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1");
+								Arguments.Add("-mavx512f -mavx512vl -mavx512bw -mavx512dq -mavx512cd");
 								break;
 							// This processors requires CPU checks, most of UE required AVX512 CPU features are not supported at all in this Intel processors.
-							/*case DefaultCPU.Knl:
+							/*case DefaultCpuArchitectureX64.Knl:
 								Arguments.Add("/clang:-march=knl /clang:-mtune=knl -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
 								break;
-							case DefaultCPU.Knm:
+							case DefaultCpuArchitectureX64.Knm:
 								Arguments.Add("/clang:-march=knm /clang:-mtune=knm -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
 								break;*/
-							case DefaultCPU.Skylake_avx512:
+							case DefaultCpuArchitectureX64.Skylake_avx512:
 								Arguments.Add("/clang:-march=skylake-avx512 /clang:-mtune=skylake-avx512 -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
 								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1");
 								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								Arguments.Add("-mavx512f -mavx512vl -mavx512bw -mavx512dq -mavx512cd");
 								break;
-							case DefaultCPU.Cannonlake:
+							case DefaultCpuArchitectureX64.Cannonlake:
 								Arguments.Add("/clang:-march=cannonlake /clang:-mtune=cannonlake -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
 								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1");
 								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								Arguments.Add("-mavx512f -mavx512vl -mavx512bw -mavx512dq -mavx512cd");
 								break;
-							case DefaultCPU.Icelake_client:
+							case DefaultCpuArchitectureX64.Icelake_client:
 								Arguments.Add("/clang:-march=icelake-client /clang:-mtune=icelake-client -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
 								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1");
 								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								Arguments.Add("-mavx512f -mavx512vl -mavx512bw -mavx512dq -mavx512cd");
 								break;
-							case DefaultCPU.Icelake_server:
+							case DefaultCpuArchitectureX64.Icelake_server:
 								Arguments.Add("/clang:-march=icelake-server /clang:-mtune=icelake-server -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
 								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1");
 								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								Arguments.Add("-mavx512f -mavx512vl -mavx512bw -mavx512dq -mavx512cd");
 								break;
-							case DefaultCPU.Cascadelake:
+							case DefaultCpuArchitectureX64.Cascadelake:
 								Arguments.Add("/clang:-march=cascadelake /clang:-mtune=cascadelake -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
 								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1");
 								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								Arguments.Add("-mavx512f -mavx512vl -mavx512bw -mavx512dq -mavx512cd");
 								break;
-							case DefaultCPU.Cooperlake:
+							case DefaultCpuArchitectureX64.Cooperlake:
 								Arguments.Add("/clang:-march=cooperlake /clang:-mtune=cooperlake -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
 								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BF16=1");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1");
 								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								Arguments.Add("-mavx512f -mavx512vl -mavx512bw -mavx512dq -mavx512cd");
 								break;
-							case DefaultCPU.Tigerlake:
+							case DefaultCpuArchitectureX64.Tigerlake:
 								Arguments.Add("/clang:-march=tigerlake /clang:-mtune=tigerlake -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
 								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VP2INTERSECT=1");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_VP2INTERSECT=1");
 								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
+								Arguments.Add("-mavx512f -mavx512vl -mavx512bw -mavx512dq -mavx512cd");
 								break;
-							case DefaultCPU.Sapphirerapids:
+							case DefaultCpuArchitectureX64.Sapphirerapids:
 								Arguments.Add("/clang:-march=sapphirerapids /clang:-mtune=sapphirerapids -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
 								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BF16=1 /DPLATFORM_ALWAYS_HAS_AVX_512_FP16=1");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1 /DPLATFORM_SUPPORTS_AVX_512_FP16=1");
+								Arguments.Add("-mavx512f -mavx512vl -mavx512bw -mavx512dq -mavx512cd");
 								break;
-							/*case DefaultCPU.Alderlake_avx512:*/ // Intel fused of AVX512. Removed.
-							case DefaultCPU.Rocketlake:
+							/*case DefaultCpuArchitectureX64.Alderlake_avx512:*/ // Intel fused of AVX512. Removed.
+							case DefaultCpuArchitectureX64.Rocketlake:
 								Arguments.Add("/clang:-march=rocketlake /clang:-mtune=rocketlake -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
 								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1");
+								Arguments.Add("-mavx512f -mavx512vl -mavx512bw -mavx512dq -mavx512cd");
 								break;
-							case DefaultCPU.Graniterapids:
+							case DefaultCpuArchitectureX64.Graniterapids:
 								Arguments.Add("/clang:-march=graniterapids /clang:-mtune=graniterapids -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
 								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BF16=1 /DPLATFORM_ALWAYS_HAS_AVX_512_FP16=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VP2INTERSECT=1");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1 /DPLATFORM_SUPPORTS_AVX_512_FP16=1 /DPLATFORM_SUPPORTS_AVX_512_VP2INTERSECT=1");
+								Arguments.Add("-mavx512f -mavx512vl -mavx512bw -mavx512dq -mavx512cd");
+								break;
+							case DefaultCpuArchitectureX64.Graniterapids_d:
+								Arguments.Add("/clang:-march=graniterapids-d /clang:-mtune=graniterapids-d -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BF16=1 /DPLATFORM_ALWAYS_HAS_AVX_512_FP16=1");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1 /DPLATFORM_SUPPORTS_AVX_512_FP16=1");
+								Arguments.Add("-mavx512f -mavx512vl -mavx512bw -mavx512dq -mavx512cd");
 								break;
 							default:
 								Arguments.Add("/clang:-march=native /clang:-mtune=native -Xclang -mprefer-vector-width=512 -mllvm -force-vector-width=16 -mllvm -force-vector-interleave=8");
@@ -511,91 +563,95 @@ namespace UnrealBuildTool
 					}
 					else
 					{
-						switch (CompileEnvironment.DefaultCPU)
+						switch (CompileEnvironment.DefaultCpuArchX64)
 						{
-							case DefaultCPU.Native:
+							case DefaultCpuArchitectureX64.Native:
 								Arguments.Add("/clang:-march=native /clang:-mtune=native -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
 								break;
-							case DefaultCPU.Haswell:
+							case DefaultCpuArchitectureX64.Haswell:
 								Arguments.Add("/clang:-march=haswell /clang:-mtune=haswell -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
 								break;
-							case DefaultCPU.Broadwell:
+							case DefaultCpuArchitectureX64.Broadwell:
 								Arguments.Add("/clang:-march=broadwell /clang:-mtune=broadwell -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
 								break;
-							case DefaultCPU.Skylake:
+							case DefaultCpuArchitectureX64.Skylake:
 								Arguments.Add("/clang:-march=skylake /clang:-mtune=skylake -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
 								break;
-							case DefaultCPU.Alderlake:
+							case DefaultCpuArchitectureX64.Alderlake:
 								Arguments.Add("/clang:-march=alderlake /clang:-mtune=alderlake -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
 								break;
-							case DefaultCPU.Sierraforest:
+							case DefaultCpuArchitectureX64.Sierraforest:
 								Arguments.Add("/clang:-march=sierraforest /clang:-mtune=sierraforest -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
 								break;
-							case DefaultCPU.Grandridge:
+							case DefaultCpuArchitectureX64.Grandridge:
 								Arguments.Add("/clang:-march=grandridge /clang:-mtune=grandridge -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
 								break;
-							case DefaultCPU.Bdver4:
+							case DefaultCpuArchitectureX64.Bdver4:
 								Arguments.Add("/clang:-march=bdver4 /clang:-mtune=bdver4 -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
 								break;
-							case DefaultCPU.Znver1:
+							case DefaultCpuArchitectureX64.Znver1:
 								Arguments.Add("/clang:-march=znver1 /clang:-mtune=znver1 -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
 								break;
-							case DefaultCPU.Znver2:
+							case DefaultCpuArchitectureX64.Znver2:
 								Arguments.Add("/clang:-march=znver2 /clang:-mtune=znver2 -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
 								break;
-							case DefaultCPU.Znver3:
+							case DefaultCpuArchitectureX64.Znver3:
 								Arguments.Add("/clang:-march=znver3 /clang:-mtune=znver3 -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
 								break;
-							case DefaultCPU.Znver4:
+							case DefaultCpuArchitectureX64.Znver4:
 								Arguments.Add("/clang:-march=znver4 /clang:-mtune=znver4 -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1");
 								break;
-							/*case DefaultCPU.Knl: // Removed, incompatible for use with accelerators processors
+							/*case DefaultCpuArchitectureX64.Knl: // Removed, incompatible for use with accelerators processors
 								Arguments.Add("/clang:-march=knl /clang:-mtune=knl -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
 								break;
-							case DefaultCPU.Knm:
+							case DefaultCpuArchitectureX64.Knm:
 								Arguments.Add("/clang:-march=knm /clang:-mtune=knm -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
 								break;*/
-							case DefaultCPU.Skylake_avx512:
+							case DefaultCpuArchitectureX64.Skylake_avx512:
 								Arguments.Add("/clang:-march=skylake-avx512 /clang:-mtune=skylake-avx512 -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1");
 								break;
-							case DefaultCPU.Cannonlake:
+							case DefaultCpuArchitectureX64.Cannonlake:
 								Arguments.Add("/clang:-march=cannonlake /clang:-mtune=cannonlake -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1");
 								break;
-							case DefaultCPU.Icelake_client:
+							case DefaultCpuArchitectureX64.Icelake_client:
 								Arguments.Add("/clang:-march=icelake-client /clang:-mtune=icelake-client -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1");
 								break;
-							case DefaultCPU.Icelake_server:
+							case DefaultCpuArchitectureX64.Icelake_server:
 								Arguments.Add("/clang:-march=icelake-server /clang:-mtune=icelake-server -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1");
 								break;
-							case DefaultCPU.Cascadelake:
+							case DefaultCpuArchitectureX64.Cascadelake:
 								Arguments.Add("/clang:-march=cascadelake /clang:-mtune=cascadelake -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1");
 								break;
-							case DefaultCPU.Cooperlake:
+							case DefaultCpuArchitectureX64.Cooperlake:
 								Arguments.Add("/clang:-march=cooperlake /clang:-mtune=cooperlake -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1");
 								break;
-							case DefaultCPU.Tigerlake:
+							case DefaultCpuArchitectureX64.Tigerlake:
 								Arguments.Add("/clang:-march=tigerlake /clang:-mtune=tigerlake -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_VP2INTERSECT=1");
 								break;
-							case DefaultCPU.Sapphirerapids:
+							case DefaultCpuArchitectureX64.Sapphirerapids:
 								Arguments.Add("/clang:-march=sapphirerapids /clang:-mtune=sapphirerapids -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1 /DPLATFORM_SUPPORTS_AVX_512_FP16=1");
 								break;
-							/*case DefaultCPU.Alderlake_avx512:*/ // Intel fused of AVX512. Removed.
-							case DefaultCPU.Rocketlake:
+							/*case DefaultCpuArchitectureX64.Alderlake_avx512:*/ // Intel fused of AVX512. Removed.
+							case DefaultCpuArchitectureX64.Rocketlake:
 								Arguments.Add("/clang:-march=rocketlake /clang:-mtune=rocketlake -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1");
 								break;
-							case DefaultCPU.Graniterapids:
+							case DefaultCpuArchitectureX64.Graniterapids:
 								Arguments.Add("/clang:-march=graniterapids /clang:-mtune=graniterapids -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1 /DPLATFORM_SUPPORTS_AVX_512_FP16=1 /DPLATFORM_SUPPORTS_AVX_512_VP2INTERSECT=1");
+								break;
+							case DefaultCpuArchitectureX64.Graniterapids_d:
+								Arguments.Add("/clang:-march=graniterapids-d /clang:-mtune=graniterapids-d -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1 /DPLATFORM_SUPPORTS_AVX_512_FP16=1");
 								break;
 							default:
 								Arguments.Add("/clang:-march=native /clang:-mtune=native -Xclang -mprefer-vector-width=256 -mllvm -force-vector-width=8 -mllvm -force-vector-interleave=4");
@@ -611,72 +667,114 @@ namespace UnrealBuildTool
 				else
 				{
 					AddDefinition(Arguments, "PLATFORM_ENABLE_VECTORINTRINSICS=1");
+					AddDefinition(Arguments, "PLATFORM_PERFORMANT_TYPES=1");
 					AddDefinition(Arguments, "PLATFORM_MAYBE_HAS_SSE4_1=1");
 					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_SSE4_1=1");
 					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_SSE4_2=1");
-					//Arguments.Add("/clang:-march=westmere -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-					switch (CompileEnvironment.DefaultCPU)
+					if (CompileEnvironment.MinCpuArchX64 >= MinimumCpuArchitectureX64.AVX)
 					{
-						case DefaultCPU.Native:
-							Arguments.Add("/clang:-march=native /clang:-mtune=native -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-							break;
-						case DefaultCPU.Nehalem:
-							Arguments.Add("/clang:-march=nehalem /clang:-mtune=nehalem -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-							break;
-						case DefaultCPU.Westmere:
-							Arguments.Add("/clang:-march=westmere /clang:-mtune=westmere -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-							break;
-						case DefaultCPU.Sandybridge:
-							Arguments.Add("/clang:-march=sandybridge /clang:-mtune=sandybridge -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-							break;
-						case DefaultCPU.Ivybridge:
-							Arguments.Add("/clang:-march=ivybridge /clang:-mtune=ivybridge -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-							Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1");
-							break;
-						case DefaultCPU.Silvermont:
-							Arguments.Add("/clang:-march=silvermont /clang:-mtune=silvermont -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-							break;
-						case DefaultCPU.Goldmont:
-							Arguments.Add("/clang:-march=goldmont /clang:-mtune=goldmont -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-							break;
-						case DefaultCPU.Goldmont_plus:
-							Arguments.Add("/clang:-march=goldmont-plus /clang:-mtune=goldmont-plus -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-							break;
-						case DefaultCPU.Tremont:
-							Arguments.Add("/clang:-march=tremont /clang:-mtune=tremont -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-							break;
-						case DefaultCPU.Btver2:
-							Arguments.Add("/clang:-march=btver2 /clang:-mtune=btver2 -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-							Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1");
-							break;
-						case DefaultCPU.Bdver1:
-							Arguments.Add("/clang:-march=bdver1 /clang:-mtune=bdver1 -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-							break;
-						case DefaultCPU.Bdver2:
-							Arguments.Add("/clang:-march=bdver2 /clang:-mtune=bdver2 -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-							Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1 /DPLATFORM_ALWAYS_HAS_FMA3=1");
-							break;
-						case DefaultCPU.Bdver3:
-							Arguments.Add("/clang:-march=bdver3 /clang:-mtune=bdver3 -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-							Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1 /DPLATFORM_ALWAYS_HAS_FMA3=1");
-							break;
-						default:
-							Arguments.Add("/clang:-march=native /clang:-mtune=native -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-							break;
+						// Apparently MSVC enables (a subset?) of BMI (bit manipulation instructions) when /arch:AVX is set. Some code relies on this, so mirror it by enabling BMI1
+						Arguments.Add("-mavx -mbmi");
+
+						AddDefinition(Arguments, "PLATFORM_MAYBE_HAS_AVX=1");
+						AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_AVX=1");
+						AddDefinition(Arguments, "PLATFORM_SUPPORTS_AVX=1");
+						switch (CompileEnvironment.DefaultCpuArchX64)
+						{
+							case DefaultCpuArchitectureX64.Native:
+								Arguments.Add("/clang:-march=native /clang:-mtune=native -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+								break;
+							case DefaultCpuArchitectureX64.Sandybridge:
+								Arguments.Add("/clang:-march=sandybridge /clang:-mtune=sandybridge -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+								break;
+							case DefaultCpuArchitectureX64.Ivybridge:
+								Arguments.Add("/clang:-march=ivybridge /clang:-mtune=ivybridge -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1");
+								break;
+							case DefaultCpuArchitectureX64.Btver2:
+								Arguments.Add("/clang:-march=btver2 /clang:-mtune=btver2 -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1");
+								break;
+							case DefaultCpuArchitectureX64.Bdver1:
+								Arguments.Add("/clang:-march=bdver1 /clang:-mtune=bdver1 -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+								break;
+							case DefaultCpuArchitectureX64.Bdver2:
+								Arguments.Add("/clang:-march=bdver2 /clang:-mtune=bdver2 -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1 /DPLATFORM_ALWAYS_HAS_FMA3=1");
+								break;
+							case DefaultCpuArchitectureX64.Bdver3:
+								Arguments.Add("/clang:-march=bdver3 /clang:-mtune=bdver3 -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1 /DPLATFORM_ALWAYS_HAS_FMA3=1");
+								break;
+							default:
+								Arguments.Add("/clang:-march=native /clang:-mtune=native -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+								break;
+						}
+					}
+					else
+					{
+						switch (CompileEnvironment.DefaultCpuArchX64)
+						{
+							case DefaultCpuArchitectureX64.Native:
+								Arguments.Add("/clang:-march=native /clang:-mtune=native -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+								break;
+							case DefaultCpuArchitectureX64.Nehalem:
+								Arguments.Add("/clang:-march=nehalem /clang:-mtune=nehalem -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+								break;
+							case DefaultCpuArchitectureX64.Westmere:
+								Arguments.Add("/clang:-march=westmere /clang:-mtune=westmere -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+								break;
+							case DefaultCpuArchitectureX64.Sandybridge:
+								Arguments.Add("/clang:-march=sandybridge /clang:-mtune=sandybridge -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX=1");
+								break;
+							case DefaultCpuArchitectureX64.Ivybridge:
+								Arguments.Add("/clang:-march=ivybridge /clang:-mtune=ivybridge -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1 /DPLATFORM_SUPPORTS_AVX=1");
+								break;
+							case DefaultCpuArchitectureX64.Silvermont:
+								Arguments.Add("/clang:-march=silvermont /clang:-mtune=silvermont -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+								break;
+							case DefaultCpuArchitectureX64.Goldmont:
+								Arguments.Add("/clang:-march=goldmont /clang:-mtune=goldmont -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+								break;
+							case DefaultCpuArchitectureX64.Goldmont_plus:
+								Arguments.Add("/clang:-march=goldmont-plus /clang:-mtune=goldmont-plus -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+								break;
+							case DefaultCpuArchitectureX64.Tremont:
+								Arguments.Add("/clang:-march=tremont /clang:-mtune=tremont -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+								break;
+							case DefaultCpuArchitectureX64.Btver2:
+								Arguments.Add("/clang:-march=btver2 /clang:-mtune=btver2 -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1 /DPLATFORM_SUPPORTS_AVX=1");
+								break;
+							case DefaultCpuArchitectureX64.Bdver1:
+								Arguments.Add("/clang:-march=bdver1 /clang:-mtune=bdver1 -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX=1");
+								break;
+							case DefaultCpuArchitectureX64.Bdver2:
+								Arguments.Add("/clang:-march=bdver2 /clang:-mtune=bdver2 -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1 /DPLATFORM_ALWAYS_HAS_FMA3=1 /DPLATFORM_SUPPORTS_AVX=1");
+								break;
+							case DefaultCpuArchitectureX64.Bdver3:
+								Arguments.Add("/clang:-march=bdver3 /clang:-mtune=bdver3 -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1 /DPLATFORM_ALWAYS_HAS_FMA3=1 /DPLATFORM_SUPPORTS_AVX=1");
+								break;
+							default:
+								Arguments.Add("/clang:-march=native /clang:-mtune=native -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
+								break;
+						}
 					}
 				}
 
-				if ((CompileEnvironment.DefaultCPU >= DefaultCPU.Nehalem && CompileEnvironment.DefaultCPU <= DefaultCPU.Tremont) || (CompileEnvironment.DefaultCPU >= DefaultCPU.Haswell && CompileEnvironment.DefaultCPU <= DefaultCPU.Grandridge) || (CompileEnvironment.DefaultCPU >= DefaultCPU.Skylake_avx512 && CompileEnvironment.DefaultCPU <= DefaultCPU.Graniterapids))
+				if ((CompileEnvironment.DefaultCpuArchX64 >= DefaultCpuArchitectureX64.Nehalem && CompileEnvironment.DefaultCpuArchX64 <= DefaultCpuArchitectureX64.Tremont) || (CompileEnvironment.DefaultCpuArchX64 >= DefaultCpuArchitectureX64.Haswell && CompileEnvironment.DefaultCpuArchX64 <= DefaultCpuArchitectureX64.Grandridge) || (CompileEnvironment.DefaultCpuArchX64 >= DefaultCpuArchitectureX64.Skylake_avx512 && CompileEnvironment.DefaultCpuArchX64 <= DefaultCpuArchitectureX64.Graniterapids_d))
 				{
 					AddDefinition(Arguments, "PLATFORM_FAVOR_INTEL=1");
 				}
-				else if ((CompileEnvironment.DefaultCPU >= DefaultCPU.Btver2 && CompileEnvironment.DefaultCPU <= DefaultCPU.Bdver3) || (CompileEnvironment.DefaultCPU >= DefaultCPU.Bdver4 && CompileEnvironment.DefaultCPU <= DefaultCPU.Znver4))
+				else if ((CompileEnvironment.DefaultCpuArchX64 >= DefaultCpuArchitectureX64.Btver2 && CompileEnvironment.DefaultCpuArchX64 <= DefaultCpuArchitectureX64.Bdver3) || (CompileEnvironment.DefaultCpuArchX64 >= DefaultCpuArchitectureX64.Bdver4 && CompileEnvironment.DefaultCpuArchX64 <= DefaultCpuArchitectureX64.Znver4))
 				{
 					AddDefinition(Arguments, "PLATFORM_FAVOR_AMD=1");
 				}
-
-				// UE5 minspec is 4.2
-				//Arguments.Add("-msse4.2");
 
 				// Use tpause on supported processors.
 				Arguments.Add("-mwaitpkg");
@@ -695,15 +793,16 @@ namespace UnrealBuildTool
 				}
 			}
 
-			if (Target.WindowsPlatform.Compiler.IsMSVC() && CompileEnvironment.Architecture.bIsX64)
+			if (Target.WindowsPlatform.Compiler.IsMSVC() && Target.Platform.IsInGroup(UnrealPlatformGroup.Windows) && CompileEnvironment.Architecture == UnrealArch.X64)
 			{
 				// DevelVitorF pushing it a bit further
-				if (CompileEnvironment.bUseAVX)
+				if (CompileEnvironment.MinCpuArchX64 >= MinimumCpuArchitectureX64.AVX2)
 				{
 					// AVX available implies sse4 and sse2 available.
 					// Inform Unreal code that we have sse2, sse4, and AVX, both available to compile and available to run
 					// By setting the ALWAYS_HAS defines, we we direct Unreal code to skip cpuid checks to verify that the running hardware supports sse/avx.
 					AddDefinition(Arguments, "PLATFORM_ENABLE_VECTORINTRINSICS=1");
+					AddDefinition(Arguments, "PLATFORM_PERFORMANT_TYPES=1");
 					AddDefinition(Arguments, "PLATFORM_MAYBE_HAS_SSE4_1=1");
 					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_SSE4_1=1");
 					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_SSE4_2=1");
@@ -715,70 +814,74 @@ namespace UnrealBuildTool
 					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_FMA3=1");
 					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_F16C=1");
 					// Define /arch:AVX for the current compilation unit.  Machines without AVX support will crash on any SSE/AVX instructions if they run this compilation unit.
-					if (CompileEnvironment.AVXSupport == AVXSupport.AVX512)
+					if (CompileEnvironment.MinCpuArchX64 == MinimumCpuArchitectureX64.AVX512)
 					{
 						Arguments.Add("/arch:AVX512");
-						switch (CompileEnvironment.DefaultCPU)
+						switch (CompileEnvironment.DefaultCpuArchX64)
 						{
-							case DefaultCPU.Native:
+							case DefaultCpuArchitectureX64.Native:
 								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
 								break;
-							case DefaultCPU.Znver4:
+							case DefaultCpuArchitectureX64.Znver4:
 								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BF16=1");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1");
 								break;
 							// This processors requires CPU checks, most of UE required AVX512 CPU features are not supported at all in this Intel processors.
-							/*case DefaultCPU.Knl:
+							/*case DefaultCpuArchitectureX64.Knl:
 								break;
-							case DefaultCPU.Knm:
+							case DefaultCpuArchitectureX64.Knm:
 								break;*/
-							case DefaultCPU.Skylake_avx512:
+							case DefaultCpuArchitectureX64.Skylake_avx512:
 								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1");
 								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
 								break;
-							case DefaultCPU.Cannonlake:
+							case DefaultCpuArchitectureX64.Cannonlake:
 								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1");
 								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
 								break;
-							case DefaultCPU.Icelake_client:
+							case DefaultCpuArchitectureX64.Icelake_client:
 								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1");
 								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
 								break;
-							case DefaultCPU.Icelake_server:
+							case DefaultCpuArchitectureX64.Icelake_server:
 								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1");
 								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
 								break;
-							case DefaultCPU.Cascadelake:
+							case DefaultCpuArchitectureX64.Cascadelake:
 								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1");
 								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
 								break;
-							case DefaultCPU.Cooperlake:
+							case DefaultCpuArchitectureX64.Cooperlake:
 								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BF16=1");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1");
 								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
 								break;
-							case DefaultCPU.Tigerlake:
+							case DefaultCpuArchitectureX64.Tigerlake:
 								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VP2INTERSECT=1");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_VP2INTERSECT=1");
 								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
 								break;
-							case DefaultCPU.Sapphirerapids:
+							case DefaultCpuArchitectureX64.Sapphirerapids:
 								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BF16=1 /DPLATFORM_ALWAYS_HAS_AVX_512_FP16=1");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1 /DPLATFORM_SUPPORTS_AVX_512_FP16=1");
 								break;
-							/*case DefaultCPU.Alderlake_avx512:*/ // Intel fused of AVX512. Removed.
-							case DefaultCPU.Rocketlake:
+							/*case DefaultCpuArchitectureX64.Alderlake_avx512:*/ // Intel fused of AVX512. Removed.
+							case DefaultCpuArchitectureX64.Rocketlake:
 								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1");
 								break;
-							case DefaultCPU.Graniterapids:
+							case DefaultCpuArchitectureX64.Graniterapids:
 								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BF16=1 /DPLATFORM_ALWAYS_HAS_AVX_512_FP16=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VP2INTERSECT=1");
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1 /DPLATFORM_SUPPORTS_AVX_512_FP16=1 /DPLATFORM_SUPPORTS_AVX_512_VP2INTERSECT=1");
+								break;
+							case DefaultCpuArchitectureX64.Graniterapids_d:
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_AVX_512=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VL=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BW=1 /DPLATFORM_ALWAYS_HAS_AVX_512_DQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_CD=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VNNI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VBMI2=1 /DPLATFORM_ALWAYS_HAS_AVX_512_IFMA=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BITALG=1 /DPLATFORM_ALWAYS_HAS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_ALWAYS_HAS_AVX_512_BF16=1 /DPLATFORM_ALWAYS_HAS_AVX_512_FP16=1");
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1 /DPLATFORM_SUPPORTS_AVX_512_FP16=1");
 								break;
 							default:
 								Arguments.Add("/DPLATFORM_REQUIRES_AVX_512_CHECKS=1");
@@ -788,67 +891,70 @@ namespace UnrealBuildTool
 					else
 					{
 						Arguments.Add("/arch:AVX2");
-						switch (CompileEnvironment.DefaultCPU)
+						switch (CompileEnvironment.DefaultCpuArchX64)
 						{
-							case DefaultCPU.Native:
+							case DefaultCpuArchitectureX64.Native:
 								break;
-							case DefaultCPU.Haswell:
+							case DefaultCpuArchitectureX64.Haswell:
 								break;
-							case DefaultCPU.Broadwell:
+							case DefaultCpuArchitectureX64.Broadwell:
 								break;
-							case DefaultCPU.Skylake:
+							case DefaultCpuArchitectureX64.Skylake:
 								break;
-							case DefaultCPU.Alderlake:
+							case DefaultCpuArchitectureX64.Alderlake:
 								break;
-							case DefaultCPU.Sierraforest:
+							case DefaultCpuArchitectureX64.Sierraforest:
 								break;
-							case DefaultCPU.Grandridge:
+							case DefaultCpuArchitectureX64.Grandridge:
 								break;
-							case DefaultCPU.Bdver4:
+							case DefaultCpuArchitectureX64.Bdver4:
 								break;
-							case DefaultCPU.Znver1:
+							case DefaultCpuArchitectureX64.Znver1:
 								break;
-							case DefaultCPU.Znver2:
+							case DefaultCpuArchitectureX64.Znver2:
 								break;
-							case DefaultCPU.Znver3:
+							case DefaultCpuArchitectureX64.Znver3:
 								break;
-							case DefaultCPU.Znver4:
+							case DefaultCpuArchitectureX64.Znver4:
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1");
 								break;
-							/*case DefaultCPU.Knl: // Removed, incompatible for use with accelerators processors
+							/*case DefaultCpuArchitectureX64.Knl: // Removed, incompatible for use with accelerators processors
 								break;
-							case DefaultCPU.Knm:
+							case DefaultCpuArchitectureX64.Knm:
 								break;*/
-							case DefaultCPU.Skylake_avx512:
+							case DefaultCpuArchitectureX64.Skylake_avx512:
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1");
 								break;
-							case DefaultCPU.Cannonlake:
+							case DefaultCpuArchitectureX64.Cannonlake:
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1");
 								break;
-							case DefaultCPU.Icelake_client:
+							case DefaultCpuArchitectureX64.Icelake_client:
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1");
 								break;
-							case DefaultCPU.Icelake_server:
+							case DefaultCpuArchitectureX64.Icelake_server:
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1");
 								break;
-							case DefaultCPU.Cascadelake:
+							case DefaultCpuArchitectureX64.Cascadelake:
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1");
 								break;
-							case DefaultCPU.Cooperlake:
+							case DefaultCpuArchitectureX64.Cooperlake:
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1");
 								break;
-							case DefaultCPU.Tigerlake:
+							case DefaultCpuArchitectureX64.Tigerlake:
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_VP2INTERSECT=1");
 								break;
-							case DefaultCPU.Sapphirerapids:
+							case DefaultCpuArchitectureX64.Sapphirerapids:
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1 /DPLATFORM_SUPPORTS_AVX_512_FP16=1");
 								break;
-							/*case DefaultCPU.Alderlake_avx512:*/ // Intel fused of AVX512. Removed.
-							case DefaultCPU.Rocketlake:
+							/*case DefaultCpuArchitectureX64.Alderlake_avx512:*/ // Intel fused of AVX512. Removed.
+							case DefaultCpuArchitectureX64.Rocketlake:
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1");
 								break;
-							case DefaultCPU.Graniterapids:
+							case DefaultCpuArchitectureX64.Graniterapids:
 								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1 /DPLATFORM_SUPPORTS_AVX_512_FP16=1 /DPLATFORM_SUPPORTS_AVX_512_VP2INTERSECT=1");
+								break;
+							case DefaultCpuArchitectureX64.Graniterapids_d:
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX_512=1 /DPLATFORM_SUPPORTS_AVX_512_VL=1 /DPLATFORM_SUPPORTS_AVX_512_BW=1 /DPLATFORM_SUPPORTS_AVX_512_DQ=1 /DPLATFORM_SUPPORTS_AVX_512_CD=1 /DPLATFORM_SUPPORTS_AVX_512_VNNI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI=1 /DPLATFORM_SUPPORTS_AVX_512_VBMI2=1 /DPLATFORM_SUPPORTS_AVX_512_IFMA=1 /DPLATFORM_SUPPORTS_AVX_512_BITALG=1 /DPLATFORM_SUPPORTS_AVX_512_VPOPCNTDQ=1 /DPLATFORM_SUPPORTS_AVX_512_BF16=1 /DPLATFORM_SUPPORTS_AVX_512_FP16=1");
 								break;
 							default:
 								break;
@@ -858,57 +964,93 @@ namespace UnrealBuildTool
 				else
 				{
 					AddDefinition(Arguments, "PLATFORM_ENABLE_VECTORINTRINSICS=1");
+					AddDefinition(Arguments, "PLATFORM_PERFORMANT_TYPES=1");
 					AddDefinition(Arguments, "PLATFORM_MAYBE_HAS_SSE4_1=1");
 					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_SSE4_1=1");
 					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_SSE4_2=1");
-					Arguments.Add("/arch:SSE2");
-					switch (CompileEnvironment.DefaultCPU)
+					if (CompileEnvironment.MinCpuArchX64 >= MinimumCpuArchitectureX64.AVX)
 					{
-						case DefaultCPU.Native:
-							break;
-						case DefaultCPU.Nehalem:
-							break;
-						case DefaultCPU.Westmere:
-							break;
-						case DefaultCPU.Sandybridge:
-							break;
-						case DefaultCPU.Ivybridge:
-							Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1");
-							break;
-						case DefaultCPU.Silvermont:
-							break;
-						case DefaultCPU.Goldmont:
-							break;
-						case DefaultCPU.Goldmont_plus:
-							break;
-						case DefaultCPU.Tremont:
-							break;
-						case DefaultCPU.Btver2:
-							Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1");
-							break;
-						case DefaultCPU.Bdver1:
-							break;
-						case DefaultCPU.Bdver2:
-							Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1 /DPLATFORM_ALWAYS_HAS_FMA3=1");
-							break;
-						case DefaultCPU.Bdver3:
-							Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1 /DPLATFORM_ALWAYS_HAS_FMA3=1");
-							break;
-						default:
-							break;
+						Arguments.Add("/arch:AVX");
+						AddDefinition(Arguments, "PLATFORM_MAYBE_HAS_AVX=1");
+						AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_AVX=1");
+						AddDefinition(Arguments, "PLATFORM_SUPPORTS_AVX=1");
+						switch (CompileEnvironment.DefaultCpuArchX64)
+						{
+							case DefaultCpuArchitectureX64.Native:
+								break;
+							case DefaultCpuArchitectureX64.Sandybridge:
+								break;
+							case DefaultCpuArchitectureX64.Ivybridge:
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1");
+								break;
+							case DefaultCpuArchitectureX64.Btver2:
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1");
+								break;
+							case DefaultCpuArchitectureX64.Bdver1:
+								break;
+							case DefaultCpuArchitectureX64.Bdver2:
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1 /DPLATFORM_ALWAYS_HAS_FMA3=1");
+								break;
+							case DefaultCpuArchitectureX64.Bdver3:
+								Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1 /DPLATFORM_ALWAYS_HAS_FMA3=1");
+								break;
+							default:
+								break;
+						}
+					}
+					else
+					{
+						Arguments.Add("/arch:SSE2");
+						switch (CompileEnvironment.DefaultCpuArchX64)
+						{
+							case DefaultCpuArchitectureX64.Native:
+								break;
+							case DefaultCpuArchitectureX64.Nehalem:
+								break;
+							case DefaultCpuArchitectureX64.Westmere:
+								break;
+							case DefaultCpuArchitectureX64.Sandybridge:
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX=1");
+								break;
+							case DefaultCpuArchitectureX64.Ivybridge:
+								Arguments.Add("/DPLATFORM_SUPPORTS_HAS_F16C=1 /DPLATFORM_SUPPORTS_AVX=1");
+								break;
+							case DefaultCpuArchitectureX64.Silvermont:
+								break;
+							case DefaultCpuArchitectureX64.Goldmont:
+								break;
+							case DefaultCpuArchitectureX64.Goldmont_plus:
+								break;
+							case DefaultCpuArchitectureX64.Tremont:
+								break;
+							case DefaultCpuArchitectureX64.Btver2:
+								Arguments.Add("/DPLATFORM_SUPPORTS_HAS_F16C=1 /DPLATFORM_SUPPORTS_AVX=1");
+								break;
+							case DefaultCpuArchitectureX64.Bdver1:
+								Arguments.Add("/DPLATFORM_SUPPORTS_AVX=1");
+								break;
+							case DefaultCpuArchitectureX64.Bdver2:
+								Arguments.Add("/DPLATFORM_SUPPORTS_HAS_F16C=1 /DPLATFORM_SUPPORTS_HAS_FMA3=1 /DPLATFORM_SUPPORTS_AVX=1");
+								break;
+							case DefaultCpuArchitectureX64.Bdver3:
+								Arguments.Add("/DPLATFORM_SUPPORTS_HAS_F16C=1 /DPLATFORM_SUPPORTS_HAS_FMA3=1 /DPLATFORM_SUPPORTS_AVX=1");
+								break;
+							default:
+								break;
+						}
 					}
 				}
 
-				if ((CompileEnvironment.DefaultCPU >= DefaultCPU.Nehalem && CompileEnvironment.DefaultCPU <= DefaultCPU.Tremont) || (CompileEnvironment.DefaultCPU >= DefaultCPU.Haswell && CompileEnvironment.DefaultCPU <= DefaultCPU.Grandridge) || (CompileEnvironment.DefaultCPU >= DefaultCPU.Skylake_avx512 && CompileEnvironment.DefaultCPU <= DefaultCPU.Graniterapids))
+				if ((CompileEnvironment.DefaultCpuArchX64 >= DefaultCpuArchitectureX64.Nehalem && CompileEnvironment.DefaultCpuArchX64 <= DefaultCpuArchitectureX64.Tremont) || (CompileEnvironment.DefaultCpuArchX64 >= DefaultCpuArchitectureX64.Haswell && CompileEnvironment.DefaultCpuArchX64 <= DefaultCpuArchitectureX64.Grandridge) || (CompileEnvironment.DefaultCpuArchX64 >= DefaultCpuArchitectureX64.Skylake_avx512 && CompileEnvironment.DefaultCpuArchX64 <= DefaultCpuArchitectureX64.Graniterapids_d))
 				{
 					Arguments.Add("/favor:INTEL64");
 					AddDefinition(Arguments, "PLATFORM_FAVOR_INTEL=1");
 				}
-				else if ((CompileEnvironment.DefaultCPU >= DefaultCPU.Btver2 && CompileEnvironment.DefaultCPU <= DefaultCPU.Bdver3) || (CompileEnvironment.DefaultCPU >= DefaultCPU.Bdver4 && CompileEnvironment.DefaultCPU <= DefaultCPU.Znver4))
+				else if ((CompileEnvironment.DefaultCpuArchX64 >= DefaultCpuArchitectureX64.Btver2 && CompileEnvironment.DefaultCpuArchX64 <= DefaultCpuArchitectureX64.Bdver3) || (CompileEnvironment.DefaultCpuArchX64 >= DefaultCpuArchitectureX64.Bdver4 && CompileEnvironment.DefaultCpuArchX64 <= DefaultCpuArchitectureX64.Znver4))
 				{
 					Arguments.Add("/favor:AMD64");
 					AddDefinition(Arguments, "PLATFORM_FAVOR_AMD=1");
-					//	Arguments.Add("/d2vzeroupper-");  // DevelVitorF probably poor performance in Intel arch.
+					//	Arguments.Add("/d2vzeroupper-");  // DevelVitorF probably poor performance with Intel arch.
 				}
 
 				if (EnvVars.CompilerVersion >= new VersionNumber(14, 20, 0) && Target.WindowsPlatform.Compiler >= WindowsCompiler.VisualStudio2019)
@@ -921,7 +1063,7 @@ namespace UnrealBuildTool
 			Arguments.Add("/c");
 
 			// Put symbols into different sections so the linker can remove them.
-			if(Target.WindowsPlatform.bOptimizeGlobalData)
+			if (Target.WindowsPlatform.bOptimizeGlobalData)
 			{
 				Arguments.Add("/Gw");
 			}
@@ -929,25 +1071,15 @@ namespace UnrealBuildTool
 			// Separate functions for linker.
 			Arguments.Add("/Gy");
 
-			// Allow 750% of the default memory allocation limit when using the static analyzer, and 1000% at other times.
-			if(Target.WindowsPlatform.PCHMemoryAllocationFactor == 0)
+			// Microsoft recommends not passing /Zm except in very limited circumstances, please see:
+			// https://learn.microsoft.com/en-us/cpp/build/reference/zm-specify-precompiled-header-memory-allocation-limit
+			if (Target.WindowsPlatform.PCHMemoryAllocationFactor > 0)
 			{
-				if (Target.StaticAnalyzer == StaticAnalyzer.Default)
-				{
-					Arguments.Add("/Zm750");
-				}
-				else
-				{
-					Arguments.Add("/Zm1000");
-				}
+				Arguments.Add($"/Zm{Target.WindowsPlatform.PCHMemoryAllocationFactor}");
 			}
-			else
-			{
-				if(Target.WindowsPlatform.PCHMemoryAllocationFactor > 0)
-				{
-					Arguments.Add($"/Zm{Target.WindowsPlatform.PCHMemoryAllocationFactor}");
-				}
-			}
+
+			// Fix Incredibuild errors with helpers using heterogeneous character sets
+			Arguments.Add("/utf-8");
 
 			// Disable "The file contains a character that cannot be represented in the current code page" warning for non-US windows.
 			Arguments.Add("/wd4819");
@@ -1003,7 +1135,7 @@ namespace UnrealBuildTool
 			AddDefinition(Arguments, "_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS=1");
 
 			// Ignore secure CRT warnings on Clang
-			if(Target.WindowsPlatform.Compiler.IsClang())
+			if (Target.WindowsPlatform.Compiler.IsClang())
 			{
 				AddDefinition(Arguments, "_CRT_SECURE_NO_WARNINGS");
 			}
@@ -1017,17 +1149,10 @@ namespace UnrealBuildTool
 			// Maintain the old std::aligned_storage behavior from VS from v15.8 onwards, in case of prebuilt third party libraries are reliant on it
 			AddDefinition(Arguments, "_DISABLE_EXTENDED_ALIGNED_STORAGE");
 
-			// Fix Incredibuild errors with helpers using heterogeneous character sets
-			if (Target.WindowsPlatform.Compiler.IsMSVC())
-			{
-				Arguments.Add("/source-charset:utf-8");
-				Arguments.Add("/execution-charset:utf-8");
-			}
-
 			// Do not allow inline method expansion if E&C support is enabled or inline expansion has been disabled
 			if (!CompileEnvironment.bSupportEditAndContinue && CompileEnvironment.bUseInlining)
 			{
-				Arguments.Add("/Ob2");
+				Arguments.Add($"/Ob{Math.Clamp(Target.WindowsPlatform.InlineFunctionExpansionLevel, 1, 3)}");
 			}
 			else
 			{
@@ -1035,12 +1160,24 @@ namespace UnrealBuildTool
 				Arguments.Add("/Ob0");
 			}
 
-			// Experimental deterministic compile support
+			// Deterministic compile support
 			if (CompileEnvironment.bDeterministic)
 			{
 				if (Target.WindowsPlatform.Compiler.IsMSVC())
 				{
 					Arguments.Add("/experimental:deterministic");
+
+					// warning C5049: Embedding a full path may result in machine-dependent output
+					Arguments.Add("/wd5049");
+
+					if (CompileEnvironment.DeterministicWarningLevel == WarningLevel.Error)
+					{
+						Arguments.Add("/we5048");
+					}
+					else if (CompileEnvironment.DeterministicWarningLevel == WarningLevel.Off)
+					{
+						Arguments.Add("/wd5048");
+					}
 				}
 				else if (Target.WindowsPlatform.Compiler.IsClang())
 				{
@@ -1048,7 +1185,7 @@ namespace UnrealBuildTool
 				}
 			}
 
-			if (Target.WindowsPlatform.Compiler.IsMSVC())
+			if (Target.WindowsPlatform.Compiler.IsMSVC() && Target.WindowsPlatform.bVCFastFail)
 			{
 				Arguments.Add("/fastfail");
 			}
@@ -1069,17 +1206,27 @@ namespace UnrealBuildTool
 					// MSVC has no support for __has_feature(address_sanitizer)
 					AddDefinition(Arguments, "USING_ADDRESS_SANITISER=1");
 
-					// Re-evalulate the necessity of these workarounds later
-					if (EnvVars.CompilerVersion < new VersionNumber(14, 35))
-					{
-						AddDefinition(Arguments, "_DISABLE_STRING_ANNOTATION=1");
-						AddDefinition(Arguments, "_DISABLE_VECTOR_ANNOTATION=1");
-					}
+					// Disabling a couple annotations to workaround an issue related to building third party libraries with different options than the main binary.
+					// This fixes an error that looks like this: error LNK2038: mismatch detected for 'annotate_string': value '0' doesn't match value '1' in Module.Core.XX_of_YY.cpp.obj
+					AddDefinition(Arguments, "_DISABLE_STRING_ANNOTATION=1");
+					AddDefinition(Arguments, "_DISABLE_VECTOR_ANNOTATION=1");
 				}
 
 				// Currently the ASan headers are not default around. They can be found at this location so lets use this until this is resolved in the toolchain
 				// Jira with some more info and the MSVC bug at UE-144727
 				AddSystemIncludePath(Arguments, DirectoryReference.Combine(EnvVars.CompilerDir, "crt", "src"), Target.WindowsPlatform.Compiler);
+			}
+
+			if (Target.WindowsPlatform.bEnableLibFuzzer)
+			{
+				if (Target.WindowsPlatform.Compiler.IsClang())
+				{
+					Arguments.Add("-fsanitize=fuzzer");
+				}
+				else
+				{
+					Arguments.Add("/fsanitize=fuzzer");
+				}
 			}
 
 			//
@@ -1104,7 +1251,7 @@ namespace UnrealBuildTool
 			//
 			else
 			{
-				if(!CompileEnvironment.bOptimizeCode)
+				if (!CompileEnvironment.bOptimizeCode)
 				{
 					// Disable compiler optimization.
 					Arguments.Add("/Od");
@@ -1141,7 +1288,6 @@ namespace UnrealBuildTool
 						Arguments.Add("/Oy-");
 					}
 				}
-
 			}
 
 			//
@@ -1151,11 +1297,57 @@ namespace UnrealBuildTool
 				CompileEnvironment.bPGOProfile ||
 				CompileEnvironment.bPGOOptimize ||
 				CompileEnvironment.bAllowLTCG;
-			if (bEnableLTCG)
+			if (bEnableLTCG && !Target.WindowsPlatform.Compiler.IsIntel())
 			{
 				// Enable link-time code generation.
 				Arguments.Add("/GL");
 			}
+
+			if (Target.WindowsPlatform.Compiler.IsIntel())
+			{
+				if (CompileEnvironment.bAllowLTCG)
+				{
+					// Enable link-time code generation.
+					Arguments.Add("-flto");
+				}
+
+				if (CompileEnvironment.bPGOProfile)
+				{
+					// Generate instrumented code.
+					Arguments.Add($"-fprofile-instr-generate=\"{CompileEnvironment.PGOFilenamePrefix}\"-%p-%m.profraw");
+				}
+				else if (CompileEnvironment.bPGOOptimize)
+				{
+					// Use a merged profdata file.
+					Arguments.Add("-Wno-profile-instr-out-of-date");
+					Arguments.Add($"-fprofile-instr-use=\"{Path.Combine(CompileEnvironment.PGODirectory!, CompileEnvironment.PGOFilenamePrefix!)}\".profdata");
+				}
+			}
+
+				// DevelVitorF Remove defined above
+			//
+			//	PC
+			//
+			/*if (CompileEnvironment.Architecture == UnrealArch.X64 && CompileEnvironment.MinCpuArchX64 != MinimumCpuArchitectureX64.None)
+			{
+				// Define /arch:AVX[2,512] for the current compilation unit.  Machines without AVX support will crash on any SSE/AVX instructions if they run this compilation unit.
+				Arguments.Add($"/arch:{CompileEnvironment.MinCpuArchX64}");
+
+				// AVX available implies sse4 and sse2 available.
+				// Inform Unreal code that we have sse2, sse4, and AVX, both available to compile and available to run
+				// By setting the ALWAYS_HAS defines, we we direct Unreal code to skip cpuid checks to verify that the running hardware supports sse/avx.
+				AddDefinition(Arguments, "PLATFORM_ENABLE_VECTORINTRINSICS=1");
+				AddDefinition(Arguments, "PLATFORM_MAYBE_HAS_AVX=1");
+				AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_AVX=1");
+				if (CompileEnvironment.MinCpuArchX64 >= MinimumCpuArchitectureX64.AVX2)
+				{
+					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_AVX_2=1");
+				}
+				if (CompileEnvironment.MinCpuArchX64 >= MinimumCpuArchitectureX64.AVX512)
+				{
+					AddDefinition(Arguments, "PLATFORM_ALWAYS_HAS_AVX_512=1");
+				}
+			}*/
 
 			// Prompt the user before reporting internal errors to Microsoft.
 			Arguments.Add("/errorReport:prompt");
@@ -1237,21 +1429,23 @@ namespace UnrealBuildTool
 				Arguments.Add("/bigobj");
 			}
 
-            // DevelVitorF: Securing that we are hallway's in the same floating point precision for precise floating point for LargeWorldCoordinates.
-			/*if (Target.WindowsPlatform.Compiler.IsClang())
+			FPSemanticsMode FPSemantics = CompileEnvironment.FPSemantics;
+			if (Target.WindowsPlatform.Compiler.IsClang())
 			{
 				// FMath::Sqrt calls get inlined and when reciprical is taken, turned into an rsqrtss instruction,
 				// which is *too* imprecise for, e.g., TestVectorNormalize_Sqrt in UnrealMathTest.cpp
 				// TODO: Observed in clang 7.0, presumably the same in Intel C++ Compiler?
-				Arguments.Add("/fp:precise");
+				FPSemantics = FPSemanticsMode.Precise;
 			}
-			else
-			{
-				// Relaxes floating point precision semantics to allow more optimization.
-				Arguments.Add("/fp:fast");
-			}*/
 
-            Arguments.Add("/fp:precise");
+			switch (FPSemantics)
+			{
+				case FPSemanticsMode.Default: // Default is imprecise FP semantics.
+				case FPSemanticsMode.Imprecise: Arguments.Add("/fp:fast"); break;
+				case FPSemanticsMode.Precise: Arguments.Add("/fp:precise"); break;
+				default:
+					throw new BuildException($"Unsupported FP semantics: {FPSemantics}");
+			}
 
 			// Intel oneAPI compiler does not support /Zo
 			if (CompileEnvironment.bOptimizeCode && Target.WindowsPlatform.Compiler != WindowsCompiler.Intel)
@@ -1267,12 +1461,6 @@ namespace UnrealBuildTool
 			 // LLVM status indicates that clang-cl's /W4 `-Wall` maps to `-Weverything`, turns too much warnings on.
 			if (Target.WindowsPlatform.Compiler.IsClang())
 			{
-				// Disable specific warnings that cause problems with Clang
-				// NOTE: These must appear after we set the MSVC warning level
-
-				// @todo clang: Ideally we want as few warnings disabled as possible
-				//
-
 				// Treat all warnings as errors by default
 				//Arguments.Add("-Werror");
 				//Arguments.Add("-Wall");
@@ -1305,7 +1493,7 @@ namespace UnrealBuildTool
 			{
 				Arguments.Add("/wd4996");
 			}
-			else if(CompileEnvironment.DeprecationWarningLevel == WarningLevel.Error)
+			else if (CompileEnvironment.DeprecationWarningLevel == WarningLevel.Error)
 			{
 				Arguments.Add("/we4996");
 			}
@@ -1326,8 +1514,6 @@ namespace UnrealBuildTool
 					Arguments.Add("/we4458"); // 4458 - declaration of 'parameter' hides class member
 					Arguments.Add("/we4459"); // 4459 - declaration of 'LocalVariable' hides global declaration
 				}
-
-				Arguments.Add("/wd4463"); // 4463 - overflow; assigning 1 to bit-field that can only hold values from -1 to 0
 			}
 
 			if (CompileEnvironment.bEnableUndefinedIdentifierWarnings && !CompileEnvironment.bPreprocessOnly)
@@ -1350,23 +1536,34 @@ namespace UnrealBuildTool
 			//   4305: 'identifier' : truncation from 'type1' to 'type2'
 			WarningLevel EffectiveCastWarningLevel = (Target.Platform == UnrealTargetPlatform.Win64) ? CompileEnvironment.UnsafeTypeCastWarningLevel : WarningLevel.Off;
 			if (EffectiveCastWarningLevel == WarningLevel.Error)
- 			{
- 				Arguments.Add("/we4244");
+			{
+				Arguments.Add("/we4244");
 				Arguments.Add("/we4838");
- 			}
- 			else if (EffectiveCastWarningLevel == WarningLevel.Warning)
- 			{
+			}
+			else if (EffectiveCastWarningLevel == WarningLevel.Warning)
+			{
 				// Note: The extra 4 is not a typo, /wLXXXX sets warning XXXX to level L
- 				Arguments.Add("/w44244");
+				Arguments.Add("/w44244");
 				Arguments.Add("/w44838");
 			}
 			else
- 			{
- 				Arguments.Add("/wd4244");
+			{
+				Arguments.Add("/wd4244");
 				Arguments.Add("/wd4838");
-				Arguments.Add("/wd4305");
-				Arguments.Add("/wd4756");
- 			}
+			}
+
+			if (CompileEnvironment.Architecture == UnrealArch.Arm64ec)
+			{
+				Arguments.Add("/arm64EC");
+				// The latest vc toolchain requires that these be manually set for arm64ec.
+				AddDefinition(Arguments, "_ARM64EC_");
+				AddDefinition(Arguments, "_ARM64EC_WORKAROUND_");
+				AddDefinition(Arguments, "ARM64EC");
+				AddDefinition(Arguments, "AMD64");
+				AddDefinition(Arguments, "_AMD64_");
+				AddDefinition(Arguments, "_WINDOWS");
+				AddDefinition(Arguments, "WIN32");
+			}
 		}
 
 		protected virtual void AppendCLArguments_CPP(CppCompileEnvironment CompileEnvironment, List<string> Arguments)
@@ -1386,19 +1583,6 @@ namespace UnrealBuildTool
 				}
 
 				Arguments.Add($"-Xclang -x -Xclang \"{FileSpecifier}\"");
-			}
-
-			if (CompileEnvironment.Architecture == UnrealArch.Arm64ec)
-			{
-				Arguments.Add("/arm64EC");
-				// The latest vc toolchain requires that these be manually set for arm64ec.
-				AddDefinition(Arguments, "_ARM64EC_");
-				AddDefinition(Arguments, "_ARM64EC_WORKAROUND_");
-				AddDefinition(Arguments, "ARM64EC");
-				AddDefinition(Arguments, "AMD64");
-				AddDefinition(Arguments, "_AMD64_");
-				AddDefinition(Arguments, "_WINDOWS");
-				AddDefinition(Arguments, "WIN32");
 			}
 
 			if (!CompileEnvironment.bEnableBufferSecurityChecks)
@@ -1421,6 +1605,17 @@ namespace UnrealBuildTool
 				Arguments.Add("/GR-");
 			}
 
+			// DevelVitorF Remove defined above
+			// Set warning level.
+			// Restrictive during regular compilation.
+			/*Arguments.Add("/W4");
+
+			// Treat warnings as errors
+			if (CompileEnvironment.bWarningsAsErrors)
+			{
+				Arguments.Add("/WX");
+			}*/
+
 			if (Target.WindowsPlatform.Compiler.IsClang())
 			{
 				switch (CompileEnvironment.CppStandard)
@@ -1437,27 +1632,10 @@ namespace UnrealBuildTool
 						Arguments.Add("/clang:-std=c++20");
 						//Arguments.Add("/clang:-Wc++20-compat /clang:-Wc++20-extensions");
 
-						// warning C5054: operator ___: deprecated between enumerations of different types
-						// re: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1120r0.html
-
-						// It seems unclear whether the deprecation will be enacted in C++23 or not
-						// e.g. http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2020/p2139r2.html
-						// Until the path forward is clearer, it seems reasonable to leave things as they are.
-						Arguments.Add("/wd5054");
-
 						break;
 					case CppStandardVersion.Latest:
 						Arguments.Add("/clang:-std=c++2b");
 						//Arguments.Add("/clang:-Wc++2a-compat /clang:-Wc++2a-extensions /clang:-Wc++2b-extensions");
-
-						// warning C5054: operator ___: deprecated between enumerations of different types
-						// re: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1120r0.html
-
-						// It seems unclear whether the deprecation will be enacted in C++23 or not
-						// e.g. http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2020/p2139r2.html
-						// Until the path forward is clearer, it seems reasonable to leave things as they are.
-						Arguments.Add("/wd5054");
-
 						break;
 					default:
 						throw new BuildException($"Unsupported C++ standard type set: {CompileEnvironment.CppStandard}");
@@ -1476,29 +1654,37 @@ namespace UnrealBuildTool
 					case CppStandardVersion.Cpp20:
 						Arguments.Add("/std:c++20");
 
-						// warning C5054: operator ___: deprecated between enumerations of different types
-						// re: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1120r0.html
-
-						// It seems unclear whether the deprecation will be enacted in C++23 or not
-						// e.g. http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2020/p2139r2.html
-						// Until the path forward is clearer, it seems reasonable to leave things as they are.
-						Arguments.Add("/wd5054");
-
 						break;
 					case CppStandardVersion.Latest:
 						Arguments.Add("/std:c++latest");
 
-						// warning C5054: operator ___: deprecated between enumerations of different types
-						// re: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1120r0.html
-
-						// It seems unclear whether the deprecation will be enacted in C++23 or not
-						// e.g. http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2020/p2139r2.html
-						// Until the path forward is clearer, it seems reasonable to leave things as they are.
-						Arguments.Add("/wd5054");
-
 						break;
 					default:
 						throw new BuildException($"Unsupported C++ standard type set: {CompileEnvironment.CppStandard}");
+				}
+			}
+
+			if (CompileEnvironment.CppStandard >= CppStandardVersion.Cpp20)
+			{
+				if (Target.WindowsPlatform.Compiler.IsMSVC())
+				{
+					Arguments.Add("/Zc:preprocessor");
+				}
+
+				// warning C5054: operator ___: deprecated between enumerations of different types
+				// re: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1120r0.html
+
+				// It seems unclear whether the deprecation will be enacted in C++23 or not
+				// e.g. http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2020/p2139r2.html
+				// Until the path forward is clearer, it seems reasonable to leave things as they are.
+				Arguments.Add("/wd5054");
+
+				// Disable VS2019 C++20 warnings fixed with VS2022
+				if (Target.WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2019)
+				{
+					Arguments.Add("/wd4005");
+					Arguments.Add("/wd4668");
+					Arguments.Add("/wd5105");
 				}
 			}
 
@@ -1522,124 +1708,36 @@ namespace UnrealBuildTool
 					Arguments.Add("-gcodeview-ghash");
 				}
 
-				// Allow Microsoft-specific syntax to slide, even though it may be non-standard.  Needed for Windows headers.
-				Arguments.Add("-Wno-microsoft");
+				// Disable specific warnings that cause problems with Clang
+				// NOTE: These must appear after we set the MSVC warning level
 
-				// @todo clang: Hack due to how we have our 'DummyPCH' wrappers setup when using unity builds.  This warning should not be disabled!!
-				Arguments.Add("-Wno-msvc-include");
+				// @todo clang: Ideally we want as few warnings disabled as possible
+				//
 
-				if (CompileEnvironment.ShadowVariableWarningLevel != WarningLevel.Off)
+				// DeveVitorF defined above
+				// Treat all warnings as errors by default
+				//Arguments.Add("-Werror");                                   // https://clang.llvm.org/docs/UsersManual.html#cmdoption-werror
+
+				ClangWarnings.GetEnabledWarnings(Arguments);
+
+				VersionNumber ClangVersion = Target.WindowsPlatform.Compiler == WindowsCompiler.Intel ? MicrosoftPlatformSDK.GetClangVersionForIntelCompiler(EnvVars.CompilerPath) : EnvVars.CompilerVersion;
+				ClangWarnings.GetDisabledWarnings(CompileEnvironment,
+					Target.StaticAnalyzer,
+					ClangVersion,
+					Arguments);
+
+				// Additional disabled warnings for msvc. Everything below should be checked if it is necessary
+				ClangWarnings.GetVCDisabledWarnings(Arguments);
+
+				if (CompileEnvironment.bAllowAutoRTFMInstrumentation)
 				{
-					Arguments.Add("-Wshadow" + ((CompileEnvironment.ShadowVariableWarningLevel == WarningLevel.Error) ? "" : " -Wno-error=shadow"));
+					Arguments.Add("-fautortfm");
 				}
+			}
 
-				if (CompileEnvironment.bEnableUndefinedIdentifierWarnings)
-				{
-					Arguments.Add(" -Wundef" + (CompileEnvironment.bUndefinedIdentifierWarningsAsErrors ? "" : " -Wno-error=undef"));
-				}
-
-				// Note: This should be kept in sync with PRAGMA_DISABLE_UNSAFE_TYPECAST_WARNINGS in ClangPlatformCompilerPreSetup.h
-				string[] UnsafeTypeCastWarningList = {
-					"float-conversion",
-					"implicit-float-conversion",
-					"implicit-int-conversion",
-					"c++11-narrowing"
-					//"shorten-64-to-32",	<-- too many hits right now, probably want it *soon*
-					//"sign-conversion",	<-- too many hits right now, probably want it eventually
-				};
-
-				if (CompileEnvironment.UnsafeTypeCastWarningLevel == WarningLevel.Error)
-				{
-					foreach (string Warning in UnsafeTypeCastWarningList)
-					{
-						Arguments.Add("-W" + Warning);
-					}
-				}
-				else if (CompileEnvironment.UnsafeTypeCastWarningLevel == WarningLevel.Warning)
-				{
-					foreach (string Warning in UnsafeTypeCastWarningList)
-					{
-						Arguments.Add("-W" + Warning + " -Wno-error=" + Warning);
-					}
-				}
-				else
-				{
-					foreach (string Warning in UnsafeTypeCastWarningList)
-					{
-						Arguments.Add("-Wno-" + Warning);
-					}
-				}
-
-				// Warn if __DATE__ or __TIME__ are used as they prevent reproducible builds
-				if (CompileEnvironment.bDeterministic)
-				{
-					Arguments.Add("-Wdate-time -Wno-error=date-time");
-				}
-
-				// This is disabled because clang explicitly warns about changing pack alignment in a header and not
-				// restoring it afterwards, which is something we do with the Pre/PostWindowsApi.h headers.
-				Arguments.Add("-Wno-pragma-pack");
-
-				// @todo clang: Kind of a shame to turn these off.  We'd like to catch unused variables, but it is tricky with how our assertion macros work.
-				Arguments.Add("-Wno-inconsistent-missing-override");
-				Arguments.Add("-Wno-unused-variable");
-				if (EnvVars.CompilerVersion >= new VersionNumber(13))
-				{
-					Arguments.Add("-Wno-unused-but-set-variable");
-					Arguments.Add("-Wno-unused-but-set-parameter");
-				}
-				if (EnvVars.CompilerVersion >= new VersionNumber(14))
-				{
-					Arguments.Add("-Wno-bitwise-instead-of-logical");
-				}
-				Arguments.Add("-Wno-unused-local-typedefs");
-				Arguments.Add("-Wno-unused-function");
-				Arguments.Add("-Wno-unused-private-field");
-				Arguments.Add("-Wno-unused-value");
-
-				Arguments.Add("-Wno-inline-new-delete");	// @todo clang: We declare operator new as inline.  Clang doesn't seem to like that.
-				Arguments.Add("-Wno-implicit-exception-spec-mismatch");
-
-				// Sometimes we compare 'this' pointers against nullptr, which Clang warns about by default
-				Arguments.Add("-Wno-undefined-bool-conversion");
-
-				// Enumeration value is outside the valid range of values [0, 3] for this enumeration (D3D12Resource.h G:914,78) trick D3D12_RESOURCE_BARRIER_FLAGS
-				Arguments.Add("-Wno-enum-constexpr-conversion");
-
-				// @todo clang: Disabled warnings were copied from MacToolChain for the most part
-				Arguments.Add("-Wno-deprecated-declarations");
-				Arguments.Add("-Wno-deprecated-writable-strings");
-				Arguments.Add("-Wno-deprecated-register");
-				Arguments.Add("-Wno-deprecated-copy");							// needed implicitly copy assignment operator
-				Arguments.Add("-Wno-deprecated-copy-with-user-provided-copy");  // needed templates user provided copy assignment
-				Arguments.Add("-Wno-switch-enum");
-				Arguments.Add("-Wno-logical-op-parentheses");	// needed for external headers we shan't change
-				Arguments.Add("-Wno-null-arithmetic");			// needed for external headers we shan't change
-				Arguments.Add("-Wno-deprecated-declarations");	// needed for wxWidgets
-				Arguments.Add("-Wno-return-type-c-linkage");	// needed for PhysX
-				Arguments.Add("-Wno-ignored-attributes");		// needed for nvtesslib
-				Arguments.Add("-Wno-uninitialized");
-				Arguments.Add("-Wno-tautological-compare");
-				Arguments.Add("-Wno-switch");
-				Arguments.Add("-Wno-invalid-offsetof"); // needed to suppress warnings about using offsetof on non-POD types.
-
-				// @todo clang: Sorry for adding more of these, but I couldn't read my output log. Most should probably be looked at
-				Arguments.Add("-Wno-unused-parameter");			// Unused function parameter. A lot are named 'bUnused'...
-				Arguments.Add("-Wno-ignored-qualifiers");		// const ignored when returning by value e.g. 'const int foo() { return 4; }'
-				Arguments.Add("-Wno-expansion-to-defined");		// Usage of 'defined(X)' in a macro definition. Gives different results under MSVC
-				Arguments.Add("-Wno-gnu-string-literal-operator-template");	// String literal operator"" in template, used by delegates
-				Arguments.Add("-Wno-sign-compare");				// Signed/unsigned comparison - millions of these
-				Arguments.Add("-Wno-undefined-var-template");	// Variable template instantiation required but no definition available
-				Arguments.Add("-Wno-missing-field-initializers"); // Stupid warning, generated when you initialize with MyStruct A = {0};
-				Arguments.Add("-Wno-unused-lambda-capture");
-				Arguments.Add("-Wno-nonportable-include-path");
-				Arguments.Add("-Wno-invalid-token-paste");
-				Arguments.Add("-Wno-null-pointer-arithmetic");
-				Arguments.Add("-Wno-constant-logical-operand"); // Triggered by || of two template-derived values inside a static_assert
-				if (EnvVars.CompilerVersion >= new VersionNumber(13))
-				{
-					Arguments.Add("-Wno-ordered-compare-function-pointers");
-				}
+			if (Target.WindowsPlatform.Compiler == WindowsCompiler.Intel)
+			{
+				ClangWarnings.GetIntelDisabledWarnings(Arguments);
 			}
 		}
 
@@ -1652,13 +1750,22 @@ namespace UnrealBuildTool
 			Arguments.Add("/W0");
 
 			// Select C Standard version available
-			if (CompileEnvironment.CStandard == CStandardVersion.C11)
+			// Select C Standard version available
+			switch (CompileEnvironment.CStandard)
 			{
-				Arguments.Add("/std:c11");
-			}
-			else if (CompileEnvironment.CStandard >= CStandardVersion.C17)
-			{
-				Arguments.Add("/std:c17");
+				case CStandardVersion.None:
+				case CStandardVersion.C89:
+				case CStandardVersion.C99:
+					break;
+				case CStandardVersion.C11:
+					Arguments.Add("/std:c11");
+					break;
+				case CStandardVersion.C17:
+				case CStandardVersion.Latest:
+					Arguments.Add("/std:c17");
+					break;
+				default:
+					throw new BuildException($"Unsupported C standard type set: {CompileEnvironment.CStandard}");
 			}
 		}
 
@@ -1775,10 +1882,18 @@ namespace UnrealBuildTool
 				Arguments.Add("/DLL");
 			}
 
-			// Don't embed the full PDB path; we want to be able to move binaries elsewhere. They will always be side by side.
-			Arguments.Add("/PDBALTPATH:%_PDB%");
+			if (String.IsNullOrEmpty(Target.WindowsPlatform.PdbAlternatePath))
+			{
+				// Don't embed the full PDB path; we want to be able to move binaries elsewhere. They will always be side by side.
+				Arguments.Add("/PDBALTPATH:%_PDB%");
+			}
+			else
+			{
+				// Embed an alternate PDB path into the executable
+				Arguments.Add($"/PDBALTPATH:\"{Target.WindowsPlatform.PdbAlternatePath}\"");
+			}
 
-			// Experimental deterministic link support
+			// Deterministic link support
 			if (LinkEnvironment.bDeterministic)
 			{
 				if (Target.WindowsPlatform.Compiler.IsMSVC())
@@ -1791,22 +1906,16 @@ namespace UnrealBuildTool
 				}
 			}
 
-			if (Target.WindowsPlatform.Compiler.IsMSVC() && !LinkEnvironment.bPGOOptimize && !LinkEnvironment.bPGOProfile)
+			if (Target.WindowsPlatform.Compiler.IsMSVC() && Target.WindowsPlatform.bVCFastFail && !LinkEnvironment.bPGOOptimize && !LinkEnvironment.bPGOProfile)
 			{
 				Arguments.Add("/fastfail");
 			}
 
-			// for monolithic editor builds, add the PDBPAGESIZE option, (VS 16.11, VC toolchain 14.29.30133), but the pdb will be too large without this
-			// some monolithic game builds could be too large as well, but they can be added in a .Target.cs with:
-			//   			WindowsPlatform.AdditionalLinkerOptions = "/PDBPAGESIZE:8192";
-			if (Target.LinkType == TargetLinkType.Monolithic && Target.Type == TargetType.Editor)
+			// Allow for PDBs larger than 4GB
+			if (Target.WindowsPlatform.PdbPageSize.HasValue)
 			{
-				if (EnvVars.CompilerVersion < VersionNumber.Parse("14.29.30133"))
-				{
-					throw new BuildException($"Monolithic editors now require VC Toolchain 14.29.30133 (the toolchain for Visual Studio 16.11) ({EnvVars.CompilerVersion} < {VersionNumber.Parse("14.29.30133")})");
-				}
-				Arguments.Add("/PDBPAGESIZE:16384");
-				Arguments.Add("/PDBCompress");
+				Arguments.Add($"/PDBPAGESIZE:{System.Numerics.BitOperations.RoundUpToPowerOf2(Target.WindowsPlatform.PdbPageSize.Value)}");
+				//Arguments.Add("/PDBCompress"); // Do not turn this on, it makes link times almost 2x slower. This is _only_ to save local disk space. Will _not_ make actual file smaller for network transfer
 			}
 
 			//
@@ -1867,11 +1976,10 @@ namespace UnrealBuildTool
 			}
 
 			// Add any extra options from the target
-			if (!string.IsNullOrEmpty(Target.WindowsPlatform.AdditionalLinkerOptions))
+			if (!String.IsNullOrEmpty(Target.WindowsPlatform.AdditionalLinkerOptions))
 			{
 				Arguments.Add(Target.WindowsPlatform.AdditionalLinkerOptions);
 			}
-
 
 			// Disable
 			//LINK : warning LNK4199: /DELAYLOAD:nvtt_64.dll ignored; no imports found from nvtt_64.dll
@@ -1883,6 +1991,11 @@ namespace UnrealBuildTool
 			// Suppress warnings about missing PDB files for statically linked libraries.  We often don't want to distribute
 			// PDB files for these libraries.
 			Arguments.Add("/ignore:4099");      // warning LNK4099: PDB '<file>' was not found with '<file>'
+
+			// Workaround for linker errors when linking against static libraries that were compiled with an older msvc
+			// https://github.com/microsoft/STL/issues/2655
+			Arguments.Add("/ALTERNATENAME:__imp___std_init_once_begin_initialize=__imp_InitOnceBeginInitialize");
+			Arguments.Add("/ALTERNATENAME:__imp___std_init_once_complete=__imp_InitOnceComplete");
 		}
 
 		protected virtual void AppendLibArguments(LinkEnvironment LinkEnvironment, List<string> Arguments)
@@ -1914,22 +2027,33 @@ namespace UnrealBuildTool
 			//
 			//	Shipping & LTCG
 			//
-			if (LinkEnvironment.Configuration == CppConfiguration.Shipping)
+			if (LinkEnvironment.bAllowLTCG || LinkEnvironment.Configuration == CppConfiguration.Shipping)
 			{
 				// Use link-time code generation.
 				Arguments.Add("/LTCG");
 			}
 		}
 
-		protected override CPPOutput CompileCPPFiles(CppCompileEnvironment CompileEnvironment, List<FileItem> InputFiles, DirectoryReference OutputDir, string ModuleName, IActionGraphBuilder Graph)
+		private VCCompileAction CreateBaseCompileAction(CppCompileEnvironment CompileEnvironment)
 		{
 			VCCompileAction BaseCompileAction = new VCCompileAction(EnvVars);
+
+			// Add additional response files
+			foreach (FileItem AdditionalRsp in CompileEnvironment.AdditionalResponseFiles)
+			{
+				BaseCompileAction.Arguments.Add($"@\"{NormalizeCommandLinePath(AdditionalRsp.Location)}\"");
+			}
+
 			AppendCLArguments_Global(CompileEnvironment, BaseCompileAction.Arguments);
 
 			// Add include paths to the argument list.
 			BaseCompileAction.IncludePaths.AddRange(CompileEnvironment.UserIncludePaths);
 			BaseCompileAction.SystemIncludePaths.AddRange(CompileEnvironment.SystemIncludePaths);
-			BaseCompileAction.SystemIncludePaths.AddRange(EnvVars.IncludePaths);
+
+			if (!CompileEnvironment.bHasSharedResponseFile)
+			{
+				BaseCompileAction.SystemIncludePaths.AddRange(EnvVars.IncludePaths);
+			}
 
 			// Remember the architecture
 			BaseCompileAction.Architecture = CompileEnvironment.Architecture;
@@ -1963,6 +2087,61 @@ namespace UnrealBuildTool
 					BaseCompileAction.Arguments.Add("/d1reportTime");
 				}
 			}
+
+			// MSVC uses multiple threads when compiling CPP files, so the "weight" is more than 1
+			if (Target.WindowsPlatform.Compiler.IsMSVC())
+			{
+				// If deterministic is enabled, MSVC does not use multiple threads
+				if (!CompileEnvironment.bDeterministic)
+				{
+					BaseCompileAction.Weight = Target.MSVCCompileActionWeight;
+				}
+			}
+			else if (Target.WindowsPlatform.Compiler.IsClang())
+			{
+				BaseCompileAction.Weight = Target.ClangCompileActionWeight;
+			}
+
+			// Don't farm out creation of precompiled headers as it is the critical path task.
+			BaseCompileAction.bCanExecuteRemotely =
+				CompileEnvironment.PrecompiledHeaderAction != PrecompiledHeaderAction.Create ||
+				CompileEnvironment.bAllowRemotelyCompiledPCHs
+				;
+
+			// When compiling with SN-DBS, modules that contain a #import must be built locally
+			BaseCompileAction.bCanExecuteRemotelyWithSNDBS = BaseCompileAction.bCanExecuteRemotely && !CompileEnvironment.bBuildLocallyWithSNDBS;
+
+			return BaseCompileAction;
+		}
+
+		public override FileItem? CopyDebuggerVisualizer(FileItem SourceFile, DirectoryReference IntermediateDirectory, IActionGraphBuilder Graph)
+		{
+			if (SourceFile.HasExtension(".natvis") || SourceFile.HasExtension(".natstepfilter"))
+			{
+				FileReference IntermediateFile = FileReference.Combine(IntermediateDirectory, SourceFile.Name);
+				if (!UnrealBuildTool.IsFileInstalled(IntermediateFile))
+				{
+					FileItem Item = FileItem.GetItemByFileReference(IntermediateFile);
+					Graph.CreateCopyAction(SourceFile, Item);
+					return Item; // Only return the item if we are responsible for copying it, for addition to makefile/manifests
+				}
+			}
+			return null;
+		}
+
+		public override FileItem? LinkDebuggerVisualizer(FileItem SourceFile, DirectoryReference IntermediateDirectory)
+		{
+			if (SourceFile.HasExtension(".natvis") || SourceFile.HasExtension(".natstepfilter"))
+			{
+				FileItem IntermediateFile = FileItem.GetItemByFileReference(FileReference.Combine(IntermediateDirectory, SourceFile.Name));
+				return IntermediateFile;
+			}
+			return null;
+		}
+
+		protected override CPPOutput CompileCPPFiles(CppCompileEnvironment CompileEnvironment, List<FileItem> InputFiles, DirectoryReference OutputDir, string ModuleName, IActionGraphBuilder Graph)
+		{
+			VCCompileAction BaseCompileAction = CreateBaseCompileAction(CompileEnvironment);
 
 			// Create a compile action for each source file.
 			List<VCCompileAction> Actions = new List<VCCompileAction>();
@@ -1998,19 +2177,33 @@ namespace UnrealBuildTool
 					}
 				}
 
+				string FileName = SourceFile.Name;
+				if (CompileEnvironment.CollidingNames != null && CompileEnvironment.CollidingNames.Contains(SourceFile))
+				{
+					string HashString = ContentHash.MD5(SourceFile.AbsolutePath.Substring(Unreal.RootDirectory.FullName.Length)).GetHashCode().ToString("X4");
+					FileName = Path.GetFileNameWithoutExtension(FileName) + "_" + HashString + Path.GetExtension(FileName);
+				}
+
 				if (CompileEnvironment.bPreprocessOnly)
 				{
-					CompileAction.PreprocessedFile = FileItem.GetItemByFileReference(FileReference.Combine(OutputDir, SourceFile.Location.GetFileName() + ".i"));
-					CompileAction.ResponseFile = FileItem.GetItemByPath(CompileAction.PreprocessedFile.FullName + ".response");
+					CompileAction.PreprocessedFile = FileItem.GetItemByFileReference(FileReference.Combine(OutputDir, FileName + ".i"));
+					CompileAction.ResponseFile = FileItem.GetItemByFileReference(GetResponseFileName(CompileEnvironment, CompileAction.PreprocessedFile));
+				}
+				else if (Target.WindowsPlatform.Compiler.IsClang() && Target.StaticAnalyzer == StaticAnalyzer.Default)
+				{
+					// Clang analysis does not actually create an object, use the dependency list as the response filename
+					string DependencyListFilename = FileName + ".d";
+					FileItem DependencyListFile = FileItem.GetItemByFileReference(FileReference.Combine(OutputDir, DependencyListFilename));
+					CompileAction.ResponseFile = FileItem.GetItemByFileReference(GetResponseFileName(CompileEnvironment, DependencyListFile));
 				}
 				else
 				{
 					// Add the object file to the produced item list.
-					string ObjectLeafFilename = Path.GetFileName(SourceFile.AbsolutePath) + ".obj";
+					string ObjectLeafFilename = FileName + ".obj";
 					FileItem ObjectFile = FileItem.GetItemByFileReference(FileReference.Combine(OutputDir, ObjectLeafFilename));
 
 					CompileAction.ObjectFile = ObjectFile;
-					CompileAction.ResponseFile = FileItem.GetItemByPath(ObjectFile.FullName + ".response");
+					CompileAction.ResponseFile = FileItem.GetItemByFileReference(GetResponseFileName(CompileEnvironment, ObjectFile));
 
 					if (Target.WindowsPlatform.ObjSrcMapFile != null)
 					{
@@ -2018,6 +2211,11 @@ namespace UnrealBuildTool
 						{
 							Writer.WriteLine($"\"{ObjectLeafFilename}\" -> \"{SourceFile.AbsolutePath}\"");
 						}
+					}
+
+					if (Target.WindowsPlatform.Compiler.IsMSVC() && CompileEnvironment.bWithAssembly && SourceFile.HasExtension(".cpp"))
+					{
+						CompileAction.AssemblyFile = FileItem.GetItemByFileReference(FileReference.Combine(OutputDir, FileName + ".asm"));
 					}
 
 					// Experimental: support for JSON output of timing data
@@ -2028,11 +2226,17 @@ namespace UnrealBuildTool
 					}
 				}
 
-				// Don't farm out creation of precompiled headers as it is the critical path task.
-				CompileAction.bCanExecuteRemotely =
-					CompileEnvironment.PrecompiledHeaderAction != PrecompiledHeaderAction.Create ||
-					CompileEnvironment.bAllowRemotelyCompiledPCHs
-					;
+				if (CompileEnvironment.bDeterministic && !Target.WindowsPlatform.Compiler.IsClang())
+				{
+					if (CompileEnvironment.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
+					{
+						CompileAction.ArtifactMode |= ArtifactMode.PropagateInputs;
+					}
+					else
+					{
+						CompileAction.ArtifactMode |= ArtifactMode.Enabled | ArtifactMode.AbsolutePath; // deps output file contains absolute paths
+					}
+				}
 
 				// Create PDB files if we were configured to do that.
 				if (CompileEnvironment.bUsePDBFiles || CompileEnvironment.bSupportEditAndContinue)
@@ -2057,7 +2261,7 @@ namespace UnrealBuildTool
 					else if (!bIsPlainCFile)
 					{
 						// Ungrouped C++ files use a PDB per file.
-						PDBLocation = FileReference.Combine(OutputDir, SourceFile.Location.GetFileName() + ".pdb");
+						PDBLocation = FileReference.Combine(OutputDir, FileName + ".pdb");
 					}
 					else
 					{
@@ -2066,7 +2270,7 @@ namespace UnrealBuildTool
 					}
 
 					// Specify the PDB file that the compiler should write to.
-					CompileAction.Arguments.Add($"/Fd\"{PDBLocation}\"");
+					CompileAction.Arguments.Add($"/Fd\"{NormalizeCommandLinePath(PDBLocation)}\"");
 
 					// Don't allow remote execution when PDB files are enabled; we need to modify the same files. XGE works around this by generating separate
 					// PDB files per agent, but this functionality is only available with the Visual C++ extension package (via the VCCompiler=true tool option).
@@ -2077,6 +2281,27 @@ namespace UnrealBuildTool
 				if (bIsPlainCFile)
 				{
 					AppendCLArguments_C(CompileEnvironment, CompileAction.Arguments);
+
+					// AppendCLArguments_C is a static and we cannot use the Target to check if we are using clang, so shoving here for now
+					if (Target.WindowsPlatform.Compiler.IsClang())
+					{
+						if (CompileEnvironment.bAllowAutoRTFMInstrumentation)
+						{
+							CompileAction.Arguments.Add("-fautortfm");
+						}
+
+						// If we are using the AutoRTFM compiler, we make the compile action depend on the version of the compiler itself.
+						// This lets us update the compiler (which might not cause a version update of the compiler, which instead tracks
+						// the LLVM versioning scheme that Clang uses), but ensure that we rebuild the source if the compiler has changed.
+						if (CompileEnvironment.bUseAutoRTFMCompiler)
+						{
+							FileReference? CompilerPath = GetCppCompilerPath();
+							if (null != CompilerPath)
+							{
+								BaseCompileAction.AdditionalPrerequisiteItems.Add(FileItem.GetItemByFileReference(CompilerPath));
+							}
+						}
+					}
 				}
 				else
 				{
@@ -2104,11 +2329,11 @@ namespace UnrealBuildTool
 					CompileAction.Arguments.Add($"/ifcOutput \"{IfcFile.Location}\"");
 					CompileAction.CompiledModuleInterfaceFile = IfcFile;
 
-					FileItem IfcDepsFile = FileItem.GetItemByFileReference(FileReference.Combine(OutputDir, SourceFile.Location.GetFileName() + ".md.json"));
+					FileItem IfcDepsFile = FileItem.GetItemByFileReference(FileReference.Combine(OutputDir, FileName + ".md.json"));
 
 					VCCompileAction CompileDepsAction = new VCCompileAction(CompileAction);
 					CompileDepsAction.ActionType = ActionType.GatherModuleDependencies;
-					CompileDepsAction.ResponseFile = FileItem.GetItemByPath(IfcDepsFile + ".response");
+					CompileDepsAction.ResponseFile = FileItem.GetItemByFileReference(GetResponseFileName(CompileEnvironment, IfcDepsFile));
 					CompileDepsAction.ObjectFile = null;
 					CompileDepsAction.DependencyListFile = IfcDepsFile;
 					CompileDepsAction.Arguments.Add($"/sourceDependencies:directives \"{IfcDepsFile.Location}\"");
@@ -2132,38 +2357,44 @@ namespace UnrealBuildTool
 				if ((Target.bPrintToolChainTimingInfo || Target.WindowsPlatform.bCompilerTrace) && Target.WindowsPlatform.Compiler.IsMSVC())
 				{
 					CompileAction.ForceClFilter = true;
-					CompileAction.TimingFile = FileItem.GetItemByFileReference(FileReference.Combine(OutputDir, $"{SourceFile.Location.GetFileName()}.timing"));
+					CompileAction.TimingFile = FileItem.GetItemByFileReference(FileReference.Combine(OutputDir, $"{FileName}.timing"));
 					GenerateParseTimingInfoAction(SourceFile, CompileAction.TimingFile, Graph);
 				}
 
 				if (Target.WindowsPlatform.Compiler.IsMSVC() && !CompileAction.ForceClFilter)
 				{
-					CompileAction.DependencyListFile = FileItem.GetItemByFileReference(FileReference.Combine(OutputDir, $"{SourceFile.Location.GetFileName()}.dep.json"));
+					CompileAction.DependencyListFile = FileItem.GetItemByFileReference(FileReference.Combine(OutputDir, $"{FileName}.dep.json"));
 				}
 				else if (Target.WindowsPlatform.Compiler.IsClang())
 				{
-					CompileAction.DependencyListFile = FileItem.GetItemByFileReference(FileReference.Combine(OutputDir, $"{SourceFile.Location.GetFileName()}.d"));
+					CompileAction.DependencyListFile = FileItem.GetItemByFileReference(FileReference.Combine(OutputDir, $"{FileName}.d"));
 				}
 				else
 				{
-					CompileAction.DependencyListFile = FileItem.GetItemByFileReference(FileReference.Combine(OutputDir, $"{SourceFile.Location.GetFileName()}.txt"));
+					CompileAction.DependencyListFile = FileItem.GetItemByFileReference(FileReference.Combine(OutputDir, $"{FileName}.txt"));
 					CompileAction.bShowIncludes = Target.WindowsPlatform.bShowIncludes;
 				}
 
+				// Write cl errors and warnings to a file if supported
+				if (Target.WindowsPlatform.Compiler.IsMSVC() && Target.WindowsPlatform.bWriteSarif && EnvVars.CompilerVersion >= new VersionNumber(14, 34, 31933))
+				{
+					if (Target.StaticAnalyzer == StaticAnalyzer.Default && !CompileEnvironment.bDisableStaticAnalysis)
+					{
+						CompileAction.AnalyzeLogFile = FileItem.GetItemByFileReference(FileReference.Combine(OutputDir, $"{FileName}.sa.sarif"));
+					}
+
+					CompileAction.ExperimentalLogFile = FileItem.GetItemByFileReference(FileReference.Combine(OutputDir, $"{FileName}.sarif"));
+				}
+
 				// Allow derived toolchains to make further changes
-				ModifyFinalCompileAction(CompileAction, CompileEnvironment, SourceFile, OutputDir, ModuleName );
+				ModifyFinalCompileAction(CompileAction, CompileEnvironment, SourceFile, OutputDir, ModuleName);
 
 				if (!ProjectFileGenerator.bGenerateProjectFiles)
 				{
 					CompileAction.WriteResponseFile(Graph, Logger);
 				}
 
-				// When compiling with SN-DBS, modules that contain a #import must be built locally
-				CompileAction.bCanExecuteRemotelyWithSNDBS = CompileAction.bCanExecuteRemotely;
-				if (CompileEnvironment.bBuildLocallyWithSNDBS == true)
-				{
-					CompileAction.bCanExecuteRemotelyWithSNDBS = false;
-				}
+				CompileAction.bIsAnalyzing = Target.StaticAnalyzer != StaticAnalyzer.None;
 
 				// Update the output
 				Graph.AddAction(CompileAction);
@@ -2172,6 +2403,11 @@ namespace UnrealBuildTool
 
 			CPPOutput Result = new CPPOutput();
 			Result.ObjectFiles.AddRange(Actions.Where(x => x.ObjectFile != null || x.PreprocessedFile != null).Select(x => x.ObjectFile != null ? x.ObjectFile! : x.PreprocessedFile!));
+			// Clang static analysis doesn't create object files, so treat the dependency list file as the output
+			if (Target.WindowsPlatform.Compiler.IsClang() && Target.StaticAnalyzer == StaticAnalyzer.Default)
+			{
+				Result.ObjectFiles.AddRange(Actions.Where(x => x.DependencyListFile != null ).Select(x => x.DependencyListFile!));
+			}
 			Result.CompiledModuleInterfaces.AddRange(Actions.Where(x => x.CompiledModuleInterfaceFile != null).Select(x => x.CompiledModuleInterfaceFile!));
 			Result.PrecompiledHeaderFile = Actions.Select(x => x.CreatePchFile).Where(x => x != null).FirstOrDefault();
 			return Result;
@@ -2245,7 +2481,7 @@ namespace UnrealBuildTool
 							$"-CompileTimingFile={ExpectedCompileTimeFile}",
 						};
 
-						Action AggregateTimingInfoAction = MakefileBuilder.CreateRecursiveAction<AggregateParsedTimingInfo>(ActionType.ParseTimingInfo, string.Join(" ", ActionArgs));
+						Action AggregateTimingInfoAction = MakefileBuilder.CreateRecursiveAction<AggregateParsedTimingInfo>(ActionType.ParseTimingInfo, String.Join(" ", ActionArgs));
 						AggregateTimingInfoAction.WorkingDirectory = Unreal.EngineSourceDirectory;
 						AggregateTimingInfoAction.StatusDescription = $"Aggregating {TimingJsonFiles.Count} Timing File(s)";
 						AggregateTimingInfoAction.bCanExecuteRemotely = false;
@@ -2270,7 +2506,7 @@ namespace UnrealBuildTool
 							$"-HeadersFile={HeadersOutputFile.FullName}",
 						};
 
-						Action AggregateTimingInfoAction = MakefileBuilder.CreateRecursiveAction<AggregateClangTimingInfo>(ActionType.ParseTimingInfo, string.Join(" ", AggregateActionArgs));
+						Action AggregateTimingInfoAction = MakefileBuilder.CreateRecursiveAction<AggregateClangTimingInfo>(ActionType.ParseTimingInfo, String.Join(" ", AggregateActionArgs));
 						AggregateTimingInfoAction.WorkingDirectory = Unreal.EngineSourceDirectory;
 						AggregateTimingInfoAction.StatusDescription = $"Aggregating {TimingJsonFiles.Count} Timing File(s)";
 						AggregateTimingInfoAction.bCanExecuteRemotely = false;
@@ -2288,7 +2524,7 @@ namespace UnrealBuildTool
 							$"-ArchiveFile={ArchiveOutputFile.FullName}",
 						};
 
-						Action ArchiveTimingInfoAction = MakefileBuilder.CreateRecursiveAction<AggregateClangTimingInfo>(ActionType.ParseTimingInfo, string.Join(" ", ArchiveActionArgs));
+						Action ArchiveTimingInfoAction = MakefileBuilder.CreateRecursiveAction<AggregateClangTimingInfo>(ActionType.ParseTimingInfo, String.Join(" ", ArchiveActionArgs));
 						ArchiveTimingInfoAction.WorkingDirectory = Unreal.EngineSourceDirectory;
 						ArchiveTimingInfoAction.StatusDescription = $"Archiving {TimingJsonFiles.Count} Timing File(s)";
 						ArchiveTimingInfoAction.bCanExecuteRemotely = false;
@@ -2342,7 +2578,6 @@ namespace UnrealBuildTool
 					throw new BuildException("Unsupported build architecture for Address Sanitizer");
 				}
 
-
 				string ASanRuntimeDLL = $"clang_rt.asan_dynamic-{ASanArchSuffix}.dll";
 				string ASanDebugRuntimeDLL = $"clang_rt.asan_dbg_dynamic-{ASanArchSuffix}.dll";
 
@@ -2356,7 +2591,7 @@ namespace UnrealBuildTool
 			}
 
 			// copy PGO support binaries for Windows from $(VC_PGO_RunTime_Dir)
-			if (Target.bPGOProfile && Target.Platform.IsInGroup(UnrealPlatformGroup.Windows))
+			if (Target.bPGOProfile && Target.Platform.IsInGroup(UnrealPlatformGroup.Windows) && !Target.WindowsPlatform.Compiler.IsIntel())
 			{
 				string[] PGOFiles = {
 					"pgort140.dll",
@@ -2367,13 +2602,17 @@ namespace UnrealBuildTool
 					FileReference SrcFile = FileReference.Combine(EnvVars.ToolChainDir, "bin", "Hostx64", "x64", PGOFile);
 					FileReference DstFile = FileReference.Combine(ExeDir, PGOFile);
 					TargetFileToSourceFile[DstFile] = SrcFile;
-					RuntimeDependencies.Add( new RuntimeDependency(DstFile, StagedFileType.NonUFS));
+					RuntimeDependencies.Add(new RuntimeDependency(DstFile, StagedFileType.NonUFS));
 				}
 			}
 		}
 
 		public virtual FileReference GetApplicationIcon(FileReference? ProjectFile)
 		{
+			if (Target.WindowsPlatform.ApplicationIcon != null)
+			{
+				return new FileReference(Target.WindowsPlatform.ApplicationIcon);
+			}
 			return WindowsPlatform.GetWindowsApplicationIcon(ProjectFile);
 		}
 
@@ -2398,7 +2637,7 @@ namespace UnrealBuildTool
 
 				// Resource tool can run remotely if possible
 				CompileAction.bCanExecuteRemotely = true;
-				CompileAction.bCanExecuteRemotelyWithSNDBS = false;	// no tool template for SN-DBS results in warnings
+				CompileAction.bCanExecuteRemotelyWithSNDBS = false; // no tool template for SN-DBS results in warnings
 
 				List<string> Arguments = new List<string>();
 
@@ -2439,7 +2678,7 @@ namespace UnrealBuildTool
 
 				// Figure the icon to use. We can only use a custom icon when compiling to a project-specific intermediate directory (and not for the shared editor executable, for example).
 				FileReference IconFile;
-				if(Target.ProjectFile != null && !CompileEnvironment.bUseSharedBuildEnvironment)
+				if (Target.ProjectFile != null && !CompileEnvironment.bUseSharedBuildEnvironment)
 				{
 					IconFile = GetApplicationIcon(Target.ProjectFile);
 				}
@@ -2453,7 +2692,7 @@ namespace UnrealBuildTool
 				AddDefinition(Arguments, $"BUILD_ICON_FILE_NAME=\"\\\"{NormalizeCommandLinePath(IconFile).Replace("\\", "\\\\")}\\\"\"");
 
 				// Apply the target settings for the resources
-				if(!CompileEnvironment.bUseSharedBuildEnvironment)
+				if (!CompileEnvironment.bUseSharedBuildEnvironment)
 				{
 					if (!String.IsNullOrEmpty(Target.WindowsPlatform.CompanyName))
 					{
@@ -2491,7 +2730,7 @@ namespace UnrealBuildTool
 				Arguments.Add($"\"{NormalizeCommandLinePath(RCFile)}\"");
 
 				// Create a response file for the resource compilier
-				FileItem ResponseFile = FileItem.GetItemByPath(CompiledResourceFile.FullName + ".response");
+				FileItem ResponseFile = FileItem.GetItemByFileReference(GetResponseFileName(CompileEnvironment, CompiledResourceFile));
 				Graph.CreateIntermediateTextFile(ResponseFile, Arguments);
 				CompileAction.PrerequisiteItems.Add(ResponseFile);
 
@@ -2533,21 +2772,83 @@ namespace UnrealBuildTool
 
 			FileItem InputFile = Graph.CreateIntermediateTextFile(OutputFile.ChangeExtension(".cpp"), Contents.ToString());
 
-			// Build the argument list
+			// Build the argument list for the compiler
 			FileItem ObjectFile = FileItem.GetItemByFileReference(OutputFile.ChangeExtension(".obj"));
 
-			List<string> Arguments = new List<string>();
-			Arguments.Add($"\"{InputFile.Location}\"");
-			Arguments.Add("/c");
-			Arguments.Add("/nologo");
-			Arguments.Add($"/Fo\"{ObjectFile.Location}\"");
+			List<string> Arguments = new List<string>
+			{
+				$"\"{InputFile.Location}\"",
+				"/c",
+				"/nologo",
+				$"/Fo\"{ObjectFile.Location}\""
+			};
 
 			foreach (DirectoryReference IncludePath in CompileEnvironment.UserIncludePaths)
+			{
+				AddIncludePath(Arguments, IncludePath, EnvVars.ToolChain);
+			}
+
+			foreach (DirectoryReference IncludePath in CompileEnvironment.SystemIncludePaths)
+			{
+				AddSystemIncludePath(Arguments, IncludePath, EnvVars.ToolChain);
+			}
+
+			foreach (DirectoryReference IncludePath in EnvVars.IncludePaths)
+			{
+				AddSystemIncludePath(Arguments, IncludePath, EnvVars.ToolChain);
+			}
+
+			FileItem ResponseFile = Graph.CreateIntermediateTextFile(OutputFile.ChangeExtension(ResponseExt), String.Join(" ", Arguments));
+
+			// Build the command for touching the output file to update the time stamp
+			string TouchActionCommand;
+			if (BuildHostPlatform.Current.IsRunningOnWine())
+			{
+				TouchActionCommand = $"copy /Y \"{OutputFile.FullName}\" \"%TMP%/{OutputFile.GetFileName()}\" && type \"%TMP%/{OutputFile.GetFileName()}\" > \"{OutputFile.FullName}\"";
+			}
+			else
+			{
+				TouchActionCommand = $"copy /b \"{OutputFile.FullName}\"+,, \"{OutputFile.FullName}\"";
+			}
+
+			// Build the batch file
+			StringBuilder BatchFileContents = new();
+			BatchFileContents.AppendLine("@echo off");
+			BatchFileContents.AppendLine($"\"{EnvVars.ToolchainCompilerPath}\" @\"{ResponseFile.FullName}\"");
+			BatchFileContents.AppendLine(TouchActionCommand);
+
+			FileItem BatchFile = Graph.CreateIntermediateTextFile(OutputFile.ChangeExtension(".bat"), BatchFileContents.ToString());
+
+			// Create the batch file action that will compile then touch the output file
+			Action CompileAction = Graph.CreateAction(ActionType.Compile);
+			CompileAction.CommandDescription = "GenerateTLH";
+			CompileAction.PrerequisiteItems.Add(FileItem.GetItemByFileReference(EnvVars.ToolchainCompilerPath));
+			CompileAction.PrerequisiteItems.Add(InputFile);
+			CompileAction.PrerequisiteItems.Add(ResponseFile);
+			CompileAction.PrerequisiteItems.Add(BatchFile);
+			CompileAction.ProducedItems.Add(ObjectFile);
+			CompileAction.ProducedItems.Add(FileItem.GetItemByFileReference(OutputFile));
+			CompileAction.DeleteItems.Add(FileItem.GetItemByFileReference(OutputFile));
+			CompileAction.StatusDescription = TypeLibrary.Header;
+			CompileAction.WorkingDirectory = Unreal.EngineSourceDirectory;
+			CompileAction.CommandPath = BuildHostPlatform.Current.Shell;
+			CompileAction.CommandArguments = $"/C \"{BatchFile}\"";
+			CompileAction.CommandVersion = EnvVars.ToolChainVersion.ToString();
+			CompileAction.bShouldOutputStatusDescription = false;
+			CompileAction.bCanExecuteRemotely = false; // Incompatible with remote distribution
+		}
+
+		public override CppCompileEnvironment CreateSharedResponseFile(CppCompileEnvironment CompileEnvironment, FileReference OutResponseFile, IActionGraphBuilder Graph)
+		{
+			CppCompileEnvironment NewCompileEnvironment = new CppCompileEnvironment(CompileEnvironment);
+			List<string> Arguments = new List<string>();
+
+			foreach (DirectoryReference IncludePath in NewCompileEnvironment.UserIncludePaths)
 			{
 				AddIncludePath(Arguments, IncludePath, Target.WindowsPlatform.Compiler);
 			}
 
-			foreach (DirectoryReference IncludePath in CompileEnvironment.SystemIncludePaths)
+			foreach (DirectoryReference IncludePath in NewCompileEnvironment.SystemIncludePaths)
 			{
 				AddSystemIncludePath(Arguments, IncludePath, Target.WindowsPlatform.Compiler);
 			}
@@ -2557,29 +2858,36 @@ namespace UnrealBuildTool
 				AddSystemIncludePath(Arguments, IncludePath, Target.WindowsPlatform.Compiler);
 			}
 
-			// Create the compile action. Only mark the object file as an output, because we need to touch the generated header afterwards.
-			Action CompileAction = Graph.CreateAction(ActionType.Compile);
-			CompileAction.CommandDescription = "GenerateTLH";
-			CompileAction.PrerequisiteItems.Add(InputFile);
-			CompileAction.ProducedItems.Add(ObjectFile);
-			CompileAction.DeleteItems.Add(FileItem.GetItemByFileReference(OutputFile));
-			CompileAction.StatusDescription = TypeLibrary.Header;
-			CompileAction.WorkingDirectory = Unreal.EngineSourceDirectory;
-			CompileAction.CommandPath = EnvVars.CompilerPath;
-			CompileAction.CommandArguments = String.Join(" ", Arguments);
-			CompileAction.bShouldOutputStatusDescription = Target.WindowsPlatform.Compiler.IsClang();
-			CompileAction.bCanExecuteRemotely = false; // Incompatible with SN-DBS
+			// Stash shared include paths for validation purposes
+			NewCompileEnvironment.SharedUserIncludePaths = new(NewCompileEnvironment.UserIncludePaths);
+			NewCompileEnvironment.SharedSystemIncludePaths = new(NewCompileEnvironment.SystemIncludePaths);
+			NewCompileEnvironment.SharedSystemIncludePaths.UnionWith(EnvVars.IncludePaths);
 
-			// Touch the output header
-			Action TouchAction = Graph.CreateAction(ActionType.BuildProject);
-			TouchAction.CommandDescription = "Touch";
-			TouchAction.CommandPath = BuildHostPlatform.Current.Shell;
-			TouchAction.CommandArguments = $"/C \"copy /b \"{OutputFile.FullName}\"+,, \"{OutputFile.FullName}\" 1>nul:\"";
-			TouchAction.WorkingDirectory = Unreal.EngineSourceDirectory;
-			TouchAction.PrerequisiteItems.Add(ObjectFile);
-			TouchAction.ProducedItems.Add(FileItem.GetItemByFileReference(OutputFile));
-			TouchAction.StatusDescription = OutputFile.GetFileName();
-			TouchAction.bCanExecuteRemotely = false;
+			NewCompileEnvironment.UserIncludePaths.Clear();
+			NewCompileEnvironment.SystemIncludePaths.Clear();
+
+			FileItem FileItem = FileItem.GetItemByFileReference(OutResponseFile);
+			Graph.CreateIntermediateTextFile(FileItem, Arguments);
+
+			NewCompileEnvironment.AdditionalPrerequisites.Add(FileItem);
+			NewCompileEnvironment.AdditionalResponseFiles.Add(FileItem);
+			NewCompileEnvironment.bHasSharedResponseFile = true;
+
+			return NewCompileEnvironment;
+		}
+
+		public override void CreateSpecificFileAction(CppCompileEnvironment CompileEnvironment, DirectoryReference SourceDir, DirectoryReference OutputDir, IActionGraphBuilder Graph)
+		{
+			// This is not supported for now.. If someone wants it we can implement it
+			if (CompileEnvironment.Architectures.bIsMultiArch)
+			{
+				return;
+			}
+
+			VCCompileAction BaseCompileAction = CreateBaseCompileAction(CompileEnvironment);
+			AppendCLArguments_CPP(CompileEnvironment, BaseCompileAction.Arguments);
+			BaseCompileAction.AdditionalPrerequisiteItems.AddRange(CompileEnvironment.AdditionalPrerequisites); // Primarily for ispc.generated.h files
+			Graph.AddAction(new VcSpecificFileAction(SourceDir, OutputDir, BaseCompileAction, CompileEnvironment));
 		}
 
 		/// <summary>
@@ -2591,9 +2899,9 @@ namespace UnrealBuildTool
 		static string SanitizeMacroValue(string Value)
 		{
 			StringBuilder Result = new StringBuilder(Value.Length);
-			for(int Idx = 0; Idx < Value.Length; Idx++)
+			for (int Idx = 0; Idx < Value.Length; Idx++)
 			{
-				if(Value[Idx] != '\'' && Value[Idx] != '\"')
+				if (Value[Idx] != '\'' && Value[Idx] != '\"')
 				{
 					Result.Append(Value[Idx]);
 				}
@@ -2649,7 +2957,6 @@ namespace UnrealBuildTool
 				Arguments.Add("/IGNORE:4221");
 			}
 
-
 			if (!bIsBuildingLibraryOrImportLibrary)
 			{
 				// Delay-load these DLLs.
@@ -2666,7 +2973,7 @@ namespace UnrealBuildTool
 			}
 
 			// Set up the library paths for linking this binary
-			if(bBuildImportLibraryOnly)
+			if (bBuildImportLibraryOnly)
 			{
 				// When building an import library, ignore all the libraries included via embedded #pragma lib declarations.
 				// We shouldn't need them to generate exports.
@@ -2691,11 +2998,11 @@ namespace UnrealBuildTool
 				}
 			}
 
-			// If we're building either an executable or a DLL, make sure we link in the
+			// If we're building either an executable or a DLL, make sure we link in the 
 			// correct address sanitizer helper libs.
 			// Note: As of MSVC 16.9, this is automatically done if the /fsanitize=address flag is used.
 			if (!bBuildImportLibraryOnly && !LinkEnvironment.bIsBuildingLibrary && Target.WindowsPlatform.bEnableAddressSanitizer &&
-			    EnvVars.CompilerVersion < new VersionNumber(14, 28, 0))
+				EnvVars.CompilerVersion < new VersionNumber(14, 28, 0))
 			{
 				String ASanArchSuffix = "";
 				if (EnvVars.Architecture == UnrealArch.X64)
@@ -2733,7 +3040,7 @@ namespace UnrealBuildTool
 			}
 
 			// Enable function level hot-patching
-			if(!bBuildImportLibraryOnly && Target.WindowsPlatform.bCreateHotpatchableImage)
+			if (!bBuildImportLibraryOnly && Target.WindowsPlatform.bCreateHotpatchableImage)
 			{
 				Arguments.Add("/FUNCTIONPADMIN:6"); // For some reason, not providing the number causes full linking to happen all the time
 			}
@@ -2746,9 +3053,9 @@ namespace UnrealBuildTool
 			FileReference ImportLibraryFilePath;
 			if (LinkEnvironment.bIsCrossReferenced && !bBuildImportLibraryOnly)
 			{
-				ImportLibraryFilePath = FileReference.Combine(LinkEnvironment.IntermediateDirectory!, LinkEnvironment.OutputFilePath.GetFileNameWithoutExtension() + ".suppressed.lib");
+				ImportLibraryFilePath = FileReference.Combine(LinkEnvironment.IntermediateDirectory!, LinkEnvironment.OutputFilePath.GetFileNameWithoutExtension() + ".sup.lib");
 			}
-			else if(Target.bShouldCompileAsDLL)
+			else if (Target.bShouldCompileAsDLL)
 			{
 				ImportLibraryFilePath = FileReference.Combine(LinkEnvironment.OutputDirectory!, LinkEnvironment.OutputFilePath.GetFileNameWithoutExtension() + ".lib");
 			}
@@ -2776,7 +3083,7 @@ namespace UnrealBuildTool
 			List<string> InputFileNames = new List<string>();
 			foreach (FileItem InputFile in LinkEnvironment.InputFiles)
 			{
-				InputFileNames.Add(string.Format("\"{0}\"", NormalizeCommandLinePath(InputFile)));
+				InputFileNames.Add(String.Format("\"{0}\"", NormalizeCommandLinePath(InputFile)));
 				PrerequisiteItems.Add(InputFile);
 			}
 
@@ -2784,12 +3091,19 @@ namespace UnrealBuildTool
 			{
 				foreach (FileReference Library in LinkEnvironment.Libraries)
 				{
-					InputFileNames.Add(string.Format("\"{0}\"", NormalizeCommandLinePath(Library)));
+					InputFileNames.Add(String.Format("\"{0}\"", NormalizeCommandLinePath(Library)));
 					PrerequisiteItems.Add(FileItem.GetItemByFileReference(Library));
 				}
 				foreach (string SystemLibrary in LinkEnvironment.SystemLibraries)
 				{
-					InputFileNames.Add(string.Format("\"{0}\"", SystemLibrary));
+					InputFileNames.Add(String.Format("\"{0}\"", SystemLibrary));
+				}
+
+				foreach (FileItem NatvisFile in LinkEnvironment.DebuggerVisualizerFiles)
+				{
+					PrerequisiteItems.Add(NatvisFile);
+					Arguments.Add(String.Format("/NATVIS:\"{0}\"",
+						NormalizeCommandLinePath(NatvisFile)));
 				}
 
 				if (Target.WindowsPlatform.ManifestFile != null)
@@ -2806,7 +3120,7 @@ namespace UnrealBuildTool
 			// For import libraries and exports generated by cross-referenced builds, we don't track output files. VS 15.3+ doesn't touch timestamps for libs
 			// and exp files with no modifications, breaking our dependency checking, but incremental linking will fall back to a full link if we delete it.
 			// Since all DLLs are typically marked as cross referenced now anyway, we can just ignore this file to allow incremental linking to work.
-			if(LinkEnvironment.bHasExports && !LinkEnvironment.bIsBuildingLibrary && !LinkEnvironment.bIsCrossReferenced)
+			if (LinkEnvironment.bHasExports && !LinkEnvironment.bIsBuildingLibrary && !LinkEnvironment.bIsCrossReferenced)
 			{
 				FileReference ExportFilePath = ImportLibraryFilePath.ChangeExtension(".exp");
 				FileItem ExportFile = FileItem.GetItemByFileReference(ExportFilePath);
@@ -2823,7 +3137,7 @@ namespace UnrealBuildTool
 					Arguments.Add($"/IMPLIB:\"{NormalizeCommandLinePath(ImportLibraryFilePath)}\"");
 
 					// Like the export file above, don't add the import library as a produced item when it's cross referenced.
-					if(!LinkEnvironment.bIsCrossReferenced)
+					if (!LinkEnvironment.bIsCrossReferenced)
 					{
 						ProducedItems.Add(ImportLibraryFile);
 					}
@@ -2833,7 +3147,18 @@ namespace UnrealBuildTool
 				{
 					// Write the PDB file to the output directory.
 					{
-						FileReference PDBFilePath = FileReference.Combine(LinkEnvironment.OutputDirectory!, Path.GetFileNameWithoutExtension(OutputFile.AbsolutePath) + ".pdb");
+						FileReference? PDBFilePath = FileReference.Combine(LinkEnvironment.OutputDirectory!, Path.GetFileNameWithoutExtension(OutputFile.AbsolutePath) + ".pdb");
+
+						// If stripping private symbols, write the full pdb as .full.pdb
+						if (Target.WindowsPlatform.bStripPrivateSymbols)
+						{
+							FileItem StrippedPDBFile = FileItem.GetItemByFileReference(PDBFilePath);
+							Arguments.Add($"/PDBSTRIPPED:\"{NormalizeCommandLinePath(StrippedPDBFile)}\"");
+							ProducedItems.Add(StrippedPDBFile);
+
+							PDBFilePath = FileReference.Combine(LinkEnvironment.OutputDirectory!, Path.GetFileNameWithoutExtension(OutputFile.AbsolutePath) + ".full.pdb");
+						}
+
 						FileItem PDBFile = FileItem.GetItemByFileReference(PDBFilePath);
 						Arguments.Add($"/PDB:\"{NormalizeCommandLinePath(PDBFilePath)}\"");
 						ProducedItems.Add(PDBFile);
@@ -2853,14 +3178,14 @@ namespace UnrealBuildTool
 				}
 
 				// Add the additional arguments specified by the environment.
-				if(!String.IsNullOrEmpty(LinkEnvironment.AdditionalArguments))
+				if (!String.IsNullOrEmpty(LinkEnvironment.AdditionalArguments))
 				{
 					Arguments.Add(LinkEnvironment.AdditionalArguments.Trim());
 				}
 			}
 
 			// Add any forced references to functions
-			foreach(string IncludeFunction in LinkEnvironment.IncludeFunctions)
+			foreach (string IncludeFunction in LinkEnvironment.IncludeFunctions)
 			{
 				Arguments.Add($"/INCLUDE:{IncludeFunction}");
 			}
@@ -2881,7 +3206,7 @@ namespace UnrealBuildTool
 			string ReadableArch = UnrealArchitectureConfig.ForPlatform(LinkEnvironment.Platform).ConvertToReadableArchitecture(LinkEnvironment.Architecture);
 			LinkAction.CommandDescription += $"Link [{ReadableArch}]";
 			LinkAction.WorkingDirectory = Unreal.EngineSourceDirectory;
-			if(bIsBuildingLibraryOrImportLibrary)
+			if (bIsBuildingLibraryOrImportLibrary)
 			{
 				LinkAction.CommandPath = EnvVars.LibraryManagerPath;
 			}
@@ -2904,7 +3229,15 @@ namespace UnrealBuildTool
 			// Delete PDB files for all produced items, since incremental updates are slower than full ones.
 			if (!LinkEnvironment.bUseIncrementalLinking)
 			{
-				LinkAction.DeleteItems.UnionWith(LinkAction.ProducedItems.Where(x => x.Location.HasExtension(".pdb")));
+				LinkAction.DeleteItems.UnionWith(LinkAction.ProducedItems.Where(x => x.Location.HasExtension(".pdb") || x.Location.HasExtension(".full.pdb")));
+			}
+
+			// Delete any .sup.lib files before building, even if they're not tracked
+			if (ImportLibraryFilePath.GetFileName().EndsWith(".sup.lib", StringComparison.OrdinalIgnoreCase))
+			{
+				FileReference ExportFilePath = ImportLibraryFilePath.ChangeExtension(".exp");
+				LinkAction.DeleteItems.Add(FileItem.GetItemByFileReference(ImportLibraryFilePath));
+				LinkAction.DeleteItems.Add(FileItem.GetItemByFileReference(ExportFilePath));
 			}
 
 			// Tell the action that we're building an import library here and it should conditionally be
@@ -2929,7 +3262,7 @@ namespace UnrealBuildTool
 				Logger.LogInformation("...copying the profile guided optimization files to output directory...");
 
 				// prefer a PGD file that matches the output file
-				string PGDFile = Path.Combine( LinkEnvironment.PGODirectory!, LinkEnvironment.PGOFilenamePrefix + ".pgd");
+				string PGDFile = Path.Combine(LinkEnvironment.PGODirectory!, LinkEnvironment.PGOFilenamePrefix + ".pgd");
 				if (!File.Exists(PGDFile))
 				{
 					string[] PGDFiles = Directory.GetFiles(LinkEnvironment.PGODirectory!, "*.pgd");
@@ -2945,7 +3278,6 @@ namespace UnrealBuildTool
 
 					PGDFile = PGDFiles.First();
 				}
-
 
 				string[] PGCFiles = Directory.GetFiles(LinkEnvironment.PGODirectory!, "*.pgc");
 				if (PGCFiles.Length == 0)
@@ -2967,7 +3299,7 @@ namespace UnrealBuildTool
 				int PGCFileIndex = 0;
 				foreach (string SrcFilePath in PGCFiles)
 				{
-					string DestFileName = string.Format("{0}!{1}.pgc", LinkEnvironment.PGOFilenamePrefix, ++PGCFileIndex);
+					string DestFileName = String.Format("{0}!{1}.pgc", LinkEnvironment.PGOFilenamePrefix, ++PGCFileIndex);
 					string DestFilePath = Path.Combine(LinkEnvironment.OutputDirectory.FullName, DestFileName);
 
 					Logger.LogInformation("{Source} -> {Target}", SrcFilePath, DestFilePath);
@@ -2979,69 +3311,160 @@ namespace UnrealBuildTool
 			return true;
 		}
 
+		static readonly string[] PGOIgnoredLinkerSwitch =
+		{
+			"/USEPROFILE",
+			"/GENPROFILE",
+			"/FASTGENPROFILE",
+			"/OUT:",
+			"/PDB:",
+			"/PDBSTRIPPED:",
+			"/NOLOGO",
+			"/LIBPATH:",
+			"/errorReport:",
+			"/d2:",
+			"/NATVIS:",
+			"/experimental:deterministic"
+		};
+		private IEnumerable<string> RemovePGOIgnoredSwitches(IEnumerable<string> SourceArguments)
+		{
+			return SourceArguments.Where(Argument => Argument.StartsWith("/") && !PGOIgnoredLinkerSwitch.Any(Switch => Argument.StartsWith(Switch, StringComparison.OrdinalIgnoreCase)));
+		}
+
 		protected virtual void AddPGOLinkArguments(LinkEnvironment LinkEnvironment, List<string> Arguments)
 		{
 			bool bPGOOptimize = LinkEnvironment.bPGOOptimize;
 			bool bPGOProfile = LinkEnvironment.bPGOProfile;
 
-			if (bPGOOptimize)
+			if (!Target.WindowsPlatform.Compiler.IsIntel())
 			{
-				if (PreparePGOFiles(LinkEnvironment))
+				if (bPGOOptimize || bPGOProfile)
 				{
-					//Arguments.Add("/USEPROFILE:PGD=" + Path.Combine(LinkEnvironment.PGODirectory, LinkEnvironment.PGOFilenamePrefix + ".pgd"));
-					Arguments.Add("/LTCG");
-					//Arguments.Add("/USEPROFILE:PGD=" + LinkEnvironment.PGOFilenamePrefix + ".pgd");
-					Arguments.Add("/USEPROFILE");
-					Log.TraceInformationOnce("Enabling Profile Guided Optimization (PGO). Linking will take a while.");
+					// serialize the linker arguments for comparing /USEPROFILE and /GENPROFILE
+					IEnumerable<string> PGOArguments = RemovePGOIgnoredSwitches(Arguments);
+					string PGOProfileLinkArgsFile = Path.Combine(LinkEnvironment.PGODirectory!, "PGOProfileLinkArgs.txt");
+
+					if (bPGOProfile)
+					{
+						// save the latest linker arguments for /GENPROFILE alongside the PGO data
+						Utils.WriteFileIfChanged(new FileReference(PGOProfileLinkArgsFile), PGOArguments, Logger);
+					}
+					else if (bPGOOptimize && Target.WindowsPlatform.bIgnoreStalePGOData && File.Exists(PGOProfileLinkArgsFile))
+					{
+						// compare latest linker arguments for /USEPROFILE to the last known /GENPROFILE and disable /USEPROFILE if they are different to avoid LNK1268
+						IEnumerable<string> PGOProfileLinkArgs = RemovePGOIgnoredSwitches(File.ReadAllLines(PGOProfileLinkArgsFile));
+						IEnumerable<string> AddedPGOArgs = PGOArguments.Except(PGOProfileLinkArgs);
+						IEnumerable<string> RemovedPGOArgs = PGOProfileLinkArgs.Except(PGOArguments);
+
+						if (AddedPGOArgs.Any() || RemovedPGOArgs.Any())
+						{
+							Logger.LogWarning("PGO Profile and PGO Optimize linker arguments do not match. Profile Guided Optimization will be disabled for {Config} until new PGO Profile data is generated.", Target.Configuration.ToString());
+							bPGOOptimize = false;
+
+							if (AddedPGOArgs.Any())
+							{
+								Logger.LogInformation("Added PGO args:");
+								foreach (string Arg in AddedPGOArgs)
+								{
+									Logger.LogInformation("  {Arg}", Arg);
+								}
+							}
+							if (RemovedPGOArgs.Any())
+							{
+								Logger.LogInformation("Removed PGO args:");
+								foreach (string Arg in RemovedPGOArgs)
+								{
+									Logger.LogInformation("  {Arg}", Arg);
+								}
+							}
+						}
+					}
 				}
-				else
+
+				// If PGO was requested, apply Link-time code generation even if PGO was disabled due to mismatched args
+				if (LinkEnvironment.bPGOOptimize || LinkEnvironment.bPGOProfile)
 				{
-					Logger.LogWarning("PGO Optimize build will be disabled");
-					bPGOOptimize = false;
+					if (!Arguments.Contains("/LTCG"))
+					{
+						Arguments.Add("/LTCG");
+					}
+					Log.TraceInformationOnce("Enabling Link-time code generation (LTGC) as Profile Guided Optimization (PGO) was requested. Linking will take a while.");
+				}
+
+				if (bPGOOptimize)
+				{
+					if (PreparePGOFiles(LinkEnvironment))
+					{
+						Arguments.Add("/USEPROFILE");
+						Log.TraceInformationOnce("Enabling using Profile Guided Optimization (PGO). Linking will take a while.");
+					}
+					else
+					{
+						Logger.LogWarning("Unable to prepare Profile Guided Optimization (PGO) files. Using PGO Optimize build will be disabled.");
+						bPGOOptimize = false;
+					}
+				}
+				else if (bPGOProfile)
+				{
+					if (Target.WindowsPlatform.bUseFastGenProfile)
+					{
+						Log.TraceInformationOnce("Enabling generating Fastgen Profile Guided Optimization (PGO). Linking will take a while.");
+						Arguments.Add("/FASTGENPROFILE");
+					}
+					else
+					{
+						if (Target.WindowsPlatform.bPGONoExtraCounters)
+						{
+							Log.TraceInformationOnce("Enabling generating Profile Guided Optimization No Extra Counters (PGO). Linking will take a while.");
+							Arguments.Add("/GENPROFILE:NOTRACKEH");
+						}
+						else
+						{
+							Log.TraceInformationOnce("Enabling generating Profile Guided Optimization (PGO). Linking will take a while.");
+							Arguments.Add("/GENPROFILE");
+						}
+					}
 				}
 			}
-			else if (bPGOProfile)
+			else
 			{
-				//Arguments.Add("/GENPROFILE:PGD=" + Path.Combine(LinkEnvironment.PGODirectory, LinkEnvironment.PGOFilenamePrefix + ".pgd"));
-				Arguments.Add("/LTCG");
-				//Arguments.Add("/GENPROFILE:PGD=" + LinkEnvironment.PGOFilenamePrefix + ".pgd");
-				if (Target.WindowsPlatform.bUseFastGenProfile)
+				// No link arguments used for PGO on Intel compiler
+				if (bPGOOptimize)
 				{
-					Arguments.Add("/FASTGENPROFILE");
+					Log.TraceInformationOnce("Enabling Profile Guided Optimization (PGO) on Intel Compiler. Linking will take a while.");
 				}
-				else
+				else if (bPGOProfile)
 				{
-					Arguments.Add("/GENPROFILE");
+					Log.TraceInformationOnce("Enabling generating Profile Guided Optimization (PGO) on Intel Compiler. Linking will take a while.");
 				}
-				Log.TraceInformationOnce("Enabling Profile Guided Optimization (PGO). Linking will take a while.");
 			}
 		}
 
 		protected virtual void ModifyFinalLinkArguments(LinkEnvironment LinkEnvironment, List<string> Arguments, bool bBuildImportLibraryOnly)
 		{
-			AddPGOLinkArguments(LinkEnvironment, Arguments);
-
 			// IMPLEMENT_MODULE_ is not required - it only exists to ensure developers add an IMPLEMENT_MODULE() declaration in code. These are always removed for PGO so that adding/removing a module won't invalidate PGC data.
 			Arguments.RemoveAll(Argument => Argument.StartsWith("/INCLUDE:IMPLEMENT_MODULE_"));
+
+			AddPGOLinkArguments(LinkEnvironment, Arguments);
 		}
 
 		private void ExportObjectFilePaths(LinkEnvironment LinkEnvironment, string FileName, VCEnvironment EnvVars)
 		{
 			// Write the list of object file directories
 			HashSet<DirectoryReference> ObjectFileDirectories = new HashSet<DirectoryReference>();
-			foreach(FileItem InputFile in LinkEnvironment.InputFiles)
+			foreach (FileItem InputFile in LinkEnvironment.InputFiles)
 			{
 				ObjectFileDirectories.Add(InputFile.Location.Directory);
 			}
-			foreach(FileReference Library in LinkEnvironment.Libraries)
+			foreach (FileReference Library in LinkEnvironment.Libraries)
 			{
 				ObjectFileDirectories.Add(Library.Directory);
 			}
-			foreach(DirectoryReference LibraryPath in LinkEnvironment.SystemLibraryPaths)
+			foreach (DirectoryReference LibraryPath in LinkEnvironment.SystemLibraryPaths)
 			{
 				ObjectFileDirectories.Add(LibraryPath);
 			}
-			foreach(string LibraryPath in (Environment.GetEnvironmentVariable("LIB") ?? "").Split(new char[]{ ';' }, StringSplitOptions.RemoveEmptyEntries))
+			foreach (string LibraryPath in (Environment.GetEnvironmentVariable("LIB") ?? "").Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
 			{
 				ObjectFileDirectories.Add(new DirectoryReference(LibraryPath));
 			}
@@ -3057,17 +3480,17 @@ namespace UnrealBuildTool
 		/// Gets the default include paths for the given platform.
 		/// </summary>
 		[SupportedOSPlatform("windows")]
-		public static string GetVCIncludePaths(UnrealTargetPlatform Platform, WindowsCompiler Compiler, string? CompilerVersion, ILogger Logger)
+		public static string GetVCIncludePaths(UnrealTargetPlatform Platform, WindowsCompiler Compiler, string? CompilerVersion, string? ToolchainVersion, ILogger Logger)
 		{
 			// Make sure we've got the environment variables set up for this target
-			VCEnvironment EnvVars = VCEnvironment.Create(Compiler, WindowsCompiler.Default, Platform, UnrealArch.X64, CompilerVersion, null, null, false, false, Logger);
+			VCEnvironment EnvVars = VCEnvironment.Create(Compiler, WindowsCompiler.Default, Platform, UnrealArch.X64, CompilerVersion, ToolchainVersion, null, null, false, false, Logger);
 
 			// Also add any include paths from the INCLUDE environment variable.  MSVC is not necessarily running with an environment that
 			// matches what UBT extracted from the vcvars*.bat using SetEnvironmentVariablesFromBatchFile().  We'll use the variables we
 			// extracted to populate the project file's list of include paths
 			// @todo projectfiles: Should we only do this for VC++ platforms?
 			StringBuilder IncludePaths = new StringBuilder();
-			foreach(DirectoryReference IncludePath in EnvVars.IncludePaths)
+			foreach (DirectoryReference IncludePath in EnvVars.IncludePaths)
 			{
 				IncludePaths.AppendFormat("{0};", IncludePath);
 			}
@@ -3078,7 +3501,7 @@ namespace UnrealBuildTool
 		{
 			if (Binary.Type == UEBuildBinaryType.DynamicLinkLibrary)
 			{
-				if(Target.bShouldCompileAsDLL)
+				if (Target.bShouldCompileAsDLL)
 				{
 					BuildProducts.Add(FileReference.Combine(Binary.OutputDir, Binary.OutputFilePath.GetFileNameWithoutExtension() + ".lib"), BuildProductType.BuildResource);
 				}
@@ -3087,9 +3510,9 @@ namespace UnrealBuildTool
 					BuildProducts.Add(FileReference.Combine(Binary.IntermediateDirectory, Binary.OutputFilePath.GetFileNameWithoutExtension() + ".lib"), BuildProductType.BuildResource);
 				}
 			}
-			if(Binary.Type == UEBuildBinaryType.Executable && Target.bCreateMapFile)
+			if (Binary.Type == UEBuildBinaryType.Executable && Target.bCreateMapFile)
 			{
-				foreach(FileReference OutputFilePath in Binary.OutputFilePaths)
+				foreach (FileReference OutputFilePath in Binary.OutputFilePaths)
 				{
 					BuildProducts.Add(FileReference.Combine(OutputFilePath.Directory, OutputFilePath.GetFileNameWithoutExtension() + ".map"), BuildProductType.MapFile);
 					BuildProducts.Add(FileReference.Combine(OutputFilePath.Directory, OutputFilePath.GetFileNameWithoutExtension() + ".objpaths"), BuildProductType.MapFile);
