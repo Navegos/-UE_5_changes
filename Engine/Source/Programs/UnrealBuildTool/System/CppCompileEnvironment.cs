@@ -105,7 +105,7 @@ namespace UnrealBuildTool
 		/// A generic CPU with 64-bit extensions.
 		/// </summary>
 		Generic,
-		
+
 		/// <summary>
 		/// A No CPU with 64-bit extensions.
 		/// </summary>
@@ -326,7 +326,7 @@ namespace UnrealBuildTool
 		Graniterapids_d,
 
 		/// <summary>
-		/// Use the default Generic version
+		/// Use the default Native version
 		/// </summary>
 		Default = Native,
 	}
@@ -464,6 +464,11 @@ namespace UnrealBuildTool
 		/// Whether the compilation should create, use, or do nothing with the precompiled header.
 		/// </summary>
 		public PrecompiledHeaderAction PrecompiledHeaderAction = PrecompiledHeaderAction.None;
+
+		/// <summary>
+		/// Will replace pch with ifc and use header units instead
+		/// </summary>
+		public bool bUseHeaderUnitsForPch = false;
 
 		/// <summary>
 		/// Whether artifacts from this compile are shared with other targets. If so, we should not apply any target-wide modifications to the compile environment.
@@ -646,6 +651,11 @@ namespace UnrealBuildTool
 		/// True if debug info should be created.
 		/// </summary>
 		public bool bCreateDebugInfo = true;
+
+		/// <summary>
+		/// True if debug info should only generate line number tables (clang)
+		/// </summary>
+		public bool bDebugLineTablesOnly = false;
 
 		/// <summary>
 		/// True if we're compiling .cpp files that will go into a library (.lib file)
@@ -981,6 +991,7 @@ namespace UnrealBuildTool
 			OptimizationLevel = Other.OptimizationLevel;
 			FPSemantics = Other.FPSemantics;
 			bCreateDebugInfo = Other.bCreateDebugInfo;
+			bDebugLineTablesOnly = Other.bDebugLineTablesOnly;
 			bIsBuildingLibrary = Other.bIsBuildingLibrary;
 			bIsBuildingDLL = Other.bIsBuildingDLL;
 			bUseStaticCRT = Other.bUseStaticCRT;
@@ -999,6 +1010,7 @@ namespace UnrealBuildTool
 			PGODirectory = Other.PGODirectory;
 			bPrintTimingInfo = Other.bPrintTimingInfo;
 			bAllowRemotelyCompiledPCHs = Other.bAllowRemotelyCompiledPCHs;
+			bUseHeaderUnitsForPch = Other.bUseHeaderUnitsForPch;
 			UserIncludePaths = new HashSet<DirectoryReference>(Other.UserIncludePaths);
 			SystemIncludePaths = new HashSet<DirectoryReference>(Other.SystemIncludePaths);
 			SharedUserIncludePaths = new HashSet<DirectoryReference>(Other.SharedUserIncludePaths);

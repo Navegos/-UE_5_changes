@@ -28,6 +28,14 @@ $ Architecture (UnrealArch): Gets the Architecture in the normal case where ther
 
 $ bIWYU (Boolean): Enables "include what you use" by default for modules in this target. Changes the default PCH mode for any module in this project to PCHUsageMode.UseExplicitOrSharedPCHs.
 
+$ DisableDebugInfoModules (HashSet&lt;String&gt;): Modules that should have debug info disabled
+
+$ DisableDebugInfoPlugins (HashSet&lt;String&gt;): Plugins that should have debug info disabled
+
+$ DebugInfoLineTablesOnlyModules (HashSet&lt;String&gt;): Modules that should emit line number tables instead of full debug information for compilers that support doing so. Overrides DisableDebugInfoModules
+
+$ DebugInfoLineTablesOnlyPlugins (HashSet&lt;String&gt;): Plugins that should emit line number tables instead of full debug information for compilers that support doing so. Overrides DisableDebugInfoPlugins
+
 $ HostPlatform (UnrealTargetPlatform): Gets the host platform being built on
 
 $ bGenerateProjectFiles (Boolean): Expose the bGenerateProjectFiles flag to targets, so we can modify behavior as appropriate for better intellisense
@@ -170,6 +178,8 @@ $ bWithFixedTimeStepSupport (Boolean): Whether to enable the support for FixedTi
 
 $ bUseLoggingInShipping (Boolean): Whether to turn on logging for test/shipping builds.
 
+$ bUseConsoleInShipping (Boolean): Whether to turn on console for shipping builds.
+
 $ bLoggingToMemoryEnabled (Boolean): Whether to turn on logging to memory for test/shipping builds.
 
 $ bUseLauncherChecks (Boolean): Whether to check that the process was launched through an external launcher.
@@ -270,9 +280,7 @@ $ bDetailedUnityFiles (Boolean): Whether to add additional information to the un
 
 $ bForceDebugInfo (Boolean): Whether to force debug info to be generated.
 
-$ bDisableDebugInfo (Boolean): Whether to globally disable debug info generation; see DebugInfoHeuristics.cs for per-config and per-platform options.
-
-$ bDisableDebugInfoForGeneratedCode (Boolean): Whether to disable debug info generation for generated files. This improves link times for modules that have a lot of generated glue code.
+$ bDisableDebugInfoForGeneratedCode (Boolean): Whether to disable debug info generation for generated files. This improves link times and reduces pdb size for modules that have a lot of generated glue code.
 
 $ bOmitPCDebugInfoInDevelopment (Boolean): Whether to disable debug info on PC/Mac in development builds (for faster developer iteration, as link times are extremely fast with debug info disabled).
 
@@ -356,13 +364,15 @@ $ bDeployAfterCompile (Boolean): Whether to deploy the executable after compilat
 
 $ bAllowRemotelyCompiledPCHs (Boolean): When enabled, allows XGE to compile pre-compiled header files on remote machines.  Otherwise, PCHs are always generated locally.
 
+$ bUseHeaderUnitsForPch (Boolean): Will replace pch with ifc and use header units instead. This is an experimental and msvc-only feature
+
 $ bCheckSystemHeadersForModification (Boolean): Whether headers in system paths should be checked for modification when determining outdated actions.
 
 $ bDisableLinking (Boolean): Whether to disable linking for this target.
 
 $ bIgnoreBuildOutputs (Boolean): Whether to ignore tracking build outputs for this target.
 
-$ bFormalBuild (Boolean): Indicates that this is a formal build, intended for distribution. This flag is automatically set to true when Build.version has a changelist set. The only behavior currently bound to this flag is to compile the default resource file separately for each binary so that the OriginalFilename field is set correctly. By default, we only compile the resource once to reduce build times.
+$ bFormalBuild (Boolean): Indicates that this is a formal build, intended for distribution. This flag is automatically set to true when Build.version has a changelist set and is a promoted build. The only behavior currently bound to this flag is to compile the default resource file separately for each binary so that the OriginalFilename field is set correctly. By default, we only compile the resource once to reduce build times.
 
 $ bFlushBuildDirOnRemoteMac (Boolean): Whether to clean Builds directory on a remote Mac before building.
 
@@ -509,6 +519,12 @@ $ bValidateFormatStrings (Boolean): Emits compilation errors for incorrect UE_LO
 $ DeprecationWarningLevel (WarningLevel): Level to report deprecation warnings as errors
 
 $ bRetainFramePointers (Boolean): Forces frame pointers to be retained this is usually required when you want reliable callstacks e.g. mallocframeprofiler
+
+$ bDisableDebugInfo (Boolean): Whether to globally disable debug info generation; Obsolete, please use TargetRules.DebugInfoMode instead
+
+$ DebugInfo (DebugInfoMode): How much debug info should be generated. See DebugInfoMode enum for more details
+
+$ DebugInfoLineTablesOnly (DebugInfoMode): True if only debug line number tables should be emitted in debug information for compilers that support doing so. Overrides TargetRules.DebugInfo See https://clang.llvm.org/docs/UsersManual.html#cmdoption-gline-tables-only for more information
 
 $ bDeterministic (Boolean): Set flags require for deterministic compiling and linking. Enabling deterministic mode for msvc disables codegen multithreading so compiling will be slower
 

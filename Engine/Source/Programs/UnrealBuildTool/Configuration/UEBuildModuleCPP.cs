@@ -637,6 +637,9 @@ namespace UnrealBuildTool
 				Logger.LogTrace("Module '{ModuleName}' not using unity build mode", Name);
 			}
 
+			CompileEnvironment.bUseUnity = bModuleUsesUnityBuild;
+			GeneratedCPPCompileEnvironment.bUseUnity = bModuleUsesUnityBuild;
+
 			// Compile Generated CPP Files
 			if (bModuleUsesUnityBuild)
 			{
@@ -1802,6 +1805,14 @@ namespace UnrealBuildTool
 					{
 						foreach (FileItem CppFile in CppFiles)
 						{
+							// In the Verse VM, we specifically split header files into both inline/non-inline versions, where the inline header
+							// usually includes the non-inline version. Then the .cpp file includes the inline version, which throws up this warning
+							// and the only way around it is to include both headers in the .cpp, which kind of defeats the whole purpose in the first place.
+							// So we disable this check for anything `VerseVM` related.
+							if (CppFile.Directory.Name == "VerseVM")
+							{
+								continue;
+							}
 							string? FirstInclude = ModuleCompileEnvironment.MetadataCache.GetFirstInclude(CppFile);
 							if (FirstInclude != null)
 							{
@@ -1831,9 +1842,93 @@ namespace UnrealBuildTool
 				case "VulkanRHI":
 				case "OpenGLDrv":
 				case "MetalRHI":
+				case "VerseVM":
 					return true;
 			}
 			return false;
+		}
+
+		private void CompileEnvironmentDebugInfoSettings(ReadOnlyTargetRules Target, CppCompileEnvironment Result)
+		{
+			// If bCreateDebugInfo is disabled for the whole target do not adjust any settings
+			if (!Result.bCreateDebugInfo)
+			{
+				return;
+			}
+
+			if (Rules.Target.ProjectFile != null && Rules.File.IsUnderDirectory(Rules.Target.ProjectFile.Directory))
+			{
+				if (Target.DebugInfoLineTablesOnly.HasFlag(DebugInfoMode.ProjectPlugins) && Rules.Plugin != null)
+				{
+					Result.bDebugLineTablesOnly = true;
+				}
+				else if (Target.DebugInfoLineTablesOnly.HasFlag(DebugInfoMode.Project) && Rules.Plugin == null)
+				{
+					Result.bDebugLineTablesOnly = true;
+				}
+			}
+			else
+			{
+				if (Target.DebugInfoLineTablesOnly.HasFlag(DebugInfoMode.EnginePlugins) && Rules.Plugin != null)
+				{
+					Result.bDebugLineTablesOnly = true;
+				}
+				else if (Target.DebugInfoLineTablesOnly.HasFlag(DebugInfoMode.Engine) && Rules.Plugin == null)
+				{
+					Result.bDebugLineTablesOnly = true;
+				}
+			}
+
+			if (Rules.Plugin != null && Rules.Target.DebugInfoLineTablesOnlyPlugins.Contains(Rules.Plugin.Name))
+			{
+				Result.bDebugLineTablesOnly = true;
+			}
+			else if (Rules.Target.DebugInfoLineTablesOnlyModules.Contains(Name))
+			{
+				Result.bDebugLineTablesOnly = true;
+			}
+
+			if (Result.bDebugLineTablesOnly)
+			{
+				// Don't disable debug info if only line tables are requested
+				return;
+			}
+
+			// Disable debug info for modules if requested
+			if (!Target.bUsePDBFiles || !Target.Platform.IsInGroup("Microsoft"))
+			{
+				if (Rules.Target.ProjectFile != null && Rules.File.IsUnderDirectory(Rules.Target.ProjectFile.Directory))
+				{
+					if (!Target.DebugInfo.HasFlag(DebugInfoMode.ProjectPlugins) && Rules.Plugin != null)
+					{
+						Result.bCreateDebugInfo = false;
+					}
+					else if (!Target.DebugInfo.HasFlag(DebugInfoMode.Project) && Rules.Plugin == null)
+					{
+						Result.bCreateDebugInfo = false;
+					}
+				}
+				else
+				{
+					if (!Target.DebugInfo.HasFlag(DebugInfoMode.EnginePlugins) && Rules.Plugin != null)
+					{
+						Result.bCreateDebugInfo = false;
+					}
+					else if (!Target.DebugInfo.HasFlag(DebugInfoMode.Engine) && Rules.Plugin == null)
+					{
+						Result.bCreateDebugInfo = false;
+					}
+				}
+
+				if (Rules.Plugin != null && Rules.Target.DisableDebugInfoPlugins.Contains(Rules.Plugin.Name))
+				{
+					Result.bCreateDebugInfo = false;
+				}
+				else if (Rules.Target.DisableDebugInfoModules.Contains(Name))
+				{
+					Result.bCreateDebugInfo = false;
+				}
+			}
 		}
 
 		/// <summary>
@@ -1908,6 +2003,8 @@ namespace UnrealBuildTool
 			Result.DeterministicWarningLevel = Rules.DeterministicWarningLevel;
 			Result.bValidateFormatStrings = Rules.bValidateFormatStrings;
 			Result.bUseAutoRTFMCompiler = Target.bUseAutoRTFMCompiler;
+
+			CompileEnvironmentDebugInfoSettings(Target, Result);
 
 			// Only enable the AutoRTFM flag if we are using the AutoRTFM compiler
 			if (Target.bUseAutoRTFMCompiler)
@@ -2024,7 +2121,7 @@ namespace UnrealBuildTool
 				{
 					throw new BuildException("Enabling compile for AVX512 is only supported with AMD Znver4 or from Intel Skylake_avx512 to Intel Graniterapids processors family.");
 				}
-				if (Result.MinCpuArchX64 == MinimumCpuArchitectureX64.AVX512 && (Result.DefaultCpuArchX64 == DefaultCpuArchitectureX64.Znver4 && Result.DefaultCpuArchX64 <= DefaultCpuArchitectureX64.Graniterapids))
+				if (Result.MinCpuArchX64 == MinimumCpuArchitectureX64.AVX512 && (Result.DefaultCpuArchX64 == DefaultCpuArchitectureX64.Znver4 && Result.DefaultCpuArchX64 <= DefaultCpuArchitectureX64.Graniterapids_d))
 				{
 					//Result.MinCpuArchX64 = MinimumCpuArchitectureX64.AVX512; // Already selected
 				}
@@ -2293,6 +2390,25 @@ namespace UnrealBuildTool
 				return Array.Empty<FileItem>();
 			}
 			return Files;
+		}
+
+		/// <summary>
+		/// Gets a set of source files and headers for the given directory. Used to detect when the makefile is out of date due to a new directory
+		/// </summary>
+		/// <param name="Directory"></param>
+		/// <param name="Logger">Logger for output</param>
+		/// <returns>Array of source files and headers</returns>
+		public static FileItem[] GetSourceFilesAndHeaders(DirectoryItem Directory, ILogger Logger)
+		{
+			bool bIgnoreFileFound;
+			InputFileCollection InputFiles = new InputFileCollection();
+			List<FileItem> Files = new List<FileItem>(FindInputFilesFromDirectory(Directory, InputFiles, out bIgnoreFileFound, Logger));
+			if (bIgnoreFileFound)
+			{
+				return Array.Empty<FileItem>();
+			}
+			Files.AddRange(InputFiles.HeaderFiles);
+			return Files.ToArray();
 		}
 
 		/// <summary>

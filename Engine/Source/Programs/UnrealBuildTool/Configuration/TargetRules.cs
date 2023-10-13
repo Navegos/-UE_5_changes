@@ -292,6 +292,55 @@ namespace UnrealBuildTool
 	}
 
 	/// <summary>
+	/// Debug info mode for compiler settings to determine how much debug info is available
+	/// </summary>
+	[Flags]
+	public enum DebugInfoMode
+	{
+		/// <summary>
+		/// Disable all debugging info.
+		/// MSVC: object files will be compiled without /Z7 or /Zi but pdbs will still be created
+		///       callstacks should be available in this mode but there have been reports with them being incorrect
+		/// </summary>
+		None = 0,
+
+		/// <summary>
+		/// Enable debug info for engine modules
+		/// </summary>
+		Engine = 1 << 0,
+
+		/// <summary>
+		/// Enable debug info for engine plugins
+		/// </summary>
+		EnginePlugins = 1 << 1,
+
+		/// <summary>
+		/// Enable debug info for project modules
+		/// </summary>
+		Project = 1 << 2,
+
+		/// <summary>
+		/// Enable debug info for project plugins
+		/// </summary>
+		ProjectPlugins = 1 << 3,
+
+		/// <summary>
+		/// Only include debug info for engine modules and plugins
+		/// </summary>
+		EngineOnly = Engine | EnginePlugins,
+
+		/// <summary>
+		/// Only include debug info for project modules and project plugins
+		/// </summary>
+		ProjectOnly = Project | ProjectPlugins,
+
+		/// <summary>
+		/// Include full debugging information for all modules
+		/// </summary>
+		Full = Engine | EnginePlugins | Project | ProjectPlugins,
+	}
+
+	/// <summary>
 	/// Floating point math semantics
 	/// </summary>
 	public enum FPSemanticsMode
@@ -1335,6 +1384,12 @@ namespace UnrealBuildTool
 		public bool bUseLoggingInShipping = false;
 
 		/// <summary>
+		/// Whether to turn on console for shipping builds.
+		/// </summary>
+		[RequiresUniqueBuildEnvironment]
+		public bool bUseConsoleInShipping = false;
+
+		/// <summary>
 		/// Whether to turn on logging to memory for test/shipping builds.
 		/// </summary>
 		[RequiresUniqueBuildEnvironment]
@@ -1786,14 +1841,58 @@ namespace UnrealBuildTool
 		public bool bForceDebugInfo = false;
 
 		/// <summary>
-		/// Whether to globally disable debug info generation; see DebugInfoHeuristics.cs for per-config and per-platform options.
+		/// Whether to globally disable debug info generation; Obsolete, please use TargetRules.DebugInfoMode instead
 		/// </summary>
-		[CommandLine("-NoDebugInfo")]
 		[XmlConfigFile(Category = "BuildConfiguration")]
-		public bool bDisableDebugInfo = false;
+		[Obsolete("Deprecated in UE5.4 - Replace with TargetRules.DebugInfo")]
+		public bool bDisableDebugInfo
+		{
+			get => DebugInfo == DebugInfoMode.None;
+			set => DebugInfo = value ? DebugInfo = DebugInfoMode.None : DebugInfo = DebugInfoMode.Full;
+		}
 
 		/// <summary>
-		/// Whether to disable debug info generation for generated files. This improves link times for modules that have a lot of generated glue code.
+		/// How much debug info should be generated. See DebugInfoMode enum for more details
+		/// </summary>
+		[CommandLine("-NoDebugInfo", Value = "None")]
+		[CommandLine("-DebugInfo=")]
+		[XmlConfigFile(Category = "BuildConfiguration")]
+		public DebugInfoMode DebugInfo { get; set; } = DebugInfoMode.Full;
+
+		/// <summary>
+		/// Modules that should have debug info disabled
+		/// </summary>
+		[CommandLine("-DisableDebugInfoModules=", ListSeparator = '+')]
+		public HashSet<string> DisableDebugInfoModules { get; } = new();
+
+		/// <summary>
+		/// Plugins that should have debug info disabled
+		/// </summary>
+		[CommandLine("-DisableDebugInfoPlugins=", ListSeparator = '+')]
+		public HashSet<string> DisableDebugInfoPlugins { get; } = new();
+
+		/// <summary>
+		/// True if only debug line number tables should be emitted in debug information for compilers that support doing so. Overrides TargetRules.DebugInfo
+		/// See https://clang.llvm.org/docs/UsersManual.html#cmdoption-gline-tables-only for more information
+		/// </summary>
+		[XmlConfigFile(Category = "BuildConfiguration")]
+		[CommandLine("-DebugInfoLineTablesOnly=")]
+		public DebugInfoMode DebugInfoLineTablesOnly { get; set; } = DebugInfoMode.None;
+
+		/// <summary>
+		/// Modules that should emit line number tables instead of full debug information for compilers that support doing so. Overrides DisableDebugInfoModules
+		/// </summary>
+		[CommandLine("-DebugInfoLineTablesOnlyModules=", ListSeparator = '+')]
+		public HashSet<string> DebugInfoLineTablesOnlyModules { get; } = new();
+
+		/// <summary>
+		/// Plugins that should emit line number tables instead of full debug information for compilers that support doing so. Overrides DisableDebugInfoPlugins
+		/// </summary>
+		[CommandLine("-DebugInfoLineTablesOnlyPlugins=", ListSeparator = '+')]
+		public HashSet<string> DebugInfoLineTablesOnlyPlugins { get; } = new();
+
+		/// <summary>
+		/// Whether to disable debug info generation for generated files. This improves link times and reduces pdb size for modules that have a lot of generated glue code.
 		/// </summary>
 		[XmlConfigFile(Category = "BuildConfiguration")]
 		public bool bDisableDebugInfoForGeneratedCode = false;
@@ -2100,6 +2199,12 @@ namespace UnrealBuildTool
 		public bool bAllowRemotelyCompiledPCHs = false;
 
 		/// <summary>
+		/// Will replace pch with ifc and use header units instead. This is an experimental and msvc-only feature
+		/// </summary>
+		[CommandLine("-HeaderUnits")]
+		public bool bUseHeaderUnitsForPch = false;
+
+		/// <summary>
 		/// Whether headers in system paths should be checked for modification when determining outdated actions.
 		/// </summary>
 		[XmlConfigFile(Category = "BuildConfiguration")]
@@ -2117,7 +2222,7 @@ namespace UnrealBuildTool
 		public bool bIgnoreBuildOutputs = false;
 
 		/// <summary>
-		/// Indicates that this is a formal build, intended for distribution. This flag is automatically set to true when Build.version has a changelist set.
+		/// Indicates that this is a formal build, intended for distribution. This flag is automatically set to true when Build.version has a changelist set and is a promoted build.
 		/// The only behavior currently bound to this flag is to compile the default resource file separately for each binary so that the OriginalFilename field is set correctly.
 		/// By default, we only compile the resource once to reduce build times.
 		/// </summary>
@@ -2585,7 +2690,7 @@ namespace UnrealBuildTool
 			ConstructorInfo? Constructor = RulesType.GetConstructor(new Type[] { typeof(TargetInfo) });
 			if (Constructor == null)
 			{
-				throw new BuildException("No constructor found on {0} which takes an argument of type TargetInfo.", RulesType.Name);
+				throw new CompilationResultException(CompilationResult.RulesError, "No constructor found on {TargetName} which takes an argument of type TargetInfo.", RulesType.Name);
 			}
 
 			// Invoke the regular constructor
@@ -2595,7 +2700,8 @@ namespace UnrealBuildTool
 			}
 			catch (Exception Ex)
 			{
-				throw new BuildException(Ex, "Unable to instantiate instance of '{0}' object type from compiled assembly '{1}'.  Unreal Build Tool creates an instance of your module's 'Rules' object in order to find out about your module's requirements.  The CLR exception details may provide more information:  {2}", RulesType.Name, Path.GetFileNameWithoutExtension(RulesType.Assembly?.Location), Ex.ToString());
+				throw new CompilationResultException(CompilationResult.RulesError, Ex, "Unable to instantiate instance of '{TargetName}' object type from compiled assembly '{AssemblyPath}'.  Unreal Build Tool creates an instance of your module's 'Rules' object in order to find out about your module's requirements.  The CLR exception details may provide more information: {ExceptionMessage}",
+                    RulesType.Name, Path.GetFileNameWithoutExtension(RulesType.Assembly?.Location) ?? "Unknown Assembly", Ex.ToString());
 			}
 
 			return Rules;
@@ -2636,7 +2742,7 @@ namespace UnrealBuildTool
 			ConfigValueTracker = new ConfigValueTracker(ConfigValues);
 
 			// If we've got a changelist set, set that we're making a formal build
-			bFormalBuild = (Version.Changelist != 0 && Version.IsPromotedBuild);
+			bFormalBuild = bFormalBuild || (Version.Changelist != 0 && Version.IsPromotedBuild);
 
 			// Allow the build platform to set defaults for this target
 			UEBuildPlatform.GetBuildPlatform(Platform).ResetTarget(this);
@@ -3216,6 +3322,8 @@ namespace UnrealBuildTool
 
 		public bool bUseLoggingInShipping => Inner.bUseLoggingInShipping;
 
+		public bool bUseConsoleInShipping => Inner.bUseConsoleInShipping;
+
 		public bool bLoggingToMemoryEnabled => Inner.bLoggingToMemoryEnabled;
 
 		public bool bUseLauncherChecks => Inner.bUseLauncherChecks;
@@ -3329,7 +3437,20 @@ namespace UnrealBuildTool
 
 		public bool bDetailedUnityFiles => Inner.bDetailedUnityFiles;
 
+		[Obsolete("Deprecated in UE5.4 - Replace with ReadOnlyTargetRules.DebugInfo")]
 		public bool bDisableDebugInfo => Inner.bDisableDebugInfo;
+
+		public DebugInfoMode DebugInfo => Inner.DebugInfo;
+
+		public IReadOnlySet<string> DisableDebugInfoModules => Inner.DisableDebugInfoModules;
+
+		public IReadOnlySet<string> DisableDebugInfoPlugins => Inner.DisableDebugInfoPlugins;
+
+		public DebugInfoMode DebugInfoLineTablesOnly => Inner.DebugInfoLineTablesOnly;
+
+		public IReadOnlySet<string> DebugInfoLineTablesOnlyModules => Inner.DebugInfoLineTablesOnlyModules;
+
+		public IReadOnlySet<string> DebugInfoLineTablesOnlyPlugins => Inner.DebugInfoLineTablesOnlyPlugins;
 
 		public bool bDisableDebugInfoForGeneratedCode => Inner.bDisableDebugInfoForGeneratedCode;
 
@@ -3416,6 +3537,8 @@ namespace UnrealBuildTool
 		public bool bDeployAfterCompile => Inner.bDeployAfterCompile;
 
 		public bool bAllowRemotelyCompiledPCHs => Inner.bAllowRemotelyCompiledPCHs;
+
+		public bool bUseHeaderUnitsForPch => Inner.bUseHeaderUnitsForPch;
 
 		public bool bCheckSystemHeadersForModification => Inner.bCheckSystemHeadersForModification;
 

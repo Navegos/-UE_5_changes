@@ -1,6 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 // This file was automatically generated. DO NOT EDIT!
-// Generated from cuda.h v11.7.2
+// Generated from cuda.h v12.2.2
 
 #ifndef _CUDA_WRAPPER_H
 #define _CUDA_WRAPPER_H
@@ -192,6 +192,45 @@ extern "C" {
 #ifdef cuGraphInstantiate
 #undef cuGraphInstantiate
 #endif
+#ifdef cuGraphAddKernelNode
+#undef cuGraphAddKernelNode
+#endif
+#ifdef cuGraphKernelNodeGetParams
+#undef cuGraphKernelNodeGetParams
+#endif
+#ifdef cuGraphKernelNodeSetParams
+#undef cuGraphKernelNodeSetParams
+#endif
+#ifdef cuGraphExecKernelNodeSetParams
+#undef cuGraphExecKernelNodeSetParams
+#endif
+#ifdef cuGraphExecUpdate
+#undef cuGraphExecUpdate
+#endif
+#ifdef cuGetProcAddress
+#undef cuGetProcAddress
+#endif
+#ifdef cuStreamWriteValue32
+#undef cuStreamWriteValue32
+#endif
+#ifdef cuStreamWaitValue32
+#undef cuStreamWaitValue32
+#endif
+#ifdef cuStreamWriteValue64
+#undef cuStreamWriteValue64
+#endif
+#ifdef cuStreamWaitValue64
+#undef cuStreamWaitValue64
+#endif
+#ifdef cuStreamBatchMemOp
+#undef cuStreamBatchMemOp
+#endif
+#ifdef cuStreamGetCaptureInfo
+#undef cuStreamGetCaptureInfo
+#endif
+#ifdef cuStreamGetCaptureInfo_v2
+#undef cuStreamGetCaptureInfo_v2
+#endif
 
 #ifdef cuMemcpy
 #undef cuMemcpy
@@ -213,6 +252,9 @@ extern "C" {
 #endif
 #ifdef cuMemPrefetchAsync
 #undef cuMemPrefetchAsync
+#endif
+#ifdef cuMemPrefetchAsync_v2
+#undef cuMemPrefetchAsync_v2
 #endif
 
 #ifdef cuMemsetD8Async
@@ -237,6 +279,9 @@ extern "C" {
 #ifdef cuStreamGetPriority
 #undef cuStreamGetPriority
 #endif
+#ifdef cuStreamGetId
+#undef cuStreamGetId
+#endif
 #ifdef cuStreamGetFlags
 #undef cuStreamGetFlags
 #endif
@@ -251,12 +296,6 @@ extern "C" {
 #endif
 #ifdef cuStreamIsCapturing
 #undef cuStreamIsCapturing
-#endif
-#ifdef cuStreamGetCaptureInfo
-#undef cuStreamGetCaptureInfo
-#endif
-#ifdef cuStreamGetCaptureInfo_v2
-#undef cuStreamGetCaptureInfo_v2
 #endif
 #ifdef cuStreamUpdateCaptureDependencies
 #undef cuStreamUpdateCaptureDependencies
@@ -282,6 +321,9 @@ extern "C" {
 #ifdef cuLaunchKernel
 #undef cuLaunchKernel
 #endif
+#ifdef cuLaunchKernelEx
+#undef cuLaunchKernelEx
+#endif
 #ifdef cuLaunchHostFunc
 #undef cuLaunchHostFunc
 #endif
@@ -290,38 +332,6 @@ extern "C" {
 #endif
 #ifdef cuGraphicsUnmapResources
 #undef cuGraphicsUnmapResources
-#endif
-
-#ifdef cuStreamWriteValue32
-#undef cuStreamWriteValue32
-#endif
-#ifdef cuStreamWaitValue32
-#undef cuStreamWaitValue32
-#endif
-#ifdef cuStreamWriteValue64
-#undef cuStreamWriteValue64
-#endif
-#ifdef cuStreamWaitValue64
-#undef cuStreamWaitValue64
-#endif
-#ifdef cuStreamBatchMemOp
-#undef cuStreamBatchMemOp
-#endif
-
-#ifdef cuStreamWriteValue32_v2
-#undef cuStreamWriteValue32_v2
-#endif
-#ifdef cuStreamWaitValue32_v2
-#undef cuStreamWaitValue32_v2
-#endif
-#ifdef cuStreamWriteValue64_v2
-#undef cuStreamWriteValue64_v2
-#endif
-#ifdef cuStreamWaitValue64_v2
-#undef cuStreamWaitValue64_v2
-#endif
-#ifdef cuStreamBatchMemOp_v2
-#undef cuStreamBatchMemOp_v2
 #endif
 
 #ifdef cuLaunchCooperativeKernel
@@ -333,6 +343,9 @@ extern "C" {
 #endif
 #ifdef cuWaitExternalSemaphoresAsync
 #undef cuWaitExternalSemaphoresAsync
+#endif
+#ifdef cuGraphInstantiateWithParams
+#undef cuGraphInstantiateWithParams
 #endif
 
 #ifdef cuGraphUpload
@@ -365,6 +378,136 @@ extern "C" {
 #endif
 
 // Function pointer types for CUDA Driver API functions
+typedef CUresult (CUDAAPI *PFNCUDEVICETOTALMEM) (size_t *bytes, CUdevice dev);
+typedef CUresult (CUDAAPI *PFNCUCTXCREATE) (CUcontext *pctx, unsigned int flags, CUdevice dev);
+typedef CUresult (CUDAAPI *PFNCUCTXCREATEV3) (CUcontext* pctx, CUexecAffinityParam* paramsArray, int numParams, unsigned int flags, CUdevice dev);
+typedef CUresult (CUDAAPI *PFNCUMODULEGETGLOBAL) (CUdeviceptr *dptr, size_t *bytes, CUmodule hmod, const char *name);
+typedef CUresult (CUDAAPI *PFNCUMEMGETINFO) (size_t *free, size_t *total);
+typedef CUresult (CUDAAPI *PFNCUMEMALLOC) (CUdeviceptr *dptr, size_t bytesize);
+typedef CUresult (CUDAAPI *PFNCUMEMALLOCPITCH) (CUdeviceptr *dptr, size_t *pPitch, size_t WidthInBytes, size_t Height, unsigned int ElementSizeBytes);
+typedef CUresult (CUDAAPI *PFNCUMEMFREE) (CUdeviceptr dptr);
+typedef CUresult (CUDAAPI *PFNCUMEMGETADDRESSRANGE) (CUdeviceptr *pbase, size_t *psize, CUdeviceptr dptr);
+typedef CUresult (CUDAAPI *PFNCUMEMALLOCHOST) (void **pp, size_t bytesize);
+typedef CUresult (CUDAAPI *PFNCUMEMHOSTGETDEVICEPOINTER) (CUdeviceptr *pdptr, void *p, unsigned int Flags);
+typedef CUresult (CUDAAPI *PFNCUMEMCPYHTOD) (CUdeviceptr dstDevice, const void *srcHost, size_t ByteCount);
+typedef CUresult (CUDAAPI *PFNCUMEMCPYDTOH) (void *dstHost, CUdeviceptr srcDevice, size_t ByteCount);
+typedef CUresult (CUDAAPI *PFNCUMEMCPYDTOD) (CUdeviceptr dstDevice, CUdeviceptr srcDevice, size_t ByteCount);
+typedef CUresult (CUDAAPI *PFNCUMEMCPYDTOA) (CUarray dstArray, size_t dstOffset, CUdeviceptr srcDevice, size_t ByteCount);
+typedef CUresult (CUDAAPI *PFNCUMEMCPYATOD) (CUdeviceptr dstDevice, CUarray srcArray, size_t srcOffset, size_t ByteCount);
+typedef CUresult (CUDAAPI *PFNCUMEMCPYHTOA) (CUarray dstArray, size_t dstOffset, const void *srcHost, size_t ByteCount);
+typedef CUresult (CUDAAPI *PFNCUMEMCPYATOH) (void *dstHost, CUarray srcArray, size_t srcOffset, size_t ByteCount);
+typedef CUresult (CUDAAPI *PFNCUMEMCPYATOA) (CUarray dstArray, size_t dstOffset, CUarray srcArray, size_t srcOffset, size_t ByteCount);
+typedef CUresult (CUDAAPI *PFNCUMEMCPYHTOAASYNC) (CUarray dstArray, size_t dstOffset, const void *srcHost, size_t ByteCount, CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUMEMCPYATOHASYNC) (void *dstHost, CUarray srcArray, size_t srcOffset, size_t ByteCount, CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUMEMCPY2D) (const CUDA_MEMCPY2D *pCopy);
+typedef CUresult (CUDAAPI *PFNCUMEMCPY2DUNALIGNED) (const CUDA_MEMCPY2D *pCopy);
+typedef CUresult (CUDAAPI *PFNCUMEMCPY3D) (const CUDA_MEMCPY3D *pCopy);
+typedef CUresult (CUDAAPI *PFNCUMEMCPYHTODASYNC) (CUdeviceptr dstDevice, const void *srcHost, size_t ByteCount, CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUMEMCPYDTOHASYNC) (void *dstHost, CUdeviceptr srcDevice, size_t ByteCount, CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUMEMCPYDTODASYNC) (CUdeviceptr dstDevice, CUdeviceptr srcDevice, size_t ByteCount, CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUMEMCPY2DASYNC) (const CUDA_MEMCPY2D *pCopy, CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUMEMCPY3DASYNC) (const CUDA_MEMCPY3D *pCopy, CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUMEMSETD8) (CUdeviceptr dstDevice, unsigned char uc, size_t N);
+typedef CUresult (CUDAAPI *PFNCUMEMSETD16) (CUdeviceptr dstDevice, unsigned short us, size_t N);
+typedef CUresult (CUDAAPI *PFNCUMEMSETD32) (CUdeviceptr dstDevice, unsigned int ui, size_t N);
+typedef CUresult (CUDAAPI *PFNCUMEMSETD2D8) (CUdeviceptr dstDevice, size_t dstPitch, unsigned char uc, size_t Width, size_t Height);
+typedef CUresult (CUDAAPI *PFNCUMEMSETD2D16) (CUdeviceptr dstDevice, size_t dstPitch, unsigned short us, size_t Width, size_t Height);
+typedef CUresult (CUDAAPI *PFNCUMEMSETD2D32) (CUdeviceptr dstDevice, size_t dstPitch, unsigned int ui, size_t Width, size_t Height);
+typedef CUresult (CUDAAPI *PFNCUARRAYCREATE) (CUarray *pHandle, const CUDA_ARRAY_DESCRIPTOR *pAllocateArray);
+typedef CUresult (CUDAAPI *PFNCUARRAYGETDESCRIPTOR) (CUDA_ARRAY_DESCRIPTOR *pArrayDescriptor, CUarray hArray);
+typedef CUresult (CUDAAPI *PFNCUARRAY3DCREATE) (CUarray *pHandle, const CUDA_ARRAY3D_DESCRIPTOR *pAllocateArray);
+typedef CUresult (CUDAAPI *PFNCUARRAY3DGETDESCRIPTOR) (CUDA_ARRAY3D_DESCRIPTOR *pArrayDescriptor, CUarray hArray);
+typedef CUresult (CUDAAPI *PFNCUTEXREFSETADDRESS) (size_t *ByteOffset, CUtexref hTexRef, CUdeviceptr dptr, size_t bytes);
+typedef CUresult (CUDAAPI *PFNCUTEXREFGETADDRESS) (CUdeviceptr *pdptr, CUtexref hTexRef);
+typedef CUresult (CUDAAPI *PFNCUGRAPHICSRESOURCEGETMAPPEDPOINTER) (CUdeviceptr *pDevPtr, size_t *pSize, CUgraphicsResource resource);
+typedef CUresult (CUDAAPI *PFNCUCTXDESTROY) (CUcontext ctx);
+typedef CUresult (CUDAAPI *PFNCUCTXPOPCURRENT) (CUcontext *pctx);
+typedef CUresult (CUDAAPI *PFNCUCTXPUSHCURRENT) (CUcontext ctx);
+typedef CUresult (CUDAAPI *PFNCUSTREAMDESTROY) (CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUEVENTDESTROY) (CUevent hEvent);
+typedef CUresult (CUDAAPI *PFNCUTEXREFSETADDRESS2D) (CUtexref hTexRef, const CUDA_ARRAY_DESCRIPTOR *desc, CUdeviceptr dptr, size_t Pitch);
+typedef CUresult (CUDAAPI *PFNCULINKCREATE) (unsigned int numOptions, CUjit_option *options, void **optionValues, CUlinkState *stateOut);
+typedef CUresult (CUDAAPI *PFNCULINKADDDATA) (CUlinkState state, CUjitInputType type, void *data, size_t size, const char *name, unsigned int numOptions, CUjit_option *options, void **optionValues);
+typedef CUresult (CUDAAPI *PFNCULINKADDFILE) (CUlinkState state, CUjitInputType type, const char *path, unsigned int numOptions, CUjit_option *options, void **optionValues);
+typedef CUresult (CUDAAPI *PFNCUMEMHOSTREGISTER) (void *p, size_t bytesize, unsigned int Flags);
+typedef CUresult (CUDAAPI *PFNCUGRAPHICSRESOURCESETMAPFLAGS) (CUgraphicsResource resource, unsigned int flags);
+typedef CUresult (CUDAAPI *PFNCUSTREAMBEGINCAPTURE) (CUstream hStream, CUstreamCaptureMode mode);
+typedef CUresult (CUDAAPI *PFNCUDEVICEPRIMARYCTXRELEASE) (CUdevice dev);
+typedef CUresult (CUDAAPI *PFNCUDEVICEPRIMARYCTXRESET) (CUdevice dev);
+typedef CUresult (CUDAAPI *PFNCUDEVICEPRIMARYCTXSETFLAGS) (CUdevice dev, unsigned int flags);
+typedef CUresult (CUDAAPI *PFNCUDEVICEGETUUIDV2) (CUuuid *uuid, CUdevice dev);
+typedef CUresult (CUDAAPI *PFNCUIPCOPENMEMHANDLE) (CUdeviceptr *pdptr, CUipcMemHandle handle, unsigned int Flags);
+
+typedef CUresult (CUDAAPI *PFNCUGRAPHINSTANTIATE) (CUgraphExec *phGraphExec, CUgraph hGraph, unsigned long long flags);
+
+typedef CUresult (CUDAAPI *PFNCUGRAPHEXECUPDATE) (CUgraphExec hGraphExec, CUgraph hGraph, CUgraphExecUpdateResultInfo *resultInfo);
+typedef CUresult (CUDAAPI *PFNCUGETPROCADDRESS) (const char *symbol, void **pfn, int cudaVersion, cuuint64_t flags, CUdriverProcAddressQueryResult *symbolStatus);
+typedef CUresult (CUDAAPI *PFNCUGRAPHADDKERNELNODE) (CUgraphNode *phGraphNode, CUgraph hGraph, const CUgraphNode *dependencies, size_t numDependencies, const CUDA_KERNEL_NODE_PARAMS *nodeParams);
+typedef CUresult (CUDAAPI *PFNCUGRAPHKERNELNODEGETPARAMS) (CUgraphNode hNode, CUDA_KERNEL_NODE_PARAMS *nodeParams);
+typedef CUresult (CUDAAPI *PFNCUGRAPHKERNELNODESETPARAMS) (CUgraphNode hNode, const CUDA_KERNEL_NODE_PARAMS *nodeParams);
+typedef CUresult (CUDAAPI *PFNCUGRAPHEXECKERNELNODESETPARAMS) (CUgraphExec hGraphExec, CUgraphNode hNode, const CUDA_KERNEL_NODE_PARAMS *nodeParams);
+
+typedef CUresult (CUDAAPI *PFNCUSTREAMWRITEVALUE32) (CUstream stream, CUdeviceptr addr, cuuint32_t value, unsigned int flags);
+typedef CUresult (CUDAAPI *PFNCUSTREAMWAITVALUE32) (CUstream stream, CUdeviceptr addr, cuuint32_t value, unsigned int flags);
+typedef CUresult (CUDAAPI *PFNCUSTREAMWRITEVALUE64) (CUstream stream, CUdeviceptr addr, cuuint64_t value, unsigned int flags);
+typedef CUresult (CUDAAPI *PFNCUSTREAMWAITVALUE64) (CUstream stream, CUdeviceptr addr, cuuint64_t value, unsigned int flags);
+typedef CUresult (CUDAAPI *PFNCUSTREAMBATCHMEMOP) (CUstream stream, unsigned int count, CUstreamBatchMemOpParams *paramArray, unsigned int flags);
+typedef CUresult (CUDAAPI *PFNCUSTREAMGETCAPTUREINFO) (CUstream hStream, CUstreamCaptureStatus *captureStatus, cuuint64_t *id);
+typedef CUresult (CUDAAPI *PFNCUSTREAMGETCAPTUREINFOV2) (CUstream hStream, CUstreamCaptureStatus* captureStatus_out, cuuint64_t* id_out, CUgraph* graph_out, const CUgraphNode** dependencies_out, size_t* numDependencies_out);
+
+typedef CUresult (CUDAAPI *PFNCUMEMCPY) (CUdeviceptr dst, CUdeviceptr src, size_t ByteCount);
+typedef CUresult (CUDAAPI *PFNCUMEMCPYASYNC) (CUdeviceptr dst, CUdeviceptr src, size_t ByteCount, CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUMEMCPYPEER) (CUdeviceptr dstDevice, CUcontext dstContext, CUdeviceptr srcDevice, CUcontext srcContext, size_t ByteCount);
+typedef CUresult (CUDAAPI *PFNCUMEMCPYPEERASYNC) (CUdeviceptr dstDevice, CUcontext dstContext, CUdeviceptr srcDevice, CUcontext srcContext, size_t ByteCount, CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUMEMCPY3DPEER) (const CUDA_MEMCPY3D_PEER *pCopy);
+typedef CUresult (CUDAAPI *PFNCUMEMCPY3DPEERASYNC) (const CUDA_MEMCPY3D_PEER *pCopy, CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUMEMPREFETCHASYNC) (CUdeviceptr devPtr, size_t count, CUdevice dstDevice, CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUMEMPREFETCHASYNCV2) (CUdeviceptr devPtr, size_t count, CUmemLocation location, unsigned int flags, CUstream hStream);
+
+typedef CUresult (CUDAAPI *PFNCUMEMSETD8ASYNC) (CUdeviceptr dstDevice, unsigned char uc, size_t N, CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUMEMSETD16ASYNC) (CUdeviceptr dstDevice, unsigned short us, size_t N, CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUMEMSETD32ASYNC) (CUdeviceptr dstDevice, unsigned int ui, size_t N, CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUMEMSETD2D8ASYNC) (CUdeviceptr dstDevice, size_t dstPitch, unsigned char uc, size_t Width, size_t Height, CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUMEMSETD2D16ASYNC) (CUdeviceptr dstDevice, size_t dstPitch, unsigned short us, size_t Width, size_t Height, CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUMEMSETD2D32ASYNC) (CUdeviceptr dstDevice, size_t dstPitch, unsigned int ui, size_t Width, size_t Height, CUstream hStream);
+
+typedef CUresult (CUDAAPI *PFNCUSTREAMGETPRIORITY) (CUstream hStream, int *priority);
+typedef CUresult (CUDAAPI *PFNCUSTREAMGETID) (CUstream hStream, unsigned long long *streamId);
+typedef CUresult (CUDAAPI *PFNCUSTREAMGETFLAGS) (CUstream hStream, unsigned int *flags);
+typedef CUresult (CUDAAPI *PFNCUSTREAMGETCTX) (CUstream hStream, CUcontext *pctx);
+typedef CUresult (CUDAAPI *PFNCUSTREAMWAITEVENT) (CUstream hStream, CUevent hEvent, unsigned int Flags);
+typedef CUresult (CUDAAPI *PFNCUSTREAMENDCAPTURE) (CUstream hStream, CUgraph *phGraph);
+typedef CUresult (CUDAAPI *PFNCUSTREAMISCAPTURING) (CUstream hStream, CUstreamCaptureStatus *captureStatus);
+typedef CUresult (CUDAAPI *PFNCUSTREAMUPDATECAPTUREDEPENDENCIES) (CUstream hStream, CUgraphNode* dependencies, size_t numDependencies, unsigned int flags);
+typedef CUresult (CUDAAPI *PFNCUSTREAMADDCALLBACK) (CUstream hStream, CUstreamCallback callback, void *userData, unsigned int flags);
+typedef CUresult (CUDAAPI *PFNCUSTREAMATTACHMEMASYNC) (CUstream hStream, CUdeviceptr dptr, size_t length, unsigned int flags);
+typedef CUresult (CUDAAPI *PFNCUSTREAMQUERY) (CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUSTREAMSYNCHRONIZE) (CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUEVENTRECORD) (CUevent hEvent, CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUEVENTRECORDWITHFLAGS) (CUevent hEvent, CUstream hStream, unsigned int flags);
+typedef CUresult (CUDAAPI *PFNCULAUNCHKERNEL) (CUfunction f, unsigned int gridDimX, unsigned int gridDimY, unsigned int gridDimZ, unsigned int blockDimX, unsigned int blockDimY, unsigned int blockDimZ, unsigned int sharedMemBytes, CUstream hStream, void **kernelParams, void **extra);
+typedef CUresult (CUDAAPI *PFNCULAUNCHKERNELEX) (const CUlaunchConfig *config, CUfunction f, void **kernelParams, void **extra);
+typedef CUresult (CUDAAPI *PFNCULAUNCHHOSTFUNC) (CUstream hStream, CUhostFn fn, void *userData);
+typedef CUresult (CUDAAPI *PFNCUGRAPHICSMAPRESOURCES) (unsigned int count, CUgraphicsResource *resources, CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUGRAPHICSUNMAPRESOURCES) (unsigned int count, CUgraphicsResource *resources, CUstream hStream);
+
+typedef CUresult (CUDAAPI *PFNCULAUNCHCOOPERATIVEKERNEL) (CUfunction f, unsigned int gridDimX, unsigned int gridDimY, unsigned int gridDimZ, unsigned int blockDimX, unsigned int blockDimY, unsigned int blockDimZ, unsigned int sharedMemBytes, CUstream hStream, void **kernelParams);
+
+typedef CUresult (CUDAAPI *PFNCUSIGNALEXTERNALSEMAPHORESASYNC) (const CUexternalSemaphore *extSemArray, const CUDA_EXTERNAL_SEMAPHORE_SIGNAL_PARAMS *paramsArray, unsigned int numExtSems, CUstream stream);
+typedef CUresult (CUDAAPI *PFNCUWAITEXTERNALSEMAPHORESASYNC) (const CUexternalSemaphore *extSemArray, const CUDA_EXTERNAL_SEMAPHORE_WAIT_PARAMS *paramsArray, unsigned int numExtSems, CUstream stream);
+
+typedef CUresult (CUDAAPI *PFNCUGRAPHINSTANTIATEWITHPARAMS) (CUgraphExec *phGraphExec, CUgraph hGraph, CUDA_GRAPH_INSTANTIATE_PARAMS *instantiateParams);
+typedef CUresult (CUDAAPI *PFNCUGRAPHUPLOAD) (CUgraphExec hGraphExec, CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUGRAPHLAUNCH) (CUgraphExec hGraphExec, CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUSTREAMCOPYATTRIBUTES) (CUstream dst, CUstream src);
+typedef CUresult (CUDAAPI *PFNCUSTREAMGETATTRIBUTE) (CUstream hStream, CUstreamAttrID attr, CUstreamAttrValue *value_out);
+typedef CUresult (CUDAAPI *PFNCUSTREAMSETATTRIBUTE) (CUstream hStream, CUstreamAttrID attr, const CUstreamAttrValue *value);
+typedef CUresult (CUDAAPI *PFNCUMEMMAPARRAYASYNC) (CUarrayMapInfo *mapInfoList, unsigned int count, CUstream hStream);
+
+typedef CUresult (CUDAAPI *PFNCUMEMFREEASYNC) (CUdeviceptr dptr, CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUMEMALLOCASYNC) (CUdeviceptr *dptr, size_t bytesize, CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUMEMALLOCFROMPOOLASYNC) (CUdeviceptr *dptr, size_t bytesize, CUmemoryPool pool, CUstream hStream);
+
 typedef CUresult (CUDAAPI *PFNCUGETERRORSTRING) (CUresult error, const char **pStr);
 typedef CUresult (CUDAAPI *PFNCUGETERRORNAME) (CUresult error, const char **pStr);
 typedef CUresult (CUDAAPI *PFNCUINIT) (unsigned int Flags);
@@ -373,33 +516,25 @@ typedef CUresult (CUDAAPI *PFNCUDEVICEGET) (CUdevice *device, int ordinal);
 typedef CUresult (CUDAAPI *PFNCUDEVICEGETCOUNT) (int *count);
 typedef CUresult (CUDAAPI *PFNCUDEVICEGETNAME) (char *name, int len, CUdevice dev);
 typedef CUresult (CUDAAPI *PFNCUDEVICEGETUUID) (CUuuid *uuid, CUdevice dev);
-typedef CUresult (CUDAAPI *PFNCUDEVICEGETUUIDV2) (CUuuid *uuid, CUdevice dev); // NEW
 typedef CUresult (CUDAAPI *PFNCUDEVICEGETLUID) (char *luid, unsigned int *deviceNodeMask, CUdevice dev);
-typedef CUresult (CUDAAPI *PFNCUDEVICETOTALMEM) (size_t *bytes, CUdevice dev);
 typedef CUresult (CUDAAPI *PFNCUDEVICEGETTEXTURE1DLINEARMAXWIDTH) (size_t *maxWidthInElements, CUarray_format format, unsigned numChannels, CUdevice dev);
 typedef CUresult (CUDAAPI *PFNCUDEVICEGETATTRIBUTE) (int *pi, CUdevice_attribute attrib, CUdevice dev);
 typedef CUresult (CUDAAPI *PFNCUDEVICEGETNVSCISYNCATTRIBUTES) (void *nvSciSyncAttrList, CUdevice dev, int flags);
 typedef CUresult (CUDAAPI *PFNCUDEVICESETMEMPOOL) (CUdevice dev, CUmemoryPool pool);
 typedef CUresult (CUDAAPI *PFNCUDEVICEGETMEMPOOL) (CUmemoryPool *pool, CUdevice dev);
 typedef CUresult (CUDAAPI *PFNCUDEVICEGETDEFAULTMEMPOOL) (CUmemoryPool *pool_out, CUdevice dev);
-typedef CUresult (CUDAAPI *PFNCUFLUSHGPUDIRECTRDMAWRITES) (CUflushGPUDirectRDMAWritesTarget target, CUflushGPUDirectRDMAWritesScope scope); // NEW
+typedef CUresult (CUDAAPI *PFNCUDEVICEGETEXECAFFINITYSUPPORT) (int* pi, CUexecAffinityType type, CUdevice dev);
+typedef CUresult (CUDAAPI *PFNCUFLUSHGPUDIRECTRDMAWRITES) (CUflushGPUDirectRDMAWritesTarget target, CUflushGPUDirectRDMAWritesScope scope);
 typedef CUresult (CUDAAPI *PFNCUDEVICEGETPROPERTIES) (CUdevprop *prop, CUdevice dev);
 typedef CUresult (CUDAAPI *PFNCUDEVICECOMPUTECAPABILITY) (int *major, int *minor, CUdevice dev);
 typedef CUresult (CUDAAPI *PFNCUDEVICEPRIMARYCTXRETAIN) (CUcontext *pctx, CUdevice dev);
-typedef CUresult (CUDAAPI *PFNCUDEVICEPRIMARYCTXRELEASE) (CUdevice dev);
-typedef CUresult (CUDAAPI *PFNCUDEVICEPRIMARYCTXSETFLAGS) (CUdevice dev, unsigned int flags);
 typedef CUresult (CUDAAPI *PFNCUDEVICEPRIMARYCTXGETSTATE) (CUdevice dev, unsigned int *flags, int *active);
-typedef CUresult (CUDAAPI *PFNCUDEVICEGETEXECAFFINITYSUPPORT) (int* pi, CUexecAffinityType type, CUdevice dev); // NEW
-typedef CUresult (CUDAAPI *PFNCUDEVICEPRIMARYCTXRESET) (CUdevice dev);
-typedef CUresult (CUDAAPI *PFNCUCTXCREATE) (CUcontext *pctx, unsigned int flags, CUdevice dev);
-typedef CUresult (CUDAAPI *PFNCUCTXCREATEV3) (CUcontext* pctx, CUexecAffinityParam* paramsArray, int numParams, unsigned int flags, CUdevice dev); // NEW
-typedef CUresult (CUDAAPI *PFNCUCTXDESTROY) (CUcontext ctx);
-typedef CUresult (CUDAAPI *PFNCUCTXPUSHCURRENT) (CUcontext ctx);
-typedef CUresult (CUDAAPI *PFNCUCTXPOPCURRENT) (CUcontext *pctx);
 typedef CUresult (CUDAAPI *PFNCUCTXSETCURRENT) (CUcontext ctx);
 typedef CUresult (CUDAAPI *PFNCUCTXGETCURRENT) (CUcontext *pctx);
 typedef CUresult (CUDAAPI *PFNCUCTXGETDEVICE) (CUdevice *device);
 typedef CUresult (CUDAAPI *PFNCUCTXGETFLAGS) (unsigned int *flags);
+typedef CUresult (CUDAAPI *PFNCUCTXSETFLAGS) (unsigned int flags);
+typedef CUresult (CUDAAPI *PFNCUCTXGETID) (CUcontext ctx, unsigned long long *ctxId);
 typedef CUresult (CUDAAPI *PFNCUCTXSYNCHRONIZE) (void);
 typedef CUresult (CUDAAPI *PFNCUCTXSETLIMIT) (CUlimit limit, size_t value);
 typedef CUresult (CUDAAPI *PFNCUCTXGETLIMIT) (size_t *pvalue, CUlimit limit);
@@ -410,7 +545,7 @@ typedef CUresult (CUDAAPI *PFNCUCTXSETSHAREDMEMCONFIG) (CUsharedconfig config);
 typedef CUresult (CUDAAPI *PFNCUCTXGETAPIVERSION) (CUcontext ctx, unsigned int *version);
 typedef CUresult (CUDAAPI *PFNCUCTXGETSTREAMPRIORITYRANGE) (int *leastPriority, int *greatestPriority);
 typedef CUresult (CUDAAPI *PFNCUCTXRESETPERSISTINGL2CACHE) (void);
-typedef CUresult (CUDAAPI *PFNCUCTXGETEXECAFFINITY) (CUexecAffinityParam* pExecAffinity, CUexecAffinityType type); // NEW
+typedef CUresult (CUDAAPI *PFNCUCTXGETEXECAFFINITY) (CUexecAffinityParam* pExecAffinity, CUexecAffinityType type);
 typedef CUresult (CUDAAPI *PFNCUCTXATTACH) (CUcontext *pctx, unsigned int flags);
 typedef CUresult (CUDAAPI *PFNCUCTXDETACH) (CUcontext ctx);
 typedef CUresult (CUDAAPI *PFNCUMODULELOAD) (CUmodule *module, const char *fname);
@@ -418,24 +553,26 @@ typedef CUresult (CUDAAPI *PFNCUMODULELOADDATA) (CUmodule *module, const void *i
 typedef CUresult (CUDAAPI *PFNCUMODULELOADDATAEX) (CUmodule *module, const void *image, unsigned int numOptions, CUjit_option *options, void **optionValues);
 typedef CUresult (CUDAAPI *PFNCUMODULELOADFATBINARY) (CUmodule *module, const void *fatCubin);
 typedef CUresult (CUDAAPI *PFNCUMODULEUNLOAD) (CUmodule hmod);
+typedef CUresult (CUDAAPI *PFNCUMODULEGETLOADINGMODE) (CUmoduleLoadingMode *mode);
 typedef CUresult (CUDAAPI *PFNCUMODULEGETFUNCTION) (CUfunction *hfunc, CUmodule hmod, const char *name);
-typedef CUresult (CUDAAPI *PFNCUMODULEGETGLOBAL) (CUdeviceptr *dptr, size_t *bytes, CUmodule hmod, const char *name);
-typedef CUresult (CUDAAPI *PFNCUMODULEGETTEXREF) (CUtexref *pTexRef, CUmodule hmod, const char *name);
-typedef CUresult (CUDAAPI *PFNCUMODULEGETSURFREF) (CUsurfref *pSurfRef, CUmodule hmod, const char *name);
-typedef CUresult (CUDAAPI *PFNCULINKCREATE) (unsigned int numOptions, CUjit_option *options, void **optionValues, CUlinkState *stateOut);
-typedef CUresult (CUDAAPI *PFNCULINKADDDATA) (CUlinkState state, CUjitInputType type, void *data, size_t size, const char *name, unsigned int numOptions, CUjit_option *options, void **optionValues);
-typedef CUresult (CUDAAPI *PFNCULINKADDFILE) (CUlinkState state, CUjitInputType type, const char *path, unsigned int numOptions, CUjit_option *options, void **optionValues);
 typedef CUresult (CUDAAPI *PFNCULINKCOMPLETE) (CUlinkState state, void **cubinOut, size_t *sizeOut);
 typedef CUresult (CUDAAPI *PFNCULINKDESTROY) (CUlinkState state);
-typedef CUresult (CUDAAPI *PFNCUMEMGETINFO) (size_t *free, size_t *total);
-typedef CUresult (CUDAAPI *PFNCUMEMALLOC) (CUdeviceptr *dptr, size_t bytesize);
-typedef CUresult (CUDAAPI *PFNCUMEMALLOCPITCH) (CUdeviceptr *dptr, size_t *pPitch, size_t WidthInBytes, size_t Height, unsigned int ElementSizeBytes);
-typedef CUresult (CUDAAPI *PFNCUMEMFREE) (CUdeviceptr dptr);
-typedef CUresult (CUDAAPI *PFNCUMEMGETADDRESSRANGE) (CUdeviceptr *pbase, size_t *psize, CUdeviceptr dptr);
-typedef CUresult (CUDAAPI *PFNCUMEMALLOCHOST) (void **pp, size_t bytesize);
+typedef CUresult (CUDAAPI *PFNCUMODULEGETTEXREF) (CUtexref *pTexRef, CUmodule hmod, const char *name);
+typedef CUresult (CUDAAPI *PFNCUMODULEGETSURFREF) (CUsurfref *pSurfRef, CUmodule hmod, const char *name);
+typedef CUresult (CUDAAPI *PFNCULIBRARYLOADDATA) (CUlibrary *library, const void *code, CUjit_option *jitOptions, void **jitOptionsValues, unsigned int numJitOptions, CUlibraryOption *libraryOptions, void** libraryOptionValues, unsigned int numLibraryOptions);
+typedef CUresult (CUDAAPI *PFNCULIBRARYLOADFROMFILE) (CUlibrary *library, const char *fileName, CUjit_option *jitOptions, void **jitOptionsValues, unsigned int numJitOptions, CUlibraryOption *libraryOptions, void **libraryOptionValues, unsigned int numLibraryOptions);
+typedef CUresult (CUDAAPI *PFNCULIBRARYUNLOAD) (CUlibrary library);
+typedef CUresult (CUDAAPI *PFNCULIBRARYGETKERNEL) (CUkernel *pKernel, CUlibrary library, const char *name);
+typedef CUresult (CUDAAPI *PFNCULIBRARYGETMODULE) (CUmodule *pMod, CUlibrary library);
+typedef CUresult (CUDAAPI *PFNCUKERNELGETFUNCTION) (CUfunction *pFunc, CUkernel kernel);
+typedef CUresult (CUDAAPI *PFNCULIBRARYGETGLOBAL) (CUdeviceptr *dptr, size_t *bytes, CUlibrary library, const char *name);
+typedef CUresult (CUDAAPI *PFNCULIBRARYGETMANAGED) (CUdeviceptr *dptr, size_t *bytes, CUlibrary library, const char *name);
+typedef CUresult (CUDAAPI *PFNCULIBRARYGETUNIFIEDFUNCTION) (void **fptr, CUlibrary library, const char *symbol);
+typedef CUresult (CUDAAPI *PFNCUKERNELGETATTRIBUTE) (int *pi, CUfunction_attribute attrib, CUkernel kernel, CUdevice dev);
+typedef CUresult (CUDAAPI *PFNCUKERNELSETATTRIBUTE) (CUfunction_attribute attrib, int val, CUkernel kernel, CUdevice dev);
+typedef CUresult (CUDAAPI *PFNCUKERNELSETCACHECONFIG) (CUkernel kernel, CUfunc_cache config, CUdevice dev);
 typedef CUresult (CUDAAPI *PFNCUMEMFREEHOST) (void *p);
 typedef CUresult (CUDAAPI *PFNCUMEMHOSTALLOC) (void **pp, size_t bytesize, unsigned int Flags);
-typedef CUresult (CUDAAPI *PFNCUMEMHOSTGETDEVICEPOINTER) (CUdeviceptr *pdptr, void *p, unsigned int Flags);
 typedef CUresult (CUDAAPI *PFNCUMEMHOSTGETFLAGS) (unsigned int *pFlags, void *p);
 typedef CUresult (CUDAAPI *PFNCUMEMALLOCMANAGED) (CUdeviceptr *dptr, size_t bytesize, unsigned int flags);
 typedef CUresult (CUDAAPI *PFNCUDEVICEGETBYPCIBUSID) (CUdevice *dev, const char *pciBusId);
@@ -443,65 +580,23 @@ typedef CUresult (CUDAAPI *PFNCUDEVICEGETPCIBUSID) (char *pciBusId, int len, CUd
 typedef CUresult (CUDAAPI *PFNCUIPCGETEVENTHANDLE) (CUipcEventHandle *pHandle, CUevent event);
 typedef CUresult (CUDAAPI *PFNCUIPCOPENEVENTHANDLE) (CUevent *phEvent, CUipcEventHandle handle);
 typedef CUresult (CUDAAPI *PFNCUIPCGETMEMHANDLE) (CUipcMemHandle *pHandle, CUdeviceptr dptr);
-typedef CUresult (CUDAAPI *PFNCUIPCOPENMEMHANDLE) (CUdeviceptr *pdptr, CUipcMemHandle handle, unsigned int Flags);
 typedef CUresult (CUDAAPI *PFNCUIPCCLOSEMEMHANDLE) (CUdeviceptr dptr);
-typedef CUresult (CUDAAPI *PFNCUMEMHOSTREGISTER) (void *p, size_t bytesize, unsigned int Flags);
 typedef CUresult (CUDAAPI *PFNCUMEMHOSTUNREGISTER) (void *p);
-typedef CUresult (CUDAAPI *PFNCUMEMCPY) (CUdeviceptr dst, CUdeviceptr src, size_t ByteCount);
-typedef CUresult (CUDAAPI *PFNCUMEMCPYPEER) (CUdeviceptr dstDevice, CUcontext dstContext, CUdeviceptr srcDevice, CUcontext srcContext, size_t ByteCount);
-typedef CUresult (CUDAAPI *PFNCUMEMCPYHTOD) (CUdeviceptr dstDevice, const void *srcHost, size_t ByteCount);
-typedef CUresult (CUDAAPI *PFNCUMEMCPYDTOH) (void *dstHost, CUdeviceptr srcDevice, size_t ByteCount);
-typedef CUresult (CUDAAPI *PFNCUMEMCPYDTOD) (CUdeviceptr dstDevice, CUdeviceptr srcDevice, size_t ByteCount);
-typedef CUresult (CUDAAPI *PFNCUMEMCPYDTOA) (CUarray dstArray, size_t dstOffset, CUdeviceptr srcDevice, size_t ByteCount);
-typedef CUresult (CUDAAPI *PFNCUMEMCPYATOD) (CUdeviceptr dstDevice, CUarray srcArray, size_t srcOffset, size_t ByteCount);
-typedef CUresult (CUDAAPI *PFNCUMEMCPYHTOA) (CUarray dstArray, size_t dstOffset, const void *srcHost, size_t ByteCount);
-typedef CUresult (CUDAAPI *PFNCUMEMCPYATOH) (void *dstHost, CUarray srcArray, size_t srcOffset, size_t ByteCount);
-typedef CUresult (CUDAAPI *PFNCUMEMCPYATOA) (CUarray dstArray, size_t dstOffset, CUarray srcArray, size_t srcOffset, size_t ByteCount);
-typedef CUresult (CUDAAPI *PFNCUMEMCPY2D) (const CUDA_MEMCPY2D *pCopy);
-typedef CUresult (CUDAAPI *PFNCUMEMCPY2DUNALIGNED) (const CUDA_MEMCPY2D *pCopy);
-typedef CUresult (CUDAAPI *PFNCUMEMCPY3D) (const CUDA_MEMCPY3D *pCopy);
-typedef CUresult (CUDAAPI *PFNCUMEMCPY3DPEER) (const CUDA_MEMCPY3D_PEER *pCopy);
-typedef CUresult (CUDAAPI *PFNCUMEMCPYASYNC) (CUdeviceptr dst, CUdeviceptr src, size_t ByteCount, CUstream hStream);
-typedef CUresult (CUDAAPI *PFNCUMEMCPYPEERASYNC) (CUdeviceptr dstDevice, CUcontext dstContext, CUdeviceptr srcDevice, CUcontext srcContext, size_t ByteCount, CUstream hStream);
-typedef CUresult (CUDAAPI *PFNCUMEMCPYHTODASYNC) (CUdeviceptr dstDevice, const void *srcHost, size_t ByteCount, CUstream hStream);
-typedef CUresult (CUDAAPI *PFNCUMEMCPYDTOHASYNC) (void *dstHost, CUdeviceptr srcDevice, size_t ByteCount, CUstream hStream);
-typedef CUresult (CUDAAPI *PFNCUMEMCPYDTODASYNC) (CUdeviceptr dstDevice, CUdeviceptr srcDevice, size_t ByteCount, CUstream hStream);
-typedef CUresult (CUDAAPI *PFNCUMEMCPYHTOAASYNC) (CUarray dstArray, size_t dstOffset, const void *srcHost, size_t ByteCount, CUstream hStream);
-typedef CUresult (CUDAAPI *PFNCUMEMCPYATOHASYNC) (void *dstHost, CUarray srcArray, size_t srcOffset, size_t ByteCount, CUstream hStream);
-typedef CUresult (CUDAAPI *PFNCUMEMCPY2DASYNC) (const CUDA_MEMCPY2D *pCopy, CUstream hStream);
-typedef CUresult (CUDAAPI *PFNCUMEMCPY3DASYNC) (const CUDA_MEMCPY3D *pCopy, CUstream hStream);
-typedef CUresult (CUDAAPI *PFNCUMEMCPY3DPEERASYNC) (const CUDA_MEMCPY3D_PEER *pCopy, CUstream hStream);
-typedef CUresult (CUDAAPI *PFNCUMEMSETD8) (CUdeviceptr dstDevice, unsigned char uc, size_t N);
-typedef CUresult (CUDAAPI *PFNCUMEMSETD16) (CUdeviceptr dstDevice, unsigned short us, size_t N);
-typedef CUresult (CUDAAPI *PFNCUMEMSETD32) (CUdeviceptr dstDevice, unsigned int ui, size_t N);
-typedef CUresult (CUDAAPI *PFNCUMEMSETD2D8) (CUdeviceptr dstDevice, size_t dstPitch, unsigned char uc, size_t Width, size_t Height);
-typedef CUresult (CUDAAPI *PFNCUMEMSETD2D16) (CUdeviceptr dstDevice, size_t dstPitch, unsigned short us, size_t Width, size_t Height);
-typedef CUresult (CUDAAPI *PFNCUMEMSETD2D32) (CUdeviceptr dstDevice, size_t dstPitch, unsigned int ui, size_t Width, size_t Height);
-typedef CUresult (CUDAAPI *PFNCUMEMSETD8ASYNC) (CUdeviceptr dstDevice, unsigned char uc, size_t N, CUstream hStream);
-typedef CUresult (CUDAAPI *PFNCUMEMSETD16ASYNC) (CUdeviceptr dstDevice, unsigned short us, size_t N, CUstream hStream);
-typedef CUresult (CUDAAPI *PFNCUMEMSETD32ASYNC) (CUdeviceptr dstDevice, unsigned int ui, size_t N, CUstream hStream);
-typedef CUresult (CUDAAPI *PFNCUMEMSETD2D8ASYNC) (CUdeviceptr dstDevice, size_t dstPitch, unsigned char uc, size_t Width, size_t Height, CUstream hStream);
-typedef CUresult (CUDAAPI *PFNCUMEMSETD2D16ASYNC) (CUdeviceptr dstDevice, size_t dstPitch, unsigned short us, size_t Width, size_t Height, CUstream hStream);
-typedef CUresult (CUDAAPI *PFNCUMEMSETD2D32ASYNC) (CUdeviceptr dstDevice, size_t dstPitch, unsigned int ui, size_t Width, size_t Height, CUstream hStream);
-typedef CUresult (CUDAAPI *PFNCUARRAYCREATE) (CUarray *pHandle, const CUDA_ARRAY_DESCRIPTOR *pAllocateArray);
-typedef CUresult (CUDAAPI *PFNCUARRAYGETDESCRIPTOR) (CUDA_ARRAY_DESCRIPTOR *pArrayDescriptor, CUarray hArray);
 typedef CUresult (CUDAAPI *PFNCUARRAYGETSPARSEPROPERTIES) (CUDA_ARRAY_SPARSE_PROPERTIES *sparseProperties, CUarray array);
 typedef CUresult (CUDAAPI *PFNCUMIPMAPPEDARRAYGETSPARSEPROPERTIES) (CUDA_ARRAY_SPARSE_PROPERTIES *sparseProperties, CUmipmappedArray mipmap);
-typedef CUresult (CUDAAPI *PFNCUARRAYGETMEMORYREQUERIMENTS) (CUDA_ARRAY_MEMORY_REQUIREMENTS* memoryRequirements, CUarray array, CUdevice device); // NEW
-typedef CUresult (CUDAAPI *PFNCUMIPMAPPEDARRAYGETMEMORYREQUERIMENTS) (CUDA_ARRAY_MEMORY_REQUIREMENTS* memoryRequirements, CUmipmappedArray mipmap, CUdevice device); // NEW
+typedef CUresult (CUDAAPI *PFNCUARRAYGETMEMORYREQUERIMENTS) (CUDA_ARRAY_MEMORY_REQUIREMENTS* memoryRequirements, CUarray array, CUdevice device);
+typedef CUresult (CUDAAPI *PFNCUMIPMAPPEDARRAYGETMEMORYREQUERIMENTS) (CUDA_ARRAY_MEMORY_REQUIREMENTS* memoryRequirements, CUmipmappedArray mipmap, CUdevice device);
 typedef CUresult (CUDAAPI *PFNCUARRAYGETPLANE) (CUarray *pPlaneArray, CUarray hArray, unsigned int planeIdx);
 typedef CUresult (CUDAAPI *PFNCUARRAYDESTROY) (CUarray hArray);
-typedef CUresult (CUDAAPI *PFNCUARRAY3DCREATE) (CUarray *pHandle, const CUDA_ARRAY3D_DESCRIPTOR *pAllocateArray);
-typedef CUresult (CUDAAPI *PFNCUARRAY3DGETDESCRIPTOR) (CUDA_ARRAY3D_DESCRIPTOR *pArrayDescriptor, CUarray hArray);
 typedef CUresult (CUDAAPI *PFNCUMIPMAPPEDARRAYCREATE) (CUmipmappedArray *pHandle, const CUDA_ARRAY3D_DESCRIPTOR *pMipmappedArrayDesc, unsigned int numMipmapLevels);
 typedef CUresult (CUDAAPI *PFNCUMIPMAPPEDARRAYGETLEVEL) (CUarray *pLevelArray, CUmipmappedArray hMipmappedArray, unsigned int level);
 typedef CUresult (CUDAAPI *PFNCUMIPMAPPEDARRAYDESTROY) (CUmipmappedArray hMipmappedArray);
+typedef CUresult (CUDAAPI *PFNCUMEMGETHANDLEFORADDRESSRANGE) (void *handle, CUdeviceptr dptr, size_t size, CUmemRangeHandleType handleType, unsigned long long flags);
 typedef CUresult (CUDAAPI *PFNCUMEMADDRESSRESERVE) (CUdeviceptr *ptr, size_t size, size_t alignment, CUdeviceptr addr, unsigned long long flags);
 typedef CUresult (CUDAAPI *PFNCUMEMADDRESSFREE) (CUdeviceptr ptr, size_t size);
 typedef CUresult (CUDAAPI *PFNCUMEMCREATE) (CUmemGenericAllocationHandle *handle, size_t size, const CUmemAllocationProp *prop, unsigned long long flags);
 typedef CUresult (CUDAAPI *PFNCUMEMRELEASE) (CUmemGenericAllocationHandle handle);
 typedef CUresult (CUDAAPI *PFNCUMEMMAP) (CUdeviceptr ptr, size_t size, size_t offset, CUmemGenericAllocationHandle handle, unsigned long long flags);
-typedef CUresult (CUDAAPI *PFNCUMEMMAPARRAYASYNC) (CUarrayMapInfo *mapInfoList, unsigned int count, CUstream hStream);
 typedef CUresult (CUDAAPI *PFNCUMEMUNMAP) (CUdeviceptr ptr, size_t size);
 typedef CUresult (CUDAAPI *PFNCUMEMSETACCESS) (CUdeviceptr ptr, size_t size, const CUmemAccessDesc *desc, size_t count);
 typedef CUresult (CUDAAPI *PFNCUMEMGETACCESS) (unsigned long long *flags, const CUmemLocation *location, CUdeviceptr ptr);
@@ -510,8 +605,6 @@ typedef CUresult (CUDAAPI *PFNCUMEMIMPORTFROMSHAREABLEHANDLE) (CUmemGenericAlloc
 typedef CUresult (CUDAAPI *PFNCUMEMGETALLOCATIONGRANULARITY) (size_t *granularity, const CUmemAllocationProp *prop, CUmemAllocationGranularity_flags option);
 typedef CUresult (CUDAAPI *PFNCUMEMGETALLOCATIONPROPERTIESFROMHANDLE) (CUmemAllocationProp *prop, CUmemGenericAllocationHandle handle);
 typedef CUresult (CUDAAPI *PFNCUMEMRETAINALLOCATIONHANDLE) (CUmemGenericAllocationHandle *handle, void *addr);
-typedef CUresult (CUDAAPI *PFNCUMEMFREEASYNC) (CUdeviceptr dptr, CUstream hStream);
-typedef CUresult (CUDAAPI *PFNCUMEMALLOCASYNC) (CUdeviceptr *dptr, size_t bytesize, CUstream hStream);
 typedef CUresult (CUDAAPI *PFNCUMEMPOOLTRIMTO) (CUmemoryPool pool, size_t minBytesToKeep);
 typedef CUresult (CUDAAPI *PFNCUMEMPOOLSETATTRIBUTE) (CUmemoryPool pool, CUmemPool_attribute attr, void *value);
 typedef CUresult (CUDAAPI *PFNCUMEMPOOLGETATTRIBUTE) (CUmemoryPool pool, CUmemPool_attribute attr, void *value);
@@ -519,73 +612,52 @@ typedef CUresult (CUDAAPI *PFNCUMEMPOOLSETACCESS) (CUmemoryPool pool, const CUme
 typedef CUresult (CUDAAPI *PFNCUMEMPOOLGETACCESS) (CUmemAccess_flags *flags, CUmemoryPool memPool, CUmemLocation *location);
 typedef CUresult (CUDAAPI *PFNCUMEMPOOLCREATE) (CUmemoryPool *pool, const CUmemPoolProps *poolProps);
 typedef CUresult (CUDAAPI *PFNCUMEMPOOLDESTROY) (CUmemoryPool pool);
-typedef CUresult (CUDAAPI *PFNCUMEMALLOCFROMPOOLASYNC) (CUdeviceptr *dptr, size_t bytesize, CUmemoryPool pool, CUstream hStream);
 typedef CUresult (CUDAAPI *PFNCUMEMPOOLEXPORTTOSHAREABLEHANDLE) (void *handle_out, CUmemoryPool pool, CUmemAllocationHandleType handleType, unsigned long long flags);
 typedef CUresult (CUDAAPI *PFNCUMEMPOOLIMPORTFROMSHAREABLEHANDLE) (CUmemoryPool *pool_out, void *handle, CUmemAllocationHandleType handleType, unsigned long long flags);
 typedef CUresult (CUDAAPI *PFNCUMEMPOOLEXPORTPOINTER) (CUmemPoolPtrExportData *shareData_out, CUdeviceptr ptr);
 typedef CUresult (CUDAAPI *PFNCUMEMPOOLIMPORTPOINTER) (CUdeviceptr *ptr_out, CUmemoryPool pool, CUmemPoolPtrExportData *shareData);
+typedef CUresult (CUDAAPI *PFNCUMULTICASTCREATE) (CUmemGenericAllocationHandle *mcHandle, const CUmulticastObjectProp *prop);
+typedef CUresult (CUDAAPI *PFNCUMULTICASTADDDEVICE) (CUmemGenericAllocationHandle mcHandle, CUdevice dev);
+typedef CUresult (CUDAAPI *PFNCUMULTICASTBINDMEM) (CUmemGenericAllocationHandle mcHandle, size_t mcOffset, CUmemGenericAllocationHandle memHandle, size_t memOffset, size_t size, unsigned long long flags);
+typedef CUresult (CUDAAPI *PFNCUMULTICASTBINDADDR) (CUmemGenericAllocationHandle mcHandle, size_t mcOffset, CUdeviceptr memptr, size_t size, unsigned long long flags);
+typedef CUresult (CUDAAPI *PFNCUMULTICASTUNBIND) (CUmemGenericAllocationHandle mcHandle, CUdevice dev, size_t mcOffset, size_t size);
+typedef CUresult (CUDAAPI *PFNCUMULTICASTGETGRANULARITY) (size_t *granularity, const CUmulticastObjectProp *prop, CUmulticastGranularity_flags option);
 typedef CUresult (CUDAAPI *PFNCUPOINTERGETATTRIBUTE) (void *data, CUpointer_attribute attribute, CUdeviceptr ptr);
-typedef CUresult (CUDAAPI *PFNCUMEMPREFETCHASYNC) (CUdeviceptr devPtr, size_t count, CUdevice dstDevice, CUstream hStream);
 typedef CUresult (CUDAAPI *PFNCUMEMADVISE) (CUdeviceptr devPtr, size_t count, CUmem_advise advice, CUdevice device);
+typedef CUresult (CUDAAPI *PFNCUMEMADVISEV2) (CUdeviceptr devPtr, size_t count, CUmem_advise advice, CUmemLocation location);
 typedef CUresult (CUDAAPI *PFNCUMEMRANGEGETATTRIBUTE) (void *data, size_t dataSize, CUmem_range_attribute attribute, CUdeviceptr devPtr, size_t count);
 typedef CUresult (CUDAAPI *PFNCUMEMRANGEGETATTRIBUTES) (void **data, size_t *dataSizes, CUmem_range_attribute *attributes, size_t numAttributes, CUdeviceptr devPtr, size_t count);
 typedef CUresult (CUDAAPI *PFNCUPOINTERSETATTRIBUTE) (const void *value, CUpointer_attribute attribute, CUdeviceptr ptr);
 typedef CUresult (CUDAAPI *PFNCUPOINTERGETATTRIBUTES) (unsigned int numAttributes, CUpointer_attribute *attributes, void **data, CUdeviceptr ptr);
 typedef CUresult (CUDAAPI *PFNCUSTREAMCREATE) (CUstream *phStream, unsigned int Flags);
 typedef CUresult (CUDAAPI *PFNCUSTREAMCREATEWITHPRIORITY) (CUstream *phStream, unsigned int flags, int priority);
-typedef CUresult (CUDAAPI *PFNCUSTREAMGETPRIORITY) (CUstream hStream, int *priority);
-typedef CUresult (CUDAAPI *PFNCUSTREAMGETFLAGS) (CUstream hStream, unsigned int *flags);
-typedef CUresult (CUDAAPI *PFNCUSTREAMGETCTX) (CUstream hStream, CUcontext *pctx);
-typedef CUresult (CUDAAPI *PFNCUSTREAMWAITEVENT) (CUstream hStream, CUevent hEvent, unsigned int Flags);
-typedef CUresult (CUDAAPI *PFNCUSTREAMADDCALLBACK) (CUstream hStream, CUstreamCallback callback, void *userData, unsigned int flags);
-typedef CUresult (CUDAAPI *PFNCUSTREAMBEGINCAPTURE) (CUstream hStream, CUstreamCaptureMode mode);
 typedef CUresult (CUDAAPI *PFNCUTHREADEXCHANGESTREAMCAPTUREMODE) (CUstreamCaptureMode *mode);
-typedef CUresult (CUDAAPI *PFNCUSTREAMENDCAPTURE) (CUstream hStream, CUgraph *phGraph);
-typedef CUresult (CUDAAPI *PFNCUSTREAMISCAPTURING) (CUstream hStream, CUstreamCaptureStatus *captureStatus);
-typedef CUresult (CUDAAPI *PFNCUSTREAMGETCAPTUREINFO) (CUstream hStream, CUstreamCaptureStatus *captureStatus, cuuint64_t *id);
-typedef CUresult (CUDAAPI *PFNCUSTREAMGETCAPTUREINFOV2) (CUstream hStream, CUstreamCaptureStatus* captureStatus_out, cuuint64_t* id_out, CUgraph* graph_out, const CUgraphNode** dependencies_out, size_t* numDependencies_out); //new
-typedef CUresult (CUDAAPI *PFNCUSTREAMUPDATECAPTUREDEPENDENCIES) (CUstream hStream, CUgraphNode* dependencies, size_t numDependencies, unsigned int flags); // NEW
-typedef CUresult (CUDAAPI *PFNCUSTREAMATTACHMEMASYNC) (CUstream hStream, CUdeviceptr dptr, size_t length, unsigned int flags);
-typedef CUresult (CUDAAPI *PFNCUSTREAMQUERY) (CUstream hStream);
-typedef CUresult (CUDAAPI *PFNCUSTREAMSYNCHRONIZE) (CUstream hStream);
-typedef CUresult (CUDAAPI *PFNCUSTREAMDESTROY) (CUstream hStream);
-typedef CUresult (CUDAAPI *PFNCUSTREAMCOPYATTRIBUTES) (CUstream dst, CUstream src);
-typedef CUresult (CUDAAPI *PFNCUSTREAMGETATTRIBUTE) (CUstream hStream, CUstreamAttrID attr, CUstreamAttrValue *value_out);
-typedef CUresult (CUDAAPI *PFNCUSTREAMSETATTRIBUTE) (CUstream hStream, CUstreamAttrID attr, const CUstreamAttrValue *value);
 typedef CUresult (CUDAAPI *PFNCUEVENTCREATE) (CUevent *phEvent, unsigned int Flags);
-typedef CUresult (CUDAAPI *PFNCUEVENTRECORD) (CUevent hEvent, CUstream hStream);
-typedef CUresult (CUDAAPI *PFNCUEVENTRECORDWITHFLAGS) (CUevent hEvent, CUstream hStream, unsigned int flags);
 typedef CUresult (CUDAAPI *PFNCUEVENTQUERY) (CUevent hEvent);
 typedef CUresult (CUDAAPI *PFNCUEVENTSYNCHRONIZE) (CUevent hEvent);
-typedef CUresult (CUDAAPI *PFNCUEVENTDESTROY) (CUevent hEvent);
 typedef CUresult (CUDAAPI *PFNCUEVENTELAPSEDTIME) (float *pMilliseconds, CUevent hStart, CUevent hEnd);
 typedef CUresult (CUDAAPI *PFNCUIMPORTEXTERNALMEMORY) (CUexternalMemory *extMem_out, const CUDA_EXTERNAL_MEMORY_HANDLE_DESC *memHandleDesc);
 typedef CUresult (CUDAAPI *PFNCUEXTERNALMEMORYGETMAPPEDBUFFER) (CUdeviceptr *devPtr, CUexternalMemory extMem, const CUDA_EXTERNAL_MEMORY_BUFFER_DESC *bufferDesc);
 typedef CUresult (CUDAAPI *PFNCUEXTERNALMEMORYGETMAPPEDMIPMAPPEDARRAY) (CUmipmappedArray *mipmap, CUexternalMemory extMem, const CUDA_EXTERNAL_MEMORY_MIPMAPPED_ARRAY_DESC *mipmapDesc);
 typedef CUresult (CUDAAPI *PFNCUDESTROYEXTERNALMEMORY) (CUexternalMemory extMem);
 typedef CUresult (CUDAAPI *PFNCUIMPORTEXTERNALSEMAPHORE) (CUexternalSemaphore *extSem_out, const CUDA_EXTERNAL_SEMAPHORE_HANDLE_DESC *semHandleDesc);
-typedef CUresult (CUDAAPI *PFNCUSIGNALEXTERNALSEMAPHORESASYNC) (const CUexternalSemaphore *extSemArray, const CUDA_EXTERNAL_SEMAPHORE_SIGNAL_PARAMS *paramsArray, unsigned int numExtSems, CUstream stream);
-typedef CUresult (CUDAAPI *PFNCUWAITEXTERNALSEMAPHORESASYNC) (const CUexternalSemaphore *extSemArray, const CUDA_EXTERNAL_SEMAPHORE_WAIT_PARAMS *paramsArray, unsigned int numExtSems, CUstream stream);
 typedef CUresult (CUDAAPI *PFNCUDESTROYEXTERNALSEMAPHORE) (CUexternalSemaphore extSem);
-typedef CUresult (CUDAAPI *PFNCUSTREAMWAITVALUE32) (CUstream stream, CUdeviceptr addr, cuuint32_t value, unsigned int flags);
-typedef CUresult (CUDAAPI *PFNCUSTREAMWAITVALUE64) (CUstream stream, CUdeviceptr addr, cuuint64_t value, unsigned int flags);
-typedef CUresult (CUDAAPI *PFNCUSTREAMWRITEVALUE32) (CUstream stream, CUdeviceptr addr, cuuint32_t value, unsigned int flags);
-typedef CUresult (CUDAAPI *PFNCUSTREAMWRITEVALUE64) (CUstream stream, CUdeviceptr addr, cuuint64_t value, unsigned int flags);
-typedef CUresult (CUDAAPI *PFNCUSTREAMBATCHMEMOP) (CUstream stream, unsigned int count, CUstreamBatchMemOpParams *paramArray, unsigned int flags);
-typedef CUresult (CUDAAPI *PFNCUSTREAMWAITVALUE32V2) (CUstream stream, CUdeviceptr addr, cuuint32_t value, unsigned int flags); // NEW
-typedef CUresult (CUDAAPI *PFNCUSTREAMWAITVALUE64V2) (CUstream stream, CUdeviceptr addr, cuuint64_t value, unsigned int flags); // NEW
-typedef CUresult (CUDAAPI *PFNCUSTREAMWRITEVALUE32V2) (CUstream stream, CUdeviceptr addr, cuuint32_t value, unsigned int flags); // NEW
-typedef CUresult (CUDAAPI *PFNCUSTREAMWRITEVALUE64V2) (CUstream stream, CUdeviceptr addr, cuuint64_t value, unsigned int flags); // NEW
-typedef CUresult (CUDAAPI *PFNCUSTREAMBATCHMEMOPV2) (CUstream stream, unsigned int count, CUstreamBatchMemOpParams* paramArray, unsigned int flags); // NEW
+typedef CUresult (CUDAAPI *PFNCUSTREAMWRITEVALUE32PTSZ) (CUstream stream, CUdeviceptr addr, cuuint32_t value, unsigned int flags);
+typedef CUresult (CUDAAPI *PFNCUSTREAMWAITVALUE32PTSZ) (CUstream stream, CUdeviceptr addr, cuuint32_t value, unsigned int flags);
+typedef CUresult (CUDAAPI *PFNCUSTREAMWRITEVALUE64PTSZ) (CUstream stream, CUdeviceptr addr, cuuint64_t value, unsigned int flags);
+typedef CUresult (CUDAAPI *PFNCUSTREAMWAITVALUE64PTSZ) (CUstream stream, CUdeviceptr addr, cuuint64_t value, unsigned int flags);
+typedef CUresult (CUDAAPI *PFNCUSTREAMBATCHMEMOPPTSZ) (CUstream stream, unsigned int count, CUstreamBatchMemOpParams *paramArray, unsigned int flags);
+typedef CUresult (CUDAAPI *PFNCUSTREAMWAITVALUE32V2) (CUstream stream, CUdeviceptr addr, cuuint32_t value, unsigned int flags);
+typedef CUresult (CUDAAPI *PFNCUSTREAMWAITVALUE64V2) (CUstream stream, CUdeviceptr addr, cuuint64_t value, unsigned int flags);
+typedef CUresult (CUDAAPI *PFNCUSTREAMWRITEVALUE32V2) (CUstream stream, CUdeviceptr addr, cuuint32_t value, unsigned int flags);
+typedef CUresult (CUDAAPI *PFNCUSTREAMWRITEVALUE64V2) (CUstream stream, CUdeviceptr addr, cuuint64_t value, unsigned int flags);
+typedef CUresult (CUDAAPI *PFNCUSTREAMBATCHMEMOPV2) (CUstream stream, unsigned int count, CUstreamBatchMemOpParams* paramArray, unsigned int flags);
 typedef CUresult (CUDAAPI *PFNCUFUNCGETATTRIBUTE) (int *pi, CUfunction_attribute attrib, CUfunction hfunc);
 typedef CUresult (CUDAAPI *PFNCUFUNCSETATTRIBUTE) (CUfunction hfunc, CUfunction_attribute attrib, int value);
 typedef CUresult (CUDAAPI *PFNCUFUNCSETCACHECONFIG) (CUfunction hfunc, CUfunc_cache config);
 typedef CUresult (CUDAAPI *PFNCUFUNCSETSHAREDMEMCONFIG) (CUfunction hfunc, CUsharedconfig config);
 typedef CUresult (CUDAAPI *PFNCUFUNCGETMODULE) (CUmodule *hmod, CUfunction hfunc);
-typedef CUresult (CUDAAPI *PFNCULAUNCHKERNEL) (CUfunction f, unsigned int gridDimX, unsigned int gridDimY, unsigned int gridDimZ, unsigned int blockDimX, unsigned int blockDimY, unsigned int blockDimZ, unsigned int sharedMemBytes, CUstream hStream, void **kernelParams, void **extra);
-typedef CUresult (CUDAAPI *PFNCULAUNCHCOOPERATIVEKERNEL) (CUfunction f, unsigned int gridDimX, unsigned int gridDimY, unsigned int gridDimZ, unsigned int blockDimX, unsigned int blockDimY, unsigned int blockDimZ, unsigned int sharedMemBytes, CUstream hStream, void **kernelParams);
 typedef CUresult (CUDAAPI *PFNCULAUNCHCOOPERATIVEKERNELMULTIDEVICE) (CUDA_LAUNCH_PARAMS *launchParamsList, unsigned int numDevices, unsigned int flags);
-typedef CUresult (CUDAAPI *PFNCULAUNCHHOSTFUNC) (CUstream hStream, CUhostFn fn, void *userData);
 typedef CUresult (CUDAAPI *PFNCUFUNCSETBLOCKSHAPE) (CUfunction hfunc, int x, int y, int z);
 typedef CUresult (CUDAAPI *PFNCUFUNCSETSHAREDSIZE) (CUfunction hfunc, unsigned int bytes);
 typedef CUresult (CUDAAPI *PFNCUPARAMSETSIZE) (CUfunction hfunc, unsigned int numbytes);
@@ -597,9 +669,6 @@ typedef CUresult (CUDAAPI *PFNCULAUNCHGRID) (CUfunction f, int grid_width, int g
 typedef CUresult (CUDAAPI *PFNCULAUNCHGRIDASYNC) (CUfunction f, int grid_width, int grid_height, CUstream hStream);
 typedef CUresult (CUDAAPI *PFNCUPARAMSETTEXREF) (CUfunction hfunc, int texunit, CUtexref hTexRef);
 typedef CUresult (CUDAAPI *PFNCUGRAPHCREATE) (CUgraph *phGraph, unsigned int flags);
-typedef CUresult (CUDAAPI *PFNCUGRAPHADDKERNELNODE) (CUgraphNode *phGraphNode, CUgraph hGraph, const CUgraphNode *dependencies, size_t numDependencies, const CUDA_KERNEL_NODE_PARAMS *nodeParams);
-typedef CUresult (CUDAAPI *PFNCUGRAPHKERNELNODEGETPARAMS) (CUgraphNode hNode, CUDA_KERNEL_NODE_PARAMS *nodeParams);
-typedef CUresult (CUDAAPI *PFNCUGRAPHKERNELNODESETPARAMS) (CUgraphNode hNode, const CUDA_KERNEL_NODE_PARAMS *nodeParams);
 typedef CUresult (CUDAAPI *PFNCUGRAPHADDMEMCPYNODE) (CUgraphNode *phGraphNode, CUgraph hGraph, const CUgraphNode *dependencies, size_t numDependencies, const CUDA_MEMCPY3D *copyParams, CUcontext ctx);
 typedef CUresult (CUDAAPI *PFNCUGRAPHMEMCPYNODEGETPARAMS) (CUgraphNode hNode, CUDA_MEMCPY3D *nodeParams);
 typedef CUresult (CUDAAPI *PFNCUGRAPHMEMCPYNODESETPARAMS) (CUgraphNode hNode, const CUDA_MEMCPY3D *nodeParams);
@@ -624,17 +693,17 @@ typedef CUresult (CUDAAPI *PFNCUGRAPHEXTERNALSEMAPHORESSIGNALNODESETPARAMS) (CUg
 typedef CUresult (CUDAAPI *PFNCUGRAPHADDEXTERNALSEMAPHORESWAITNODE) (CUgraphNode *phGraphNode, CUgraph hGraph, const CUgraphNode *dependencies, size_t numDependencies, const CUDA_EXT_SEM_WAIT_NODE_PARAMS *nodeParams);
 typedef CUresult (CUDAAPI *PFNCUGRAPHEXTERNALSEMAPHORESWAITNODEGETPARAMS) (CUgraphNode hNode, CUDA_EXT_SEM_WAIT_NODE_PARAMS *params_out);
 typedef CUresult (CUDAAPI *PFNCUGRAPHEXTERNALSEMAPHORESWAITNODESETPARAMS) (CUgraphNode hNode, const CUDA_EXT_SEM_WAIT_NODE_PARAMS *nodeParams);
-typedef CUresult (CUDAAPI *PFNCUGRAPHADDBATCHMEMOPNODE) (CUgraphNode* phGraphNode, CUgraph hGraph, const CUgraphNode* dependencies, size_t numDependencies, const CUDA_BATCH_MEM_OP_NODE_PARAMS* nodeParams); // NEW
-typedef CUresult (CUDAAPI *PFNCUGRAPHBATCHMEMOPNODEGETPARASM) (CUgraphNode hNode, CUDA_BATCH_MEM_OP_NODE_PARAMS* nodeParams_out); // NEW
-typedef CUresult (CUDAAPI *PFNCUGRAPHBATCHMEMOPNODESETPARAMS) (CUgraphNode hNode, const CUDA_BATCH_MEM_OP_NODE_PARAMS* nodeParams); // NEW
-typedef CUresult (CUDAAPI *PFNCUGRAPHEXECBATCHMEMOPNODESETPARAMS) (CUgraphExec hGraphExec, CUgraphNode hNode, const CUDA_BATCH_MEM_OP_NODE_PARAMS* nodeParams); // NEW
-typedef CUresult (CUDAAPI *PFNCUGRAPHADDMEMALLOCNODE) (CUgraphNode* phGraphNode, CUgraph hGraph, const CUgraphNode* dependencies, size_t numDependencies, CUDA_MEM_ALLOC_NODE_PARAMS* nodeParams); // NEW
-typedef CUresult (CUDAAPI *PFNCUGRAPHMEMALLOCNODEGETPARAMS) (CUgraphNode hNode, CUDA_MEM_ALLOC_NODE_PARAMS* params_out); // NEW
-typedef CUresult (CUDAAPI *PFNCUGRAPHADDMEMFREENODE) (CUgraphNode* phGraphNode, CUgraph hGraph, const CUgraphNode* dependencies, size_t numDependencies, CUdeviceptr dptr); // NEW
-typedef CUresult (CUDAAPI *PFNCUGRAPHMEMFREENODEGETPARAMS) (CUgraphNode hNode, CUdeviceptr* dptr_out); // NEW
-typedef CUresult (CUDAAPI *PFNCUDEVICEGRAPHMEMTRIM) (CUdevice device); // NEW
-typedef CUresult (CUDAAPI *PFNCUDEVICEGETGRAPHMEMATTRIBUTE) (CUdevice device, CUgraphMem_attribute attr, void* value); // NEW
-typedef CUresult (CUDAAPI *PFNCUDEVICESETGRAPHMEMATTRIBUTE) (CUdevice device, CUgraphMem_attribute attr, void* value); // NEW
+typedef CUresult (CUDAAPI *PFNCUGRAPHADDBATCHMEMOPNODE) (CUgraphNode* phGraphNode, CUgraph hGraph, const CUgraphNode* dependencies, size_t numDependencies, const CUDA_BATCH_MEM_OP_NODE_PARAMS* nodeParams);
+typedef CUresult (CUDAAPI *PFNCUGRAPHBATCHMEMOPNODEGETPARASM) (CUgraphNode hNode, CUDA_BATCH_MEM_OP_NODE_PARAMS* nodeParams_out);
+typedef CUresult (CUDAAPI *PFNCUGRAPHBATCHMEMOPNODESETPARAMS) (CUgraphNode hNode, const CUDA_BATCH_MEM_OP_NODE_PARAMS* nodeParams);
+typedef CUresult (CUDAAPI *PFNCUGRAPHEXECBATCHMEMOPNODESETPARAMS) (CUgraphExec hGraphExec, CUgraphNode hNode, const CUDA_BATCH_MEM_OP_NODE_PARAMS* nodeParams);
+typedef CUresult (CUDAAPI *PFNCUGRAPHADDMEMALLOCNODE) (CUgraphNode* phGraphNode, CUgraph hGraph, const CUgraphNode* dependencies, size_t numDependencies, CUDA_MEM_ALLOC_NODE_PARAMS* nodeParams);
+typedef CUresult (CUDAAPI *PFNCUGRAPHMEMALLOCNODEGETPARAMS) (CUgraphNode hNode, CUDA_MEM_ALLOC_NODE_PARAMS* params_out);
+typedef CUresult (CUDAAPI *PFNCUGRAPHADDMEMFREENODE) (CUgraphNode* phGraphNode, CUgraph hGraph, const CUgraphNode* dependencies, size_t numDependencies, CUdeviceptr dptr);
+typedef CUresult (CUDAAPI *PFNCUGRAPHMEMFREENODEGETPARAMS) (CUgraphNode hNode, CUdeviceptr* dptr_out);
+typedef CUresult (CUDAAPI *PFNCUDEVICEGRAPHMEMTRIM) (CUdevice device);
+typedef CUresult (CUDAAPI *PFNCUDEVICEGETGRAPHMEMATTRIBUTE) (CUdevice device, CUgraphMem_attribute attr, void* value);
+typedef CUresult (CUDAAPI *PFNCUDEVICESETGRAPHMEMATTRIBUTE) (CUdevice device, CUgraphMem_attribute attr, void* value);
 typedef CUresult (CUDAAPI *PFNCUGRAPHCLONE) (CUgraph *phGraphClone, CUgraph originalGraph);
 typedef CUresult (CUDAAPI *PFNCUGRAPHNODEFINDINCLONE) (CUgraphNode *phNode, CUgraphNode hOriginalNode, CUgraph hClonedGraph);
 typedef CUresult (CUDAAPI *PFNCUGRAPHNODEGETTYPE) (CUgraphNode hNode, CUgraphNodeType *type);
@@ -646,9 +715,6 @@ typedef CUresult (CUDAAPI *PFNCUGRAPHNODEGETDEPENDENTNODES) (CUgraphNode hNode, 
 typedef CUresult (CUDAAPI *PFNCUGRAPHADDDEPENDENCIES) (CUgraph hGraph, const CUgraphNode *from, const CUgraphNode *to, size_t numDependencies);
 typedef CUresult (CUDAAPI *PFNCUGRAPHREMOVEDEPENDENCIES) (CUgraph hGraph, const CUgraphNode *from, const CUgraphNode *to, size_t numDependencies);
 typedef CUresult (CUDAAPI *PFNCUGRAPHDESTROYNODE) (CUgraphNode hNode);
-typedef CUresult (CUDAAPI *PFNCUGRAPHINSTANTIATE) (CUgraphExec *phGraphExec, CUgraph hGraph, CUgraphNode *phErrorNode, char *logBuffer, size_t bufferSize);
-typedef CUresult (CUDAAPI *PFNCUGRAPHINSTANTIATEWITHFLAGS) (CUgraphExec* phGraphExec, CUgraph hGraph, unsigned long long flags); // NEW
-typedef CUresult (CUDAAPI *PFNCUGRAPHEXECKERNELNODESETPARAMS) (CUgraphExec hGraphExec, CUgraphNode hNode, const CUDA_KERNEL_NODE_PARAMS *nodeParams);
 typedef CUresult (CUDAAPI *PFNCUGRAPHEXECMEMCPYNODESETPARAMS) (CUgraphExec hGraphExec, CUgraphNode hNode, const CUDA_MEMCPY3D *copyParams, CUcontext ctx);
 typedef CUresult (CUDAAPI *PFNCUGRAPHEXECMEMSETNODESETPARAMS) (CUgraphExec hGraphExec, CUgraphNode hNode, const CUDA_MEMSET_NODE_PARAMS *memsetParams, CUcontext ctx);
 typedef CUresult (CUDAAPI *PFNCUGRAPHEXECHOSTNODESETPARAMS) (CUgraphExec hGraphExec, CUgraphNode hNode, const CUDA_HOST_NODE_PARAMS *nodeParams);
@@ -657,31 +723,31 @@ typedef CUresult (CUDAAPI *PFNCUGRAPHEXECEVENTRECORDNODESETEVENT) (CUgraphExec h
 typedef CUresult (CUDAAPI *PFNCUGRAPHEXECEVENTWAITNODESETEVENT) (CUgraphExec hGraphExec, CUgraphNode hNode, CUevent event);
 typedef CUresult (CUDAAPI *PFNCUGRAPHEXECEXTERNALSEMAPHORESSIGNALNODESETPARAMS) (CUgraphExec hGraphExec, CUgraphNode hNode, const CUDA_EXT_SEM_SIGNAL_NODE_PARAMS *nodeParams);
 typedef CUresult (CUDAAPI *PFNCUGRAPHEXECEXTERNALSEMAPHORESWAITNODESETPARAMS) (CUgraphExec hGraphExec, CUgraphNode hNode, const CUDA_EXT_SEM_WAIT_NODE_PARAMS *nodeParams);
-typedef CUresult (CUDAAPI *PFNCUGRAPHNODESETENABLED) (CUgraphExec hGraphExec, CUgraphNode hNode, unsigned int isEnabled); // NEW
-typedef CUresult (CUDAAPI *PFNCUGRAPHNODEGETENABLED) (CUgraphExec hGraphExec, CUgraphNode hNode, unsigned int* isEnabled); // NEW
-typedef CUresult (CUDAAPI *PFNCUGRAPHUPLOAD) (CUgraphExec hGraphExec, CUstream hStream);
-typedef CUresult (CUDAAPI *PFNCUGRAPHLAUNCH) (CUgraphExec hGraphExec, CUstream hStream);
+typedef CUresult (CUDAAPI *PFNCUGRAPHNODESETENABLED) (CUgraphExec hGraphExec, CUgraphNode hNode, unsigned int isEnabled);
+typedef CUresult (CUDAAPI *PFNCUGRAPHNODEGETENABLED) (CUgraphExec hGraphExec, CUgraphNode hNode, unsigned int* isEnabled);
 typedef CUresult (CUDAAPI *PFNCUGRAPHEXECDESTROY) (CUgraphExec hGraphExec);
 typedef CUresult (CUDAAPI *PFNCUGRAPHDESTROY) (CUgraph hGraph);
-typedef CUresult (CUDAAPI *PFNCUGRAPHEXECUPDATE) (CUgraphExec hGraphExec, CUgraph hGraph, CUgraphNode *hErrorNode_out, CUgraphExecUpdateResult *updateResult_out);
 typedef CUresult (CUDAAPI *PFNCUGRAPHKERNELNODECOPYATTRIBUTES) (CUgraphNode dst, CUgraphNode src);
 typedef CUresult (CUDAAPI *PFNCUGRAPHKERNELNODEGETATTRIBUTE) (CUgraphNode hNode, CUkernelNodeAttrID attr, CUkernelNodeAttrValue *value_out);
 typedef CUresult (CUDAAPI *PFNCUGRAPHKERNELNODESETATTRIBUTE) (CUgraphNode hNode, CUkernelNodeAttrID attr, const CUkernelNodeAttrValue *value);
-typedef CUresult (CUDAAPI *PFNCUGRAPHDEBUGDOTPRINT) (CUgraph hGraph, const char* path, unsigned int flags); // NEW
-typedef CUresult (CUDAAPI *PFNCUGRAPHUSEROBJECTCREATE) (CUuserObject* object_out, void* ptr, CUhostFn destroy, unsigned int initialRefcount, unsigned int flags); // NEW
-typedef CUresult (CUDAAPI *PFNCUGRAPHUSEROBJECTRETAIN) (CUuserObject object, unsigned int count); // NEW
-typedef CUresult (CUDAAPI *PFNCUGRAPHUSEROBJECTRETLEASE) (CUuserObject object, unsigned int count); // NEW
-typedef CUresult (CUDAAPI *PFNCUGRAPHRETAINUSEROBJECT) (CUgraph graph, CUuserObject object, unsigned int count, unsigned int flags); // NEW
-typedef CUresult (CUDAAPI *PFNCUGRAPHRELEASEUSEROBJECT) (CUgraph graph, CUuserObject object, unsigned int count); // NEW
+typedef CUresult (CUDAAPI *PFNCUGRAPHDEBUGDOTPRINT) (CUgraph hGraph, const char* path, unsigned int flags);
+typedef CUresult (CUDAAPI *PFNCUGRAPHUSEROBJECTCREATE) (CUuserObject* object_out, void* ptr, CUhostFn destroy, unsigned int initialRefcount, unsigned int flags);
+typedef CUresult (CUDAAPI *PFNCUGRAPHUSEROBJECTRETAIN) (CUuserObject object, unsigned int count);
+typedef CUresult (CUDAAPI *PFNCUGRAPHUSEROBJECTRETLEASE) (CUuserObject object, unsigned int count);
+typedef CUresult (CUDAAPI *PFNCUGRAPHRETAINUSEROBJECT) (CUgraph graph, CUuserObject object, unsigned int count, unsigned int flags);
+typedef CUresult (CUDAAPI *PFNCUGRAPHRELEASEUSEROBJECT) (CUgraph graph, CUuserObject object, unsigned int count);
+typedef CUresult (CUDAAPI *PFNCUGRAPHADDNODE) (CUgraphNode *phGraphNode, CUgraph hGraph, const CUgraphNode *dependencies, size_t numDependencies, CUgraphNodeParams *nodeParams);
+typedef CUresult (CUDAAPI *PFNCUGRAPHNODESETPARAMS) (CUgraphNode hNode, CUgraphNodeParams *nodeParams);
+typedef CUresult (CUDAAPI *PFNCUGRAPHEXECNODESETPARAMS) (CUgraphExec hGraphExec, CUgraphNode hNode, CUgraphNodeParams *nodeParams);
 typedef CUresult (CUDAAPI *PFNCUOCCUPANCYMAXACTIVEBLOCKSPERMULTIPROCESSOR) (int *numBlocks, CUfunction func, int blockSize, size_t dynamicSMemSize);
 typedef CUresult (CUDAAPI *PFNCUOCCUPANCYMAXACTIVEBLOCKSPERMULTIPROCESSORWITHFLAGS) (int *numBlocks, CUfunction func, int blockSize, size_t dynamicSMemSize, unsigned int flags);
 typedef CUresult (CUDAAPI *PFNCUOCCUPANCYMAXPOTENTIALBLOCKSIZE) (int *minGridSize, int *blockSize, CUfunction func, CUoccupancyB2DSize blockSizeToDynamicSMemSize, size_t dynamicSMemSize, int blockSizeLimit);
 typedef CUresult (CUDAAPI *PFNCUOCCUPANCYMAXPOTENTIALBLOCKSIZEWITHFLAGS) (int *minGridSize, int *blockSize, CUfunction func, CUoccupancyB2DSize blockSizeToDynamicSMemSize, size_t dynamicSMemSize, int blockSizeLimit, unsigned int flags);
 typedef CUresult (CUDAAPI *PFNCUOCCUPANCYAVAILABLEDYNAMICSMEMPERBLOCK) (size_t *dynamicSmemSize, CUfunction func, int numBlocks, int blockSize);
+typedef CUresult (CUDAAPI *PFNCUOCCUPANCYMAXPOTENTIALCLUSTERSIZE) (int *clusterSize, CUfunction func, const CUlaunchConfig *config);
+typedef CUresult (CUDAAPI *PFNCUOCCUPANCYMAXACTIVECLUSTERS) (int *numClusters, CUfunction func, const CUlaunchConfig *config);
 typedef CUresult (CUDAAPI *PFNCUTEXREFSETARRAY) (CUtexref hTexRef, CUarray hArray, unsigned int Flags);
 typedef CUresult (CUDAAPI *PFNCUTEXREFSETMIPMAPPEDARRAY) (CUtexref hTexRef, CUmipmappedArray hMipmappedArray, unsigned int Flags);
-typedef CUresult (CUDAAPI *PFNCUTEXREFSETADDRESS) (size_t *ByteOffset, CUtexref hTexRef, CUdeviceptr dptr, size_t bytes);
-typedef CUresult (CUDAAPI *PFNCUTEXREFSETADDRESS2D) (CUtexref hTexRef, const CUDA_ARRAY_DESCRIPTOR *desc, CUdeviceptr dptr, size_t Pitch);
 typedef CUresult (CUDAAPI *PFNCUTEXREFSETFORMAT) (CUtexref hTexRef, CUarray_format fmt, int NumPackedComponents);
 typedef CUresult (CUDAAPI *PFNCUTEXREFSETADDRESSMODE) (CUtexref hTexRef, int dim, CUaddress_mode am);
 typedef CUresult (CUDAAPI *PFNCUTEXREFSETFILTERMODE) (CUtexref hTexRef, CUfilter_mode fm);
@@ -691,7 +757,6 @@ typedef CUresult (CUDAAPI *PFNCUTEXREFSETMIPMAPLEVELCLAMP) (CUtexref hTexRef, fl
 typedef CUresult (CUDAAPI *PFNCUTEXREFSETMAXANISOTROPY) (CUtexref hTexRef, unsigned int maxAniso);
 typedef CUresult (CUDAAPI *PFNCUTEXREFSETBORDERCOLOR) (CUtexref hTexRef, float *pBorderColor);
 typedef CUresult (CUDAAPI *PFNCUTEXREFSETFLAGS) (CUtexref hTexRef, unsigned int Flags);
-typedef CUresult (CUDAAPI *PFNCUTEXREFGETADDRESS) (CUdeviceptr *pdptr, CUtexref hTexRef);
 typedef CUresult (CUDAAPI *PFNCUTEXREFGETARRAY) (CUarray *phArray, CUtexref hTexRef);
 typedef CUresult (CUDAAPI *PFNCUTEXREFGETMIPMAPPEDARRAY) (CUmipmappedArray *phMipmappedArray, CUtexref hTexRef);
 typedef CUresult (CUDAAPI *PFNCUTEXREFGETADDRESSMODE) (CUaddress_mode *pam, CUtexref hTexRef, int dim);
@@ -715,6 +780,9 @@ typedef CUresult (CUDAAPI *PFNCUTEXOBJECTGETRESOURCEVIEWDESC) (CUDA_RESOURCE_VIE
 typedef CUresult (CUDAAPI *PFNCUSURFOBJECTCREATE) (CUsurfObject *pSurfObject, const CUDA_RESOURCE_DESC *pResDesc);
 typedef CUresult (CUDAAPI *PFNCUSURFOBJECTDESTROY) (CUsurfObject surfObject);
 typedef CUresult (CUDAAPI *PFNCUSURFOBJECTGETRESOURCEDESC) (CUDA_RESOURCE_DESC *pResDesc, CUsurfObject surfObject);
+typedef CUresult (CUDAAPI *PFNCUTENSORMAPENCODETILED) (CUtensorMap *tensorMap, CUtensorMapDataType tensorDataType, cuuint32_t tensorRank, void *globalAddress, const cuuint64_t *globalDim, const cuuint64_t *globalStrides, const cuuint32_t *boxDim, const cuuint32_t *elementStrides, CUtensorMapInterleave interleave, CUtensorMapSwizzle swizzle, CUtensorMapL2promotion l2Promotion, CUtensorMapFloatOOBfill oobFill);
+typedef CUresult (CUDAAPI *PFNCUTENSORMAPENCODEIM2COL) (CUtensorMap *tensorMap, CUtensorMapDataType tensorDataType, cuuint32_t tensorRank, void *globalAddress, const cuuint64_t *globalDim, const cuuint64_t *globalStrides, const int *pixelBoxLowerCorner, const int *pixelBoxUpperCorner, cuuint32_t channelsPerPixel, cuuint32_t pixelsPerColumn, const cuuint32_t *elementStrides, CUtensorMapInterleave interleave, CUtensorMapSwizzle swizzle, CUtensorMapL2promotion l2Promotion, CUtensorMapFloatOOBfill oobFill);
+typedef CUresult (CUDAAPI *PFNCUTENSORMAPREPLACEADDRESS) (CUtensorMap *tensorMap, void *globalAddress);
 typedef CUresult (CUDAAPI *PFNCUDEVICECANACCESSPEER) (int *canAccessPeer, CUdevice dev, CUdevice peerDev);
 typedef CUresult (CUDAAPI *PFNCUCTXENABLEPEERACCESS) (CUcontext peerContext, unsigned int Flags);
 typedef CUresult (CUDAAPI *PFNCUCTXDISABLEPEERACCESS) (CUcontext peerContext);
@@ -722,18 +790,145 @@ typedef CUresult (CUDAAPI *PFNCUDEVICEGETP2PATTRIBUTE) (int* value, CUdevice_P2P
 typedef CUresult (CUDAAPI *PFNCUGRAPHICSUNREGISTERRESOURCE) (CUgraphicsResource resource);
 typedef CUresult (CUDAAPI *PFNCUGRAPHICSSUBRESOURCEGETMAPPEDARRAY) (CUarray *pArray, CUgraphicsResource resource, unsigned int arrayIndex, unsigned int mipLevel);
 typedef CUresult (CUDAAPI *PFNCUGRAPHICSRESOURCEGETMAPPEDMIPMAPPEDARRAY) (CUmipmappedArray *pMipmappedArray, CUgraphicsResource resource);
-typedef CUresult (CUDAAPI *PFNCUGRAPHICSRESOURCEGETMAPPEDPOINTER) (CUdeviceptr *pDevPtr, size_t *pSize, CUgraphicsResource resource);
-typedef CUresult (CUDAAPI *PFNCUGRAPHICSRESOURCESETMAPFLAGS) (CUgraphicsResource resource, unsigned int flags);
-typedef CUresult (CUDAAPI *PFNCUGRAPHICSMAPRESOURCES) (unsigned int count, CUgraphicsResource *resources, CUstream hStream);
-typedef CUresult (CUDAAPI *PFNCUGRAPHICSUNMAPRESOURCES) (unsigned int count, CUgraphicsResource *resources, CUstream hStream);
-typedef CUresult (CUDAAPI *PFNCUGETPROCADDRESS) (const char* symbol, void** pfn, int cudaVersion, cuuint64_t flags); // NEW
-typedef CUresult (CUDAAPI *PFNCUGETLOADINGMODE) (CUmoduleLoadingMode* mode); // NEW
-typedef CUresult (CUDAAPI *PFNCUGETHANDLEFORADDRESSRANGE) (void* handle, CUdeviceptr dptr, size_t size, CUmemRangeHandleType handleType, unsigned long long flags); // NEW
+typedef CUresult (CUDAAPI *PFNCUCOREDUMPGETATTRIBUTE) (CUcoredumpSettings attrib, void* value, size_t *size);
+typedef CUresult (CUDAAPI *PFNCUCOREDUMPGETATTRIBUTEGLOBAL) (CUcoredumpSettings attrib, void *value, size_t *size);
+typedef CUresult (CUDAAPI *PFNCUCOREDUMPSETATTRIBUTE) (CUcoredumpSettings attrib, void* value, size_t *size);
+typedef CUresult (CUDAAPI *PFNCUCOREDUMPSETATTRIBUTEGLOBAL) (CUcoredumpSettings attrib, void *value, size_t *size);
 typedef CUresult (CUDAAPI *PFNCUGETEXPORTTABLE) (const void **ppExportTable, const CUuuid *pExportTableId);
 
 // Function pointer list for CUDA Driver API functions
 struct CUDA_DRIVER_API_FUNCTION_LIST
 {
+	PFNCUDEVICETOTALMEM cuDeviceTotalMem;
+	PFNCUCTXCREATE cuCtxCreate;
+	PFNCUCTXCREATEV3 cuCtxCreate_v3;
+	PFNCUMODULEGETGLOBAL cuModuleGetGlobal;
+	PFNCUMEMGETINFO cuMemGetInfo;
+	PFNCUMEMALLOC cuMemAlloc;
+	PFNCUMEMALLOCPITCH cuMemAllocPitch;
+	PFNCUMEMFREE cuMemFree;
+	PFNCUMEMGETADDRESSRANGE cuMemGetAddressRange;
+	PFNCUMEMALLOCHOST cuMemAllocHost;
+	PFNCUMEMHOSTGETDEVICEPOINTER cuMemHostGetDevicePointer;
+	PFNCUMEMCPYHTOD cuMemcpyHtoD;
+	PFNCUMEMCPYDTOH cuMemcpyDtoH;
+	PFNCUMEMCPYDTOD cuMemcpyDtoD;
+	PFNCUMEMCPYDTOA cuMemcpyDtoA;
+	PFNCUMEMCPYATOD cuMemcpyAtoD;
+	PFNCUMEMCPYHTOA cuMemcpyHtoA;
+	PFNCUMEMCPYATOH cuMemcpyAtoH;
+	PFNCUMEMCPYATOA cuMemcpyAtoA;
+	PFNCUMEMCPYHTOAASYNC cuMemcpyHtoAAsync;
+	PFNCUMEMCPYATOHASYNC cuMemcpyAtoHAsync;
+	PFNCUMEMCPY2D cuMemcpy2D;
+	PFNCUMEMCPY2DUNALIGNED cuMemcpy2DUnaligned;
+	PFNCUMEMCPY3D cuMemcpy3D;
+	PFNCUMEMCPYHTODASYNC cuMemcpyHtoDAsync;
+	PFNCUMEMCPYDTOHASYNC cuMemcpyDtoHAsync;
+	PFNCUMEMCPYDTODASYNC cuMemcpyDtoDAsync;
+	PFNCUMEMCPY2DASYNC cuMemcpy2DAsync;
+	PFNCUMEMCPY3DASYNC cuMemcpy3DAsync;
+	PFNCUMEMSETD8 cuMemsetD8;
+	PFNCUMEMSETD16 cuMemsetD16;
+	PFNCUMEMSETD32 cuMemsetD32;
+	PFNCUMEMSETD2D8 cuMemsetD2D8;
+	PFNCUMEMSETD2D16 cuMemsetD2D16;
+	PFNCUMEMSETD2D32 cuMemsetD2D32;
+	PFNCUARRAYCREATE cuArrayCreate;
+	PFNCUARRAYGETDESCRIPTOR cuArrayGetDescriptor;
+	PFNCUARRAY3DCREATE cuArray3DCreate;
+	PFNCUARRAY3DGETDESCRIPTOR cuArray3DGetDescriptor;
+	PFNCUTEXREFSETADDRESS cuTexRefSetAddress;
+	PFNCUTEXREFGETADDRESS cuTexRefGetAddress;
+	PFNCUGRAPHICSRESOURCEGETMAPPEDPOINTER cuGraphicsResourceGetMappedPointer;
+	PFNCUCTXDESTROY cuCtxDestroy;
+	PFNCUCTXPOPCURRENT cuCtxPopCurrent;
+	PFNCUCTXPUSHCURRENT cuCtxPushCurrent;
+	PFNCUSTREAMDESTROY cuStreamDestroy;
+	PFNCUEVENTDESTROY cuEventDestroy;
+	PFNCUTEXREFSETADDRESS2D cuTexRefSetAddress2D;
+	PFNCULINKCREATE cuLinkCreate;
+	PFNCULINKADDDATA cuLinkAddData;
+	PFNCULINKADDFILE cuLinkAddFile;
+	PFNCUMEMHOSTREGISTER cuMemHostRegister;
+	PFNCUGRAPHICSRESOURCESETMAPFLAGS cuGraphicsResourceSetMapFlags;
+	PFNCUSTREAMBEGINCAPTURE cuStreamBeginCapture;
+	PFNCUDEVICEPRIMARYCTXRELEASE cuDevicePrimaryCtxRelease;
+	PFNCUDEVICEPRIMARYCTXRESET cuDevicePrimaryCtxReset;
+	PFNCUDEVICEPRIMARYCTXSETFLAGS cuDevicePrimaryCtxSetFlags;
+	PFNCUDEVICEGETUUIDV2 cuDeviceGetUuid_v2;
+	PFNCUIPCOPENMEMHANDLE cuIpcOpenMemHandle;
+
+	PFNCUGRAPHINSTANTIATE cuGraphInstantiate;
+
+	PFNCUGRAPHEXECUPDATE cuGraphExecUpdate;
+	PFNCUGETPROCADDRESS cuGetProcAddress;
+	PFNCUGRAPHADDKERNELNODE cuGraphAddKernelNode;
+	PFNCUGRAPHKERNELNODEGETPARAMS cuGraphKernelNodeGetParams;
+	PFNCUGRAPHKERNELNODESETPARAMS cuGraphKernelNodeSetParams;
+	PFNCUGRAPHEXECKERNELNODESETPARAMS cuGraphExecKernelNodeSetParams;
+
+	PFNCUSTREAMWRITEVALUE32 cuStreamWriteValue32;
+	PFNCUSTREAMWAITVALUE32 cuStreamWaitValue32;
+	PFNCUSTREAMWRITEVALUE64 cuStreamWriteValue64;
+	PFNCUSTREAMWAITVALUE64 cuStreamWaitValue64;
+	PFNCUSTREAMBATCHMEMOP cuStreamBatchMemOp;
+	PFNCUSTREAMGETCAPTUREINFO cuStreamGetCaptureInfo;
+	PFNCUSTREAMGETCAPTUREINFOV2 cuStreamGetCaptureInfo_v2;
+
+	PFNCUMEMCPY cuMemcpy;
+	PFNCUMEMCPYASYNC cuMemcpyAsync;
+	PFNCUMEMCPYPEER cuMemcpyPeer;
+	PFNCUMEMCPYPEERASYNC cuMemcpyPeerAsync;
+	PFNCUMEMCPY3DPEER cuMemcpy3DPeer;
+	PFNCUMEMCPY3DPEERASYNC cuMemcpy3DPeerAsync;
+	PFNCUMEMPREFETCHASYNC cuMemPrefetchAsync;
+	PFNCUMEMPREFETCHASYNCV2 cuMemPrefetchAsync_v2;
+
+	PFNCUMEMSETD8ASYNC cuMemsetD8Async;
+	PFNCUMEMSETD16ASYNC cuMemsetD16Async;
+	PFNCUMEMSETD32ASYNC cuMemsetD32Async;
+	PFNCUMEMSETD2D8ASYNC cuMemsetD2D8Async;
+	PFNCUMEMSETD2D16ASYNC cuMemsetD2D16Async;
+	PFNCUMEMSETD2D32ASYNC cuMemsetD2D32Async;
+
+	PFNCUSTREAMGETPRIORITY cuStreamGetPriority;
+	PFNCUSTREAMGETID cuStreamGetId;
+	PFNCUSTREAMGETFLAGS cuStreamGetFlags;
+	PFNCUSTREAMGETCTX cuStreamGetCtx;
+	PFNCUSTREAMWAITEVENT cuStreamWaitEvent;
+	PFNCUSTREAMENDCAPTURE cuStreamEndCapture;
+	PFNCUSTREAMISCAPTURING cuStreamIsCapturing;
+	PFNCUSTREAMUPDATECAPTUREDEPENDENCIES cuStreamUpdateCaptureDependencies;
+	PFNCUSTREAMADDCALLBACK cuStreamAddCallback;
+	PFNCUSTREAMATTACHMEMASYNC cuStreamAttachMemAsync;
+	PFNCUSTREAMQUERY cuStreamQuery;
+	PFNCUSTREAMSYNCHRONIZE cuStreamSynchronize;
+	PFNCUEVENTRECORD cuEventRecord;
+	PFNCUEVENTRECORDWITHFLAGS cuEventRecordWithFlags;
+	PFNCULAUNCHKERNEL cuLaunchKernel;
+	PFNCULAUNCHKERNELEX cuLaunchKernelEx;
+	PFNCULAUNCHHOSTFUNC cuLaunchHostFunc;
+	PFNCUGRAPHICSMAPRESOURCES cuGraphicsMapResources;
+	PFNCUGRAPHICSUNMAPRESOURCES cuGraphicsUnmapResources;
+
+	PFNCULAUNCHCOOPERATIVEKERNEL cuLaunchCooperativeKernel;
+
+	PFNCUSIGNALEXTERNALSEMAPHORESASYNC cuSignalExternalSemaphoresAsync;
+	PFNCUWAITEXTERNALSEMAPHORESASYNC cuWaitExternalSemaphoresAsync;
+
+	PFNCUGRAPHINSTANTIATEWITHPARAMS cuGraphInstantiateWithParams;
+	PFNCUGRAPHUPLOAD cuGraphUpload;
+	PFNCUGRAPHLAUNCH cuGraphLaunch;
+	PFNCUSTREAMCOPYATTRIBUTES cuStreamCopyAttributes;
+	PFNCUSTREAMGETATTRIBUTE cuStreamGetAttribute;
+	PFNCUSTREAMSETATTRIBUTE cuStreamSetAttribute;
+	PFNCUMEMMAPARRAYASYNC cuMemMapArrayAsync;
+
+	PFNCUMEMFREEASYNC cuMemFreeAsync;
+	PFNCUMEMALLOCASYNC cuMemAllocAsync;
+	PFNCUMEMALLOCFROMPOOLASYNC cuMemAllocFromPoolAsync;
+
 	PFNCUGETERRORSTRING cuGetErrorString;
 	PFNCUGETERRORNAME cuGetErrorName;
 	PFNCUINIT cuInit;
@@ -742,33 +937,25 @@ struct CUDA_DRIVER_API_FUNCTION_LIST
 	PFNCUDEVICEGETCOUNT cuDeviceGetCount;
 	PFNCUDEVICEGETNAME cuDeviceGetName;
 	PFNCUDEVICEGETUUID cuDeviceGetUuid;
-	PFNCUDEVICEGETUUIDV2 cuDeviceGetUuid_v2; // NEW
 	PFNCUDEVICEGETLUID cuDeviceGetLuid;
-	PFNCUDEVICETOTALMEM cuDeviceTotalMem;
 	PFNCUDEVICEGETTEXTURE1DLINEARMAXWIDTH cuDeviceGetTexture1DLinearMaxWidth;
 	PFNCUDEVICEGETATTRIBUTE cuDeviceGetAttribute;
 	PFNCUDEVICEGETNVSCISYNCATTRIBUTES cuDeviceGetNvSciSyncAttributes;
 	PFNCUDEVICESETMEMPOOL cuDeviceSetMemPool;
 	PFNCUDEVICEGETMEMPOOL cuDeviceGetMemPool;
 	PFNCUDEVICEGETDEFAULTMEMPOOL cuDeviceGetDefaultMemPool;
-	PFNCUFLUSHGPUDIRECTRDMAWRITES cuFlushGPUDirectRDMAWrites; // NEW
+	PFNCUDEVICEGETEXECAFFINITYSUPPORT cuDeviceGetExecAffinitySupport;
+	PFNCUFLUSHGPUDIRECTRDMAWRITES cuFlushGPUDirectRDMAWrites;
 	PFNCUDEVICEGETPROPERTIES cuDeviceGetProperties;
 	PFNCUDEVICECOMPUTECAPABILITY cuDeviceComputeCapability;
 	PFNCUDEVICEPRIMARYCTXRETAIN cuDevicePrimaryCtxRetain;
-	PFNCUDEVICEPRIMARYCTXRELEASE cuDevicePrimaryCtxRelease;
-	PFNCUDEVICEPRIMARYCTXSETFLAGS cuDevicePrimaryCtxSetFlags;
 	PFNCUDEVICEPRIMARYCTXGETSTATE cuDevicePrimaryCtxGetState;
-	PFNCUDEVICEPRIMARYCTXRESET cuDevicePrimaryCtxReset;
-	PFNCUDEVICEGETEXECAFFINITYSUPPORT cuDeviceGetExecAffinitySupport; // NEW
-	PFNCUCTXCREATE cuCtxCreate;
-	PFNCUCTXCREATEV3 cuCtxCreate_v3; // NEW
-	PFNCUCTXDESTROY cuCtxDestroy;
-	PFNCUCTXPUSHCURRENT cuCtxPushCurrent;
-	PFNCUCTXPOPCURRENT cuCtxPopCurrent;
 	PFNCUCTXSETCURRENT cuCtxSetCurrent;
 	PFNCUCTXGETCURRENT cuCtxGetCurrent;
 	PFNCUCTXGETDEVICE cuCtxGetDevice;
 	PFNCUCTXGETFLAGS cuCtxGetFlags;
+	PFNCUCTXSETFLAGS cuCtxSetFlags;
+	PFNCUCTXGETID cuCtxGetId;
 	PFNCUCTXSYNCHRONIZE cuCtxSynchronize;
 	PFNCUCTXSETLIMIT cuCtxSetLimit;
 	PFNCUCTXGETLIMIT cuCtxGetLimit;
@@ -779,7 +966,7 @@ struct CUDA_DRIVER_API_FUNCTION_LIST
 	PFNCUCTXGETAPIVERSION cuCtxGetApiVersion;
 	PFNCUCTXGETSTREAMPRIORITYRANGE cuCtxGetStreamPriorityRange;
 	PFNCUCTXRESETPERSISTINGL2CACHE cuCtxResetPersistingL2Cache;
-	PFNCUCTXGETEXECAFFINITY cuCtxGetExecAffinity; // NEW
+	PFNCUCTXGETEXECAFFINITY cuCtxGetExecAffinity;
 	PFNCUCTXATTACH cuCtxAttach;
 	PFNCUCTXDETACH cuCtxDetach;
 	PFNCUMODULELOAD cuModuleLoad;
@@ -787,24 +974,26 @@ struct CUDA_DRIVER_API_FUNCTION_LIST
 	PFNCUMODULELOADDATAEX cuModuleLoadDataEx;
 	PFNCUMODULELOADFATBINARY cuModuleLoadFatBinary;
 	PFNCUMODULEUNLOAD cuModuleUnload;
+	PFNCUMODULEGETLOADINGMODE cuModuleGetLoadingMode;
 	PFNCUMODULEGETFUNCTION cuModuleGetFunction;
-	PFNCUMODULEGETGLOBAL cuModuleGetGlobal;
-	PFNCUMODULEGETTEXREF cuModuleGetTexRef;
-	PFNCUMODULEGETSURFREF cuModuleGetSurfRef;
-	PFNCULINKCREATE cuLinkCreate;
-	PFNCULINKADDDATA cuLinkAddData;
-	PFNCULINKADDFILE cuLinkAddFile;
 	PFNCULINKCOMPLETE cuLinkComplete;
 	PFNCULINKDESTROY cuLinkDestroy;
-	PFNCUMEMGETINFO cuMemGetInfo;
-	PFNCUMEMALLOC cuMemAlloc;
-	PFNCUMEMALLOCPITCH cuMemAllocPitch;
-	PFNCUMEMFREE cuMemFree;
-	PFNCUMEMGETADDRESSRANGE cuMemGetAddressRange;
-	PFNCUMEMALLOCHOST cuMemAllocHost;
+	PFNCUMODULEGETTEXREF cuModuleGetTexRef;
+	PFNCUMODULEGETSURFREF cuModuleGetSurfRef;
+	PFNCULIBRARYLOADDATA cuLibraryLoadData;
+	PFNCULIBRARYLOADFROMFILE cuLibraryLoadFromFile;
+	PFNCULIBRARYUNLOAD cuLibraryUnload;
+	PFNCULIBRARYGETKERNEL cuLibraryGetKernel;
+	PFNCULIBRARYGETMODULE cuLibraryGetModule;
+	PFNCUKERNELGETFUNCTION cuKernelGetFunction;
+	PFNCULIBRARYGETGLOBAL cuLibraryGetGlobal;
+	PFNCULIBRARYGETMANAGED cuLibraryGetManaged;
+	PFNCULIBRARYGETUNIFIEDFUNCTION cuLibraryGetUnifiedFunction;
+	PFNCUKERNELGETATTRIBUTE cuKernelGetAttribute;
+	PFNCUKERNELSETATTRIBUTE cuKernelSetAttribute;
+	PFNCUKERNELSETCACHECONFIG cuKernelSetCacheConfig;
 	PFNCUMEMFREEHOST cuMemFreeHost;
 	PFNCUMEMHOSTALLOC cuMemHostAlloc;
-	PFNCUMEMHOSTGETDEVICEPOINTER cuMemHostGetDevicePointer;
 	PFNCUMEMHOSTGETFLAGS cuMemHostGetFlags;
 	PFNCUMEMALLOCMANAGED cuMemAllocManaged;
 	PFNCUDEVICEGETBYPCIBUSID cuDeviceGetByPCIBusId;
@@ -812,65 +1001,23 @@ struct CUDA_DRIVER_API_FUNCTION_LIST
 	PFNCUIPCGETEVENTHANDLE cuIpcGetEventHandle;
 	PFNCUIPCOPENEVENTHANDLE cuIpcOpenEventHandle;
 	PFNCUIPCGETMEMHANDLE cuIpcGetMemHandle;
-	PFNCUIPCOPENMEMHANDLE cuIpcOpenMemHandle;
 	PFNCUIPCCLOSEMEMHANDLE cuIpcCloseMemHandle;
-	PFNCUMEMHOSTREGISTER cuMemHostRegister;
 	PFNCUMEMHOSTUNREGISTER cuMemHostUnregister;
-	PFNCUMEMCPY cuMemcpy;
-	PFNCUMEMCPYPEER cuMemcpyPeer;
-	PFNCUMEMCPYHTOD cuMemcpyHtoD;
-	PFNCUMEMCPYDTOH cuMemcpyDtoH;
-	PFNCUMEMCPYDTOD cuMemcpyDtoD;
-	PFNCUMEMCPYDTOA cuMemcpyDtoA;
-	PFNCUMEMCPYATOD cuMemcpyAtoD;
-	PFNCUMEMCPYHTOA cuMemcpyHtoA;
-	PFNCUMEMCPYATOH cuMemcpyAtoH;
-	PFNCUMEMCPYATOA cuMemcpyAtoA;
-	PFNCUMEMCPY2D cuMemcpy2D;
-	PFNCUMEMCPY2DUNALIGNED cuMemcpy2DUnaligned;
-	PFNCUMEMCPY3D cuMemcpy3D;
-	PFNCUMEMCPY3DPEER cuMemcpy3DPeer;
-	PFNCUMEMCPYASYNC cuMemcpyAsync;
-	PFNCUMEMCPYPEERASYNC cuMemcpyPeerAsync;
-	PFNCUMEMCPYHTODASYNC cuMemcpyHtoDAsync;
-	PFNCUMEMCPYDTOHASYNC cuMemcpyDtoHAsync;
-	PFNCUMEMCPYDTODASYNC cuMemcpyDtoDAsync;
-	PFNCUMEMCPYHTOAASYNC cuMemcpyHtoAAsync;
-	PFNCUMEMCPYATOHASYNC cuMemcpyAtoHAsync;
-	PFNCUMEMCPY2DASYNC cuMemcpy2DAsync;
-	PFNCUMEMCPY3DASYNC cuMemcpy3DAsync;
-	PFNCUMEMCPY3DPEERASYNC cuMemcpy3DPeerAsync;
-	PFNCUMEMSETD8 cuMemsetD8;
-	PFNCUMEMSETD16 cuMemsetD16;
-	PFNCUMEMSETD32 cuMemsetD32;
-	PFNCUMEMSETD2D8 cuMemsetD2D8;
-	PFNCUMEMSETD2D16 cuMemsetD2D16;
-	PFNCUMEMSETD2D32 cuMemsetD2D32;
-	PFNCUMEMSETD8ASYNC cuMemsetD8Async;
-	PFNCUMEMSETD16ASYNC cuMemsetD16Async;
-	PFNCUMEMSETD32ASYNC cuMemsetD32Async;
-	PFNCUMEMSETD2D8ASYNC cuMemsetD2D8Async;
-	PFNCUMEMSETD2D16ASYNC cuMemsetD2D16Async;
-	PFNCUMEMSETD2D32ASYNC cuMemsetD2D32Async;
-	PFNCUARRAYCREATE cuArrayCreate;
-	PFNCUARRAYGETDESCRIPTOR cuArrayGetDescriptor;
 	PFNCUARRAYGETSPARSEPROPERTIES cuArrayGetSparseProperties;
 	PFNCUMIPMAPPEDARRAYGETSPARSEPROPERTIES cuMipmappedArrayGetSparseProperties;
-	PFNCUARRAYGETMEMORYREQUERIMENTS cuArrayGetMemoryRequirements; // NEW
-	PFNCUMIPMAPPEDARRAYGETMEMORYREQUERIMENTS cuMipmappedArrayGetMemoryRequirements; // NEW
+	PFNCUARRAYGETMEMORYREQUERIMENTS cuArrayGetMemoryRequirements;
+	PFNCUMIPMAPPEDARRAYGETMEMORYREQUERIMENTS cuMipmappedArrayGetMemoryRequirements;
 	PFNCUARRAYGETPLANE cuArrayGetPlane;
 	PFNCUARRAYDESTROY cuArrayDestroy;
-	PFNCUARRAY3DCREATE cuArray3DCreate;
-	PFNCUARRAY3DGETDESCRIPTOR cuArray3DGetDescriptor;
 	PFNCUMIPMAPPEDARRAYCREATE cuMipmappedArrayCreate;
 	PFNCUMIPMAPPEDARRAYGETLEVEL cuMipmappedArrayGetLevel;
 	PFNCUMIPMAPPEDARRAYDESTROY cuMipmappedArrayDestroy;
+	PFNCUMEMGETHANDLEFORADDRESSRANGE cuMemGetHandleForAddressRange;
 	PFNCUMEMADDRESSRESERVE cuMemAddressReserve;
 	PFNCUMEMADDRESSFREE cuMemAddressFree;
 	PFNCUMEMCREATE cuMemCreate;
 	PFNCUMEMRELEASE cuMemRelease;
 	PFNCUMEMMAP cuMemMap;
-	PFNCUMEMMAPARRAYASYNC cuMemMapArrayAsync;
 	PFNCUMEMUNMAP cuMemUnmap;
 	PFNCUMEMSETACCESS cuMemSetAccess;
 	PFNCUMEMGETACCESS cuMemGetAccess;
@@ -879,8 +1026,6 @@ struct CUDA_DRIVER_API_FUNCTION_LIST
 	PFNCUMEMGETALLOCATIONGRANULARITY cuMemGetAllocationGranularity;
 	PFNCUMEMGETALLOCATIONPROPERTIESFROMHANDLE cuMemGetAllocationPropertiesFromHandle;
 	PFNCUMEMRETAINALLOCATIONHANDLE cuMemRetainAllocationHandle;
-	PFNCUMEMFREEASYNC cuMemFreeAsync;
-	PFNCUMEMALLOCASYNC cuMemAllocAsync;
 	PFNCUMEMPOOLTRIMTO cuMemPoolTrimTo;
 	PFNCUMEMPOOLSETATTRIBUTE cuMemPoolSetAttribute;
 	PFNCUMEMPOOLGETATTRIBUTE cuMemPoolGetAttribute;
@@ -888,73 +1033,52 @@ struct CUDA_DRIVER_API_FUNCTION_LIST
 	PFNCUMEMPOOLGETACCESS cuMemPoolGetAccess;
 	PFNCUMEMPOOLCREATE cuMemPoolCreate;
 	PFNCUMEMPOOLDESTROY cuMemPoolDestroy;
-	PFNCUMEMALLOCFROMPOOLASYNC cuMemAllocFromPoolAsync;
 	PFNCUMEMPOOLEXPORTTOSHAREABLEHANDLE cuMemPoolExportToShareableHandle;
 	PFNCUMEMPOOLIMPORTFROMSHAREABLEHANDLE cuMemPoolImportFromShareableHandle;
 	PFNCUMEMPOOLEXPORTPOINTER cuMemPoolExportPointer;
 	PFNCUMEMPOOLIMPORTPOINTER cuMemPoolImportPointer;
+	PFNCUMULTICASTCREATE cuMulticastCreate;
+	PFNCUMULTICASTADDDEVICE cuMulticastAddDevice;
+	PFNCUMULTICASTBINDMEM cuMulticastBindMem;
+	PFNCUMULTICASTBINDADDR cuMulticastBindAddr;
+	PFNCUMULTICASTUNBIND cuMulticastUnbind;
+	PFNCUMULTICASTGETGRANULARITY cuMulticastGetGranularity;
 	PFNCUPOINTERGETATTRIBUTE cuPointerGetAttribute;
-	PFNCUMEMPREFETCHASYNC cuMemPrefetchAsync;
 	PFNCUMEMADVISE cuMemAdvise;
+	PFNCUMEMADVISEV2 cuMemAdvise_v2;
 	PFNCUMEMRANGEGETATTRIBUTE cuMemRangeGetAttribute;
 	PFNCUMEMRANGEGETATTRIBUTES cuMemRangeGetAttributes;
 	PFNCUPOINTERSETATTRIBUTE cuPointerSetAttribute;
 	PFNCUPOINTERGETATTRIBUTES cuPointerGetAttributes;
 	PFNCUSTREAMCREATE cuStreamCreate;
 	PFNCUSTREAMCREATEWITHPRIORITY cuStreamCreateWithPriority;
-	PFNCUSTREAMGETPRIORITY cuStreamGetPriority;
-	PFNCUSTREAMGETFLAGS cuStreamGetFlags;
-	PFNCUSTREAMGETCTX cuStreamGetCtx;
-	PFNCUSTREAMWAITEVENT cuStreamWaitEvent;
-	PFNCUSTREAMADDCALLBACK cuStreamAddCallback;
-	PFNCUSTREAMBEGINCAPTURE cuStreamBeginCapture;
 	PFNCUTHREADEXCHANGESTREAMCAPTUREMODE cuThreadExchangeStreamCaptureMode;
-	PFNCUSTREAMENDCAPTURE cuStreamEndCapture;
-	PFNCUSTREAMISCAPTURING cuStreamIsCapturing;
-	PFNCUSTREAMGETCAPTUREINFO cuStreamGetCaptureInfo;
-	PFNCUSTREAMGETCAPTUREINFOV2 cuStreamGetCaptureInfo_v2; // NEW
-	PFNCUSTREAMUPDATECAPTUREDEPENDENCIES cuStreamUpdateCaptureDependencies; // NEW
-	PFNCUSTREAMATTACHMEMASYNC cuStreamAttachMemAsync;
-	PFNCUSTREAMQUERY cuStreamQuery;
-	PFNCUSTREAMSYNCHRONIZE cuStreamSynchronize;
-	PFNCUSTREAMDESTROY cuStreamDestroy;
-	PFNCUSTREAMCOPYATTRIBUTES cuStreamCopyAttributes;
-	PFNCUSTREAMGETATTRIBUTE cuStreamGetAttribute;
-	PFNCUSTREAMSETATTRIBUTE cuStreamSetAttribute;
 	PFNCUEVENTCREATE cuEventCreate;
-	PFNCUEVENTRECORD cuEventRecord;
-	PFNCUEVENTRECORDWITHFLAGS cuEventRecordWithFlags;
 	PFNCUEVENTQUERY cuEventQuery;
 	PFNCUEVENTSYNCHRONIZE cuEventSynchronize;
-	PFNCUEVENTDESTROY cuEventDestroy;
 	PFNCUEVENTELAPSEDTIME cuEventElapsedTime;
 	PFNCUIMPORTEXTERNALMEMORY cuImportExternalMemory;
 	PFNCUEXTERNALMEMORYGETMAPPEDBUFFER cuExternalMemoryGetMappedBuffer;
 	PFNCUEXTERNALMEMORYGETMAPPEDMIPMAPPEDARRAY cuExternalMemoryGetMappedMipmappedArray;
 	PFNCUDESTROYEXTERNALMEMORY cuDestroyExternalMemory;
 	PFNCUIMPORTEXTERNALSEMAPHORE cuImportExternalSemaphore;
-	PFNCUSIGNALEXTERNALSEMAPHORESASYNC cuSignalExternalSemaphoresAsync;
-	PFNCUWAITEXTERNALSEMAPHORESASYNC cuWaitExternalSemaphoresAsync;
 	PFNCUDESTROYEXTERNALSEMAPHORE cuDestroyExternalSemaphore;
-	PFNCUSTREAMWAITVALUE32 cuStreamWaitValue32;
-	PFNCUSTREAMWAITVALUE64 cuStreamWaitValue64;
-	PFNCUSTREAMWRITEVALUE32 cuStreamWriteValue32;
-	PFNCUSTREAMWRITEVALUE64 cuStreamWriteValue64;
-	PFNCUSTREAMBATCHMEMOP cuStreamBatchMemOp;
-	PFNCUSTREAMWAITVALUE32V2 cuStreamWaitValue32_v2; // NEW
-	PFNCUSTREAMWAITVALUE64V2 cuStreamWaitValue64_v2; // NEW
-	PFNCUSTREAMWRITEVALUE32V2 cuStreamWriteValue32_v2; // NEW
-	PFNCUSTREAMWRITEVALUE64V2 cuStreamWriteValue64_v2; // NEW
-	PFNCUSTREAMBATCHMEMOPV2 cuStreamBatchMemOp_v2; // NEW
+	PFNCUSTREAMWRITEVALUE32PTSZ cuStreamWriteValue32_ptsz;
+	PFNCUSTREAMWAITVALUE32PTSZ cuStreamWaitValue32_ptsz;
+	PFNCUSTREAMWRITEVALUE64PTSZ cuStreamWriteValue64_ptsz;
+	PFNCUSTREAMWAITVALUE64PTSZ cuStreamWaitValue64_ptsz;
+	PFNCUSTREAMBATCHMEMOPPTSZ cuStreamBatchMemOp_ptsz;
+	PFNCUSTREAMWAITVALUE32V2 cuStreamWaitValue32_v2;
+	PFNCUSTREAMWAITVALUE64V2 cuStreamWaitValue64_v2;
+	PFNCUSTREAMWRITEVALUE32V2 cuStreamWriteValue32_v2;
+	PFNCUSTREAMWRITEVALUE64V2 cuStreamWriteValue64_v2;
+	PFNCUSTREAMBATCHMEMOPV2 cuStreamBatchMemOp_v2;
 	PFNCUFUNCGETATTRIBUTE cuFuncGetAttribute;
 	PFNCUFUNCSETATTRIBUTE cuFuncSetAttribute;
 	PFNCUFUNCSETCACHECONFIG cuFuncSetCacheConfig;
 	PFNCUFUNCSETSHAREDMEMCONFIG cuFuncSetSharedMemConfig;
 	PFNCUFUNCGETMODULE cuFuncGetModule;
-	PFNCULAUNCHKERNEL cuLaunchKernel;
-	PFNCULAUNCHCOOPERATIVEKERNEL cuLaunchCooperativeKernel;
 	PFNCULAUNCHCOOPERATIVEKERNELMULTIDEVICE cuLaunchCooperativeKernelMultiDevice;
-	PFNCULAUNCHHOSTFUNC cuLaunchHostFunc;
 	PFNCUFUNCSETBLOCKSHAPE cuFuncSetBlockShape;
 	PFNCUFUNCSETSHAREDSIZE cuFuncSetSharedSize;
 	PFNCUPARAMSETSIZE cuParamSetSize;
@@ -966,9 +1090,6 @@ struct CUDA_DRIVER_API_FUNCTION_LIST
 	PFNCULAUNCHGRIDASYNC cuLaunchGridAsync;
 	PFNCUPARAMSETTEXREF cuParamSetTexRef;
 	PFNCUGRAPHCREATE cuGraphCreate;
-	PFNCUGRAPHADDKERNELNODE cuGraphAddKernelNode;
-	PFNCUGRAPHKERNELNODEGETPARAMS cuGraphKernelNodeGetParams;
-	PFNCUGRAPHKERNELNODESETPARAMS cuGraphKernelNodeSetParams;
 	PFNCUGRAPHADDMEMCPYNODE cuGraphAddMemcpyNode;
 	PFNCUGRAPHMEMCPYNODEGETPARAMS cuGraphMemcpyNodeGetParams;
 	PFNCUGRAPHMEMCPYNODESETPARAMS cuGraphMemcpyNodeSetParams;
@@ -993,17 +1114,17 @@ struct CUDA_DRIVER_API_FUNCTION_LIST
 	PFNCUGRAPHADDEXTERNALSEMAPHORESWAITNODE cuGraphAddExternalSemaphoresWaitNode;
 	PFNCUGRAPHEXTERNALSEMAPHORESWAITNODEGETPARAMS cuGraphExternalSemaphoresWaitNodeGetParams;
 	PFNCUGRAPHEXTERNALSEMAPHORESWAITNODESETPARAMS cuGraphExternalSemaphoresWaitNodeSetParams;
-	PFNCUGRAPHADDBATCHMEMOPNODE cuGraphAddBatchMemOpNode; // NEW
-	PFNCUGRAPHBATCHMEMOPNODEGETPARASM cuGraphBatchMemOpNodeGetParams; // NEW
-	PFNCUGRAPHBATCHMEMOPNODESETPARAMS cuGraphBatchMemOpNodeSetParams; // NEW
-	PFNCUGRAPHEXECBATCHMEMOPNODESETPARAMS cuGraphExecBatchMemOpNodeSetParams; // NEW
-	PFNCUGRAPHADDMEMALLOCNODE cuGraphAddMemAllocNode; // NEW
-	PFNCUGRAPHMEMALLOCNODEGETPARAMS cuGraphMemAllocNodeGetParams; // NEW
-	PFNCUGRAPHADDMEMFREENODE cuGraphAddMemFreeNode; // NEW
-	PFNCUGRAPHMEMFREENODEGETPARAMS cuGraphMemFreeNodeGetParams; // NEW
-	PFNCUDEVICEGRAPHMEMTRIM cuDeviceGraphMemTrim; // NEW
-	PFNCUDEVICEGETGRAPHMEMATTRIBUTE cuDeviceGetGraphMemAttribute; // NEW
-	PFNCUDEVICESETGRAPHMEMATTRIBUTE cuDeviceSetGraphMemAttribute; // NEW
+	PFNCUGRAPHADDBATCHMEMOPNODE cuGraphAddBatchMemOpNode;
+	PFNCUGRAPHBATCHMEMOPNODEGETPARASM cuGraphBatchMemOpNodeGetParams;
+	PFNCUGRAPHBATCHMEMOPNODESETPARAMS cuGraphBatchMemOpNodeSetParams;
+	PFNCUGRAPHEXECBATCHMEMOPNODESETPARAMS cuGraphExecBatchMemOpNodeSetParams;
+	PFNCUGRAPHADDMEMALLOCNODE cuGraphAddMemAllocNode;
+	PFNCUGRAPHMEMALLOCNODEGETPARAMS cuGraphMemAllocNodeGetParams;
+	PFNCUGRAPHADDMEMFREENODE cuGraphAddMemFreeNode;
+	PFNCUGRAPHMEMFREENODEGETPARAMS cuGraphMemFreeNodeGetParams;
+	PFNCUDEVICEGRAPHMEMTRIM cuDeviceGraphMemTrim;
+	PFNCUDEVICEGETGRAPHMEMATTRIBUTE cuDeviceGetGraphMemAttribute;
+	PFNCUDEVICESETGRAPHMEMATTRIBUTE cuDeviceSetGraphMemAttribute;
 	PFNCUGRAPHCLONE cuGraphClone;
 	PFNCUGRAPHNODEFINDINCLONE cuGraphNodeFindInClone;
 	PFNCUGRAPHNODEGETTYPE cuGraphNodeGetType;
@@ -1015,9 +1136,6 @@ struct CUDA_DRIVER_API_FUNCTION_LIST
 	PFNCUGRAPHADDDEPENDENCIES cuGraphAddDependencies;
 	PFNCUGRAPHREMOVEDEPENDENCIES cuGraphRemoveDependencies;
 	PFNCUGRAPHDESTROYNODE cuGraphDestroyNode;
-	PFNCUGRAPHINSTANTIATE cuGraphInstantiate;
-	PFNCUGRAPHINSTANTIATEWITHFLAGS cuGraphInstantiateWithFlags; // NEW
-	PFNCUGRAPHEXECKERNELNODESETPARAMS cuGraphExecKernelNodeSetParams;
 	PFNCUGRAPHEXECMEMCPYNODESETPARAMS cuGraphExecMemcpyNodeSetParams;
 	PFNCUGRAPHEXECMEMSETNODESETPARAMS cuGraphExecMemsetNodeSetParams;
 	PFNCUGRAPHEXECHOSTNODESETPARAMS cuGraphExecHostNodeSetParams;
@@ -1026,31 +1144,31 @@ struct CUDA_DRIVER_API_FUNCTION_LIST
 	PFNCUGRAPHEXECEVENTWAITNODESETEVENT cuGraphExecEventWaitNodeSetEvent;
 	PFNCUGRAPHEXECEXTERNALSEMAPHORESSIGNALNODESETPARAMS cuGraphExecExternalSemaphoresSignalNodeSetParams;
 	PFNCUGRAPHEXECEXTERNALSEMAPHORESWAITNODESETPARAMS cuGraphExecExternalSemaphoresWaitNodeSetParams;
-	PFNCUGRAPHNODESETENABLED cuGraphNodeSetEnabled; // NEW
-	PFNCUGRAPHNODEGETENABLED cuGraphNodeGetEnabled; // NEW
-	PFNCUGRAPHUPLOAD cuGraphUpload;
-	PFNCUGRAPHLAUNCH cuGraphLaunch;
+	PFNCUGRAPHNODESETENABLED cuGraphNodeSetEnabled;
+	PFNCUGRAPHNODEGETENABLED cuGraphNodeGetEnabled;
 	PFNCUGRAPHEXECDESTROY cuGraphExecDestroy;
 	PFNCUGRAPHDESTROY cuGraphDestroy;
-	PFNCUGRAPHEXECUPDATE cuGraphExecUpdate;
 	PFNCUGRAPHKERNELNODECOPYATTRIBUTES cuGraphKernelNodeCopyAttributes;
 	PFNCUGRAPHKERNELNODEGETATTRIBUTE cuGraphKernelNodeGetAttribute;
 	PFNCUGRAPHKERNELNODESETATTRIBUTE cuGraphKernelNodeSetAttribute;
-	PFNCUGRAPHDEBUGDOTPRINT cuGraphDebugDotPrint; // NEW
-	PFNCUGRAPHUSEROBJECTCREATE cuUserObjectCreate; // NEW
-	PFNCUGRAPHUSEROBJECTRETAIN cuUserObjectRetain; // NEW
-	PFNCUGRAPHUSEROBJECTRETLEASE cuUserObjectRelease; // NEW
-	PFNCUGRAPHRETAINUSEROBJECT cuGraphRetainUserObject; // NEW
-	PFNCUGRAPHRELEASEUSEROBJECT cuGraphReleaseUserObject; // NEW
+	PFNCUGRAPHDEBUGDOTPRINT cuGraphDebugDotPrint;
+	PFNCUGRAPHUSEROBJECTCREATE cuUserObjectCreate;
+	PFNCUGRAPHUSEROBJECTRETAIN cuUserObjectRetain;
+	PFNCUGRAPHUSEROBJECTRETLEASE cuUserObjectRelease;
+	PFNCUGRAPHRETAINUSEROBJECT cuGraphRetainUserObject;
+	PFNCUGRAPHRELEASEUSEROBJECT cuGraphReleaseUserObject;
+	PFNCUGRAPHADDNODE cuGraphAddNode;
+	PFNCUGRAPHNODESETPARAMS cuGraphNodeSetParams;
+	PFNCUGRAPHEXECNODESETPARAMS cuGraphExecNodeSetParams;
 	PFNCUOCCUPANCYMAXACTIVEBLOCKSPERMULTIPROCESSOR cuOccupancyMaxActiveBlocksPerMultiprocessor;
 	PFNCUOCCUPANCYMAXACTIVEBLOCKSPERMULTIPROCESSORWITHFLAGS cuOccupancyMaxActiveBlocksPerMultiprocessorWithFlags;
 	PFNCUOCCUPANCYMAXPOTENTIALBLOCKSIZE cuOccupancyMaxPotentialBlockSize;
 	PFNCUOCCUPANCYMAXPOTENTIALBLOCKSIZEWITHFLAGS cuOccupancyMaxPotentialBlockSizeWithFlags;
 	PFNCUOCCUPANCYAVAILABLEDYNAMICSMEMPERBLOCK cuOccupancyAvailableDynamicSMemPerBlock;
+	PFNCUOCCUPANCYMAXPOTENTIALCLUSTERSIZE cuOccupancyMaxPotentialClusterSize;
+	PFNCUOCCUPANCYMAXACTIVECLUSTERS cuOccupancyMaxActiveClusters;
 	PFNCUTEXREFSETARRAY cuTexRefSetArray;
 	PFNCUTEXREFSETMIPMAPPEDARRAY cuTexRefSetMipmappedArray;
-	PFNCUTEXREFSETADDRESS cuTexRefSetAddress;
-	PFNCUTEXREFSETADDRESS2D cuTexRefSetAddress2D;
 	PFNCUTEXREFSETFORMAT cuTexRefSetFormat;
 	PFNCUTEXREFSETADDRESSMODE cuTexRefSetAddressMode;
 	PFNCUTEXREFSETFILTERMODE cuTexRefSetFilterMode;
@@ -1060,7 +1178,6 @@ struct CUDA_DRIVER_API_FUNCTION_LIST
 	PFNCUTEXREFSETMAXANISOTROPY cuTexRefSetMaxAnisotropy;
 	PFNCUTEXREFSETBORDERCOLOR cuTexRefSetBorderColor;
 	PFNCUTEXREFSETFLAGS cuTexRefSetFlags;
-	PFNCUTEXREFGETADDRESS cuTexRefGetAddress;
 	PFNCUTEXREFGETARRAY cuTexRefGetArray;
 	PFNCUTEXREFGETMIPMAPPEDARRAY cuTexRefGetMipmappedArray;
 	PFNCUTEXREFGETADDRESSMODE cuTexRefGetAddressMode;
@@ -1084,6 +1201,9 @@ struct CUDA_DRIVER_API_FUNCTION_LIST
 	PFNCUSURFOBJECTCREATE cuSurfObjectCreate;
 	PFNCUSURFOBJECTDESTROY cuSurfObjectDestroy;
 	PFNCUSURFOBJECTGETRESOURCEDESC cuSurfObjectGetResourceDesc;
+	PFNCUTENSORMAPENCODETILED cuTensorMapEncodeTiled;
+	PFNCUTENSORMAPENCODEIM2COL cuTensorMapEncodeIm2col;
+	PFNCUTENSORMAPREPLACEADDRESS cuTensorMapReplaceAddress;
 	PFNCUDEVICECANACCESSPEER cuDeviceCanAccessPeer;
 	PFNCUCTXENABLEPEERACCESS cuCtxEnablePeerAccess;
 	PFNCUCTXDISABLEPEERACCESS cuCtxDisablePeerAccess;
@@ -1091,13 +1211,10 @@ struct CUDA_DRIVER_API_FUNCTION_LIST
 	PFNCUGRAPHICSUNREGISTERRESOURCE cuGraphicsUnregisterResource;
 	PFNCUGRAPHICSSUBRESOURCEGETMAPPEDARRAY cuGraphicsSubResourceGetMappedArray;
 	PFNCUGRAPHICSRESOURCEGETMAPPEDMIPMAPPEDARRAY cuGraphicsResourceGetMappedMipmappedArray;
-	PFNCUGRAPHICSRESOURCEGETMAPPEDPOINTER cuGraphicsResourceGetMappedPointer;
-	PFNCUGRAPHICSRESOURCESETMAPFLAGS cuGraphicsResourceSetMapFlags;
-	PFNCUGRAPHICSMAPRESOURCES cuGraphicsMapResources;
-	PFNCUGRAPHICSUNMAPRESOURCES cuGraphicsUnmapResources;
-	PFNCUGETPROCADDRESS cuGetProcAddress; // NEW
-	PFNCUGETLOADINGMODE cuModuleGetLoadingMode; // NEW
-	PFNCUGETHANDLEFORADDRESSRANGE cuMemGetHandleForAddressRange; // NEW
+	PFNCUCOREDUMPGETATTRIBUTE cuCoredumpGetAttribute;
+	PFNCUCOREDUMPGETATTRIBUTEGLOBAL cuCoredumpGetAttributeGlobal;
+	PFNCUCOREDUMPSETATTRIBUTE cuCoredumpSetAttribute;
+	PFNCUCOREDUMPSETATTRIBUTEGLOBAL cuCoredumpSetAttributeGlobal;
 	PFNCUGETEXPORTTABLE cuGetExportTable;
 };
 

@@ -625,7 +625,7 @@ namespace UnrealBuildTool
 				}
 				else
 				{
-					throw new BuildException("Module '{0}' cannot override package type because it is part of a plugin!", Name);
+					throw new CompilationResultException(CompilationResult.RulesError, "Module '{ModuleName}' cannot override package type because it is part of a plugin!", Name);
 				}
 			}
 		}
@@ -1178,7 +1178,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// (This setting is currently not need as we discover all files from the 'Internal' folder) List of all paths to include files that are exposed to other internal modules
 		/// </summary>
-		public List<string> InternalncludePaths = new List<string>();
+		public List<string> InternalIncludePaths = new List<string>();
 
 		/// <summary>
 		/// List of all paths to this module's internal include files, not exposed to other modules (at least one include to the 'Private' path, more if we want to avoid relative paths)
@@ -1220,7 +1220,7 @@ namespace UnrealBuildTool
 			FileReference? ModuleFileReference = RulesAssembly.GetModuleFileName(ModuleName);
 			if (ModuleFileReference == null)
 			{
-				throw new BuildException("Could not find a module named '{0}'.", ModuleName);
+				throw new CompilationResultException(CompilationResult.RulesError, "Could not find a module named '{ModuleName}'.", ModuleName);
 			}
 			return ModuleFileReference.Directory.FullName;
 		}
@@ -1419,7 +1419,7 @@ namespace UnrealBuildTool
 			{
 				if (Plugin == null)
 				{
-					throw new BuildException("Module '{0}' does not belong to a plugin; PluginDirectory property is invalid.", Name);
+					throw new CompilationResultException(CompilationResult.RulesError, "Module '{ModuleName}' does not belong to a plugin; PluginDirectory property is invalid.", Name);
 				}
 				else
 				{
@@ -1760,47 +1760,6 @@ namespace UnrealBuildTool
 					if (!PrivateIncludePathModuleNames.Contains("LowLevelTestsRunner"))
 					{
 						PrivateIncludePathModuleNames.Add("LowLevelTestsRunner");
-					}
-				}
-				else if (Name == "LowLevelTestsRunner")
-				{
-					TestTargetRules.LowLevelTestsRunnerModule = this;
-				}
-
-				if (Name == "Engine" && !TestTargetRules.bNeverCompileAgainstEngine)
-				{
-					TestTargetRules.bTestsRequireEngine = true;
-				}
-				if (Name == "UnrealEd" && !TestTargetRules.bNeverCompileAgainstEditor)
-				{
-					TestTargetRules.bTestsRequireEditor = true;
-				}
-				if (Name == "ApplicationCore" && !TestTargetRules.bNeverCompileAgainstApplicationCore)
-				{
-					TestTargetRules.bTestsRequireApplicationCore = true;
-				}
-				if (Name == "CoreUObject" && !TestTargetRules.bNeverCompileAgainstCoreUObject)
-				{
-					TestTargetRules.bTestsRequireCoreUObject = true;
-				}
-
-				if (TestTargetRules.LowLevelTestsRunnerModule != null)
-				{
-					if (TestTargetRules.bTestsRequireEditor && !TestTargetRules.LowLevelTestsRunnerModule.PrivateDependencyModuleNames.Contains("UnrealEd"))
-					{
-						TestTargetRules.LowLevelTestsRunnerModule.PrivateDependencyModuleNames.Add("UnrealEd");
-					}
-					if (TestTargetRules.bTestsRequireEngine && !TestTargetRules.LowLevelTestsRunnerModule.PrivateDependencyModuleNames.Contains("Engine"))
-					{
-						TestTargetRules.LowLevelTestsRunnerModule.PrivateDependencyModuleNames.Add("Engine");
-					}
-					if (TestTargetRules.bTestsRequireApplicationCore && !TestTargetRules.LowLevelTestsRunnerModule.PrivateDependencyModuleNames.Contains("ApplicationCore"))
-					{
-						TestTargetRules.LowLevelTestsRunnerModule.PrivateDependencyModuleNames.Add("ApplicationCore");
-					}
-					if (TestTargetRules.bTestsRequireCoreUObject && !TestTargetRules.LowLevelTestsRunnerModule.PrivateDependencyModuleNames.Contains("CoreUObject"))
-					{
-						TestTargetRules.LowLevelTestsRunnerModule.PrivateDependencyModuleNames.Add("CoreUObject");
 					}
 				}
 			}

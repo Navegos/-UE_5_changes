@@ -1050,22 +1050,22 @@ namespace UnrealBuildTool
 								break;
 							case DefaultCpuArchitectureX64.Ivybridge:
 								Arguments.Add("-march=ivybridge -mtune=ivybridge -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-								Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1");
+								Arguments.Add("-DPLATFORM_ALWAYS_HAS_F16C=1");
 								break;
 							case DefaultCpuArchitectureX64.Btver2:
 								Arguments.Add("-march=btver2 -mtune=btver2 -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-								Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1");
+								Arguments.Add("-DPLATFORM_ALWAYS_HAS_F16C=1");
 								break;
 							case DefaultCpuArchitectureX64.Bdver1:
 								Arguments.Add("-march=bdver1 -mtune=bdver1 -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
 								break;
 							case DefaultCpuArchitectureX64.Bdver2:
 								Arguments.Add("-march=bdver2 -mtune=bdver2 -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-								Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1 /DPLATFORM_ALWAYS_HAS_FMA3=1");
+								Arguments.Add("-DPLATFORM_ALWAYS_HAS_F16C=1 -DPLATFORM_ALWAYS_HAS_FMA3=1");
 								break;
 							case DefaultCpuArchitectureX64.Bdver3:
 								Arguments.Add("-march=bdver3 -mtune=bdver3 -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-								Arguments.Add("/DPLATFORM_ALWAYS_HAS_F16C=1 /DPLATFORM_ALWAYS_HAS_FMA3=1");
+								Arguments.Add("-DPLATFORM_ALWAYS_HAS_F16C=1 -DPLATFORM_ALWAYS_HAS_FMA3=1");
 								break;
 							default:
 								Arguments.Add("-march=native -mtune=native -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
@@ -1087,11 +1087,11 @@ namespace UnrealBuildTool
 								break;
 							case DefaultCpuArchitectureX64.Sandybridge:
 								Arguments.Add("-march=sandybridge -mtune=sandybridge -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-								Arguments.Add("/DPLATFORM_SUPPORTS_AVX=1");
+								Arguments.Add("-DPLATFORM_SUPPORTS_AVX=1");
 								break;
 							case DefaultCpuArchitectureX64.Ivybridge:
 								Arguments.Add("-march=ivybridge -mtune=ivybridge -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-								Arguments.Add("/DPLATFORM_SUPPORTS_HAS_F16C=1 /DPLATFORM_SUPPORTS_AVX=1");
+								Arguments.Add("-DPLATFORM_SUPPORTS_HAS_F16C=1 -DPLATFORM_SUPPORTS_AVX=1");
 								break;
 							case DefaultCpuArchitectureX64.Silvermont:
 								Arguments.Add("-march=silvermont -mtune=silvermont -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
@@ -1107,19 +1107,19 @@ namespace UnrealBuildTool
 								break;
 							case DefaultCpuArchitectureX64.Btver2:
 								Arguments.Add("-march=btver2 -mtune=btver2 -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-								Arguments.Add("/DPLATFORM_SUPPORTS_HAS_F16C=1 /DPLATFORM_SUPPORTS_AVX=1");
+								Arguments.Add("-DPLATFORM_SUPPORTS_HAS_F16C=1 -DPLATFORM_SUPPORTS_AVX=1");
 								break;
 							case DefaultCpuArchitectureX64.Bdver1:
 								Arguments.Add("-march=bdver1 -mtune=bdver1 -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-								Arguments.Add("/DPLATFORM_SUPPORTS_AVX=1");
+								Arguments.Add("-DPLATFORM_SUPPORTS_AVX=1");
 								break;
 							case DefaultCpuArchitectureX64.Bdver2:
 								Arguments.Add("-march=bdver2 -mtune=bdver2 -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-								Arguments.Add("/DPLATFORM_SUPPORTS_HAS_F16C=1 /DPLATFORM_SUPPORTS_HAS_FMA3=1 /DPLATFORM_SUPPORTS_AVX=1");
+								Arguments.Add("-DPLATFORM_SUPPORTS_HAS_F16C=1 -DPLATFORM_SUPPORTS_HAS_FMA3=1 -DPLATFORM_SUPPORTS_AVX=1");
 								break;
 							case DefaultCpuArchitectureX64.Bdver3:
 								Arguments.Add("-march=bdver3 -mtune=bdver3 -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
-								Arguments.Add("/DPLATFORM_SUPPORTS_HAS_F16C=1 /DPLATFORM_SUPPORTS_HAS_FMA3=1 /DPLATFORM_SUPPORTS_AVX=1");
+								Arguments.Add("-DPLATFORM_SUPPORTS_HAS_F16C=1 -DPLATFORM_SUPPORTS_HAS_FMA3=1 -DPLATFORM_SUPPORTS_AVX=1");
 								break;
 							default:
 								Arguments.Add("-march=native -mtune=native -Xclang -mprefer-vector-width=128 -mllvm -force-vector-width=4 -mllvm -force-vector-interleave=2");
@@ -1354,6 +1354,13 @@ namespace UnrealBuildTool
 			return NewList;
 		}
 
+		public override IEnumerable<string> GetGlobalCommandLineArgs(CppCompileEnvironment CompileEnvironment)
+		{
+			List<string> Arguments = new();
+			GetCompileArguments_Global(new CppCompileEnvironment(CompileEnvironment), Arguments);
+			return Arguments;
+		}
+
 		public override CppCompileEnvironment CreateSharedResponseFile(CppCompileEnvironment CompileEnvironment, FileReference OutResponseFile, IActionGraphBuilder Graph)
 		{
 			CppCompileEnvironment NewCompileEnvironment = new CppCompileEnvironment(CompileEnvironment);
@@ -1536,7 +1543,7 @@ namespace UnrealBuildTool
 			return CompileAction;
 		}
 
-		protected override CPPOutput CompileCPPFiles(CppCompileEnvironment CompileEnvironment, List<FileItem> InputFiles, DirectoryReference OutputDir, string ModuleName, IActionGraphBuilder Graph)
+		protected override CPPOutput CompileCPPFiles(CppCompileEnvironment CompileEnvironment, IEnumerable<FileItem> InputFiles, DirectoryReference OutputDir, string ModuleName, IActionGraphBuilder Graph)
 		{
 			List<string> GlobalArguments = new();
 

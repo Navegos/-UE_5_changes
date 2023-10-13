@@ -32,10 +32,10 @@ public:
 
 	// Retrieves the CUDA context for the GPU device currently in use by the Vulkan RHI
 	CUDA_API CUcontext GetCudaContext();
-	
+
 	// Retrieves the device index for the current context
 	CUDA_API uint32 GetCudaDeviceIndex() const;
-	
+
 	// Retrieves or creates the CUDA context for the specified GPU device
 	CUDA_API CUcontext GetCudaContextForDevice(int DeviceIndex);
 

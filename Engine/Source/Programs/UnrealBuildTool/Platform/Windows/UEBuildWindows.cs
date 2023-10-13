@@ -201,6 +201,22 @@ namespace UnrealBuildTool
 		TargetRules Target;
 
 		/// <summary>
+		/// If enabled will set the ProductVersion embeded in windows executables and dlls to contain BUILT_FROM_CHANGELIST and BuildVersion
+		/// Enabled by default for all precompiled and Shipping configurations. Regardless of this setting, the versions from Build.version will be available via the BuildSettings module
+		/// Note: Embedding these versions will cause resource files to be recompiled whenever changelist is updated which will cause binaries to relink
+		/// </summary>
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/WindowsTargetPlatform.WindowsTargetSettings", "SetResourceVersions")]
+		[XmlConfigFile(Category = "WindowsPlatform")]
+		[CommandLine("-SetResourceVersions")]
+		[CommandLine("-NoSetResourceVersions", Value = "false")]
+		public bool bSetResourceVersions
+		{
+			get => bSetResourceVersionPrivate ?? Target.bPrecompile || Target.Configuration == UnrealTargetConfiguration.Shipping;
+			set => bSetResourceVersionPrivate = value;
+		}
+		private bool? bSetResourceVersionPrivate = null;
+
+		/// <summary>
 		/// If -PGOOptimize is specified but the linker flags have changed since the last -PGOProfile, this will emit a warning and build without PGO instead of failing during link with LNK1268. 
 		/// </summary>
 		[XmlConfigFile(Category = "WindowsPlatform")]
@@ -290,6 +306,15 @@ namespace UnrealBuildTool
 		[XmlConfigFile(Category = "WindowsPlatform")]
 		[CommandLine("-VCFastFail")]
 		public bool bVCFastFail = false;
+
+		/// <summary>
+		/// True if optimizations to reduce the size of debug information should be disabled
+		/// See https://clang.llvm.org/docs/UsersManual.html#cmdoption-fstandalone-debug for more information
+		/// </summary>
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/WindowsTargetPlatform.WindowsTargetSettings", "bClangStandaloneDebug")]
+		[XmlConfigFile(Category = "WindowsPlatform")]
+		[CommandLine("-ClangStandaloneDebug")]
+		public bool bClangStandaloneDebug = false;
 
 		/// <summary>
 		/// True if we should use the Clang linker (LLD) when we are compiling with Clang, or Intel linker (xilink\xilib) when we are compiling with Intel oneAPI, otherwise we use the MSVC linker.
@@ -382,6 +407,13 @@ namespace UnrealBuildTool
 		[XmlConfigFile]
 		[CommandLine("-ObjSrcMap")]
 		public string? ObjSrcMapFile = null;
+
+		/// <summary>
+		/// Whether to have the linker or library tool to generate a link repro in the specified directory
+		/// See https://learn.microsoft.com/en-us/cpp/build/reference/linkrepro for more information
+		/// </summary>
+		[CommandLine("-LinkRepro=")]
+		public string? LinkReproDir = null;
 
 		/// <summary>
 		/// Provides a Module Definition File (.def) to the linker to describe various attributes of a DLL.
@@ -484,6 +516,18 @@ namespace UnrealBuildTool
 		[RequiresUniqueBuildEnvironment]
 		[ConfigFile(ConfigHierarchyType.Engine, "/Script/WindowsTargetPlatform.WindowsTargetSettings")]
 		public int DefaultStackSizeCommit;
+
+		/// <summary>
+		/// Max number of slots FWindowsPlatformTLS::AllocTlsSlot can allocate.
+		/// </summary>
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/WindowsRuntimeSettings.WindowsRuntimeSettings")]
+		public int MaxNumTlsSlots = 0;
+
+		/// <summary>
+		/// Max number threads that can use FWindowsPlatformTLS at one time.
+		/// </summary>
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/WindowsRuntimeSettings.WindowsRuntimeSettings")]
+		public int MaxNumThreadsWithTlsSlots = 0;
 
 		/// <summary>
 		/// Determines the amount of memory that the compiler allocates to construct precompiled headers (/Zm).
@@ -651,6 +695,18 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Determines if a given compiler is installed and valid
+		/// </summary>
+		/// <param name="Compiler">Compiler to check for</param>
+		/// <param name="Architecture">Architecture the compiler must support</param>
+		/// <param name="Logger">Logger for output</param>
+		/// <returns>True if the given compiler is installed and valid</returns>
+		public static bool HasValidCompiler(WindowsCompiler Compiler, UnrealArch Architecture, ILogger Logger)
+		{
+			return MicrosoftPlatformSDK.HasValidCompiler(Compiler, Architecture, Logger);
+		}
+
+		/// <summary>
 		/// Constructor
 		/// </summary>
 		/// <param name="Target">The target rules which owns this object</param>
@@ -693,6 +749,8 @@ namespace UnrealBuildTool
 		#region Read-only accessor properties 
 #pragma warning disable CS1591
 
+		public bool bSetResourceVersions => Inner.bSetResourceVersions;
+
 		public bool bIgnoreStalePGOData => Inner.bIgnoreStalePGOData;
 
 		public bool bUseFastGenProfile => Inner.bUseFastGenProfile;
@@ -723,6 +781,8 @@ namespace UnrealBuildTool
 
 		public bool bVCFastFail => Inner.bVCFastFail;
 
+		public bool bClangStandaloneDebug => Inner.bClangStandaloneDebug;
+
 		public bool bAllowClangLinker => Inner.bAllowClangLinker;
 
 		public bool bEnableRayTracing => Inner.bEnableRayTracing;
@@ -740,6 +800,8 @@ namespace UnrealBuildTool
 		public bool bWriteSarif => Inner.bWriteSarif;
 
 		public string? ObjSrcMapFile => Inner.ObjSrcMapFile;
+
+		public string? LinkReproDir => Inner.LinkReproDir;
 
 		public string? ModuleDefinitionFile => Inner.ModuleDefinitionFile;
 
@@ -821,6 +883,11 @@ namespace UnrealBuildTool
 		public string DirectXLibDir => Inner.DirectXLibDir;
 
 		public string DirectXDllDir => Inner.DirectXDllDir;
+
+		public int MaxNumTlsSlots => Inner.MaxNumTlsSlots;
+
+		public int MaxNumThreadsWithTlsSlots => Inner.MaxNumThreadsWithTlsSlots;
+
 
 #pragma warning restore CS1591
 		#endregion
@@ -1242,12 +1309,12 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Determines if a given compiler is installed
+		/// Determines if a given compiler is installed and valid
 		/// </summary>
 		/// <param name="Compiler">Compiler to check for</param>
 		/// <param name="Architecture">Architecture the compiler must support</param>
 		/// <param name="Logger">Logger for output</param>
-		/// <returns>True if the given compiler is installed</returns>
+		/// <returns>True if the given compiler is installed and valid</returns>
 		public static bool HasCompiler(WindowsCompiler Compiler, UnrealArch Architecture, ILogger Logger)
 		{
 			return MicrosoftPlatformSDK.HasCompiler(Compiler, Architecture, Logger);
@@ -1588,17 +1655,20 @@ namespace UnrealBuildTool
 
 			LinkEnvironment.ModuleDefinitionFile = Target.WindowsPlatform.ModuleDefinitionFile;
 
-			if ((Target.bPGOOptimize || Target.bPGOProfile) && Target.ProjectFile != null)
+			if (Target.bPGOOptimize || Target.bPGOProfile)
 			{
 				// Win64 PGO folder is Windows, the rest match the platform name
 				string PGOPlatform = Target.Platform == UnrealTargetPlatform.Win64 ? "Windows" : Target.Platform.ToString();
 
-				CompileEnvironment.PGODirectory = DirectoryReference.Combine(Target.ProjectFile.Directory, "Platforms", PGOPlatform, "Build", "PGO").FullName;
+				CompileEnvironment.PGODirectory = DirectoryReference.Combine(Target.ProjectFile?.Directory ?? Unreal.WritableEngineDirectory, "Platforms", PGOPlatform, "Build", "PGO").FullName;
 				CompileEnvironment.PGOFilenamePrefix = String.Format("{0}-{1}-{2}", Target.Name, Target.Platform, Target.Configuration);
 
 				LinkEnvironment.PGODirectory = CompileEnvironment.PGODirectory;
 				LinkEnvironment.PGOFilenamePrefix = CompileEnvironment.PGOFilenamePrefix;
 			}
+
+			CompileEnvironment.Definitions.Add("WINDOWS_MAX_NUM_TLS_SLOTS=" + Target.WindowsPlatform.MaxNumTlsSlots.ToString());
+			CompileEnvironment.Definitions.Add("WINDOWS_MAX_NUM_THREADS_WITH_TLS_SLOTS=" + Target.WindowsPlatform.MaxNumThreadsWithTlsSlots.ToString());
 		}
 
 		/// <summary>

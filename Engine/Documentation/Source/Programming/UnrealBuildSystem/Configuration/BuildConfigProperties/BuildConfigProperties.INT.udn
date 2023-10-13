@@ -10,7 +10,9 @@ $ bIgnoreOutdatedImportLibraries : Whether to ignore import library files that a
 
 $ bPrintDebugInfo : Whether debug info should be written to the console.
 
-$ bAllowHybridExecutor : Whether the hybrid executor will be used (a remote executor and local executor).
+$ bAllowHybridExecutor : Whether the hybrid executor will be used (a remote executor and local executor). No longer supported.
+
+$ bAllowBoxExecutor : Whether the experimental box executor will be used.
 
 $ bAllowXGE : Whether XGE may be used if available, default is true.
 
@@ -45,6 +47,8 @@ $ ArtifactDirectory : Location to store the artifacts.
 $ bUseUnityBuild : Whether to unify C++ code into larger files for faster compilation.
 
 $ bForceUnityBuild : Whether to force C++ source files to be combined into larger files for faster compilation.
+
+$ bAllowBoxLocalExecutor : Whether the experimental box (local only) executor will be used.
 
 $ bDebugBuildsActuallyUseDebugCRT : Enables the debug C++ runtime (CRT) for debug builds. By default we always use the release runtime, since the debug version isn't particularly useful when debugging Unreal Engine projects, and linking against the debug CRT libraries forces our third party library dependencies to also be compiled using the debug CRT (and often perform more slowly). Often it can be inconvenient to require a separate copy of the debug versions of third party static libraries simply so that you can debug your program's code.
 
@@ -108,9 +112,7 @@ $ bStressTestUnity : Whether to stress test the C++ unity build robustness by in
 
 $ bDetailedUnityFiles : Whether to add additional information to the unity files, such as '_of_X' in the file name. Not recommended.
 
-$ bDisableDebugInfo : Whether to globally disable debug info generation; see DebugInfoHeuristics.cs for per-config and per-platform options.
-
-$ bDisableDebugInfoForGeneratedCode : Whether to disable debug info generation for generated files. This improves link times for modules that have a lot of generated glue code.
+$ bDisableDebugInfoForGeneratedCode : Whether to disable debug info generation for generated files. This improves link times and reduces pdb size for modules that have a lot of generated glue code.
 
 $ bOmitPCDebugInfoInDevelopment : Whether to disable debug info on PC/Mac in development builds (for faster developer iteration, as link times are extremely fast with debug info disabled).
 
@@ -201,6 +203,12 @@ $ DefaultCpuArchX64 (DefaultCpuArchitectureX64): Specifies which processor to us
 $ bRequireObjectPtrForAddReferencedObjects : Require TObjectPtr for FReferenceCollector API's. (Needed for compatibility with incremental GC.)
 
 $ bValidateFormatStrings : Emits compilation errors for incorrect UE_LOG format strings.
+
+$ bDisableDebugInfo : Whether to globally disable debug info generation; Obsolete, please use TargetRules.DebugInfoMode instead
+
+$ DebugInfo : How much debug info should be generated. See DebugInfoMode enum for more details
+
+$ DebugInfoLineTablesOnly : True if only debug line number tables should be emitted in debug information for compilers that support doing so. Overrides TargetRules.DebugInfo See https://clang.llvm.org/docs/UsersManual.html#cmdoption-gline-tables-only for more information
 
 $ bDeterministic : Set flags require for deterministic compiling and linking. Enabling deterministic mode for msvc disables codegen multithreading so compiling will be slower
 
@@ -294,6 +302,8 @@ $ ToolchainVersion : The specific msvc toolchain version to use if the compiler 
 
 $ bVCFastFail : True if /fastfail should be passed to the msvc compiler and linker
 
+$ bClangStandaloneDebug : True if optimizations to reduce the size of debug information should be disabled See https://clang.llvm.org/docs/UsersManual.html#cmdoption-fstandalone-debug for more information
+
 $ bAllowClangLinker : True if we should use the Clang linker (LLD) when we are compiling with Clang, or Intel linker (xilink\xilib) when we are compiling with Intel oneAPI, otherwise we use the MSVC linker.
 
 $ WindowsSdkVersion : The specific Windows SDK version to use. This may be a specific version number (for example, "8.1", "10.0" or "10.0.10150.0"), or the string "Latest", to select the newest available version. By default, and if it is available, we use the Windows SDK version indicated by WindowsPlatform.DefaultWindowsSdkVersion (otherwise, we use the latest version).
@@ -317,6 +327,8 @@ $ bClangTimeTrace : (Experimental) Appends the -ftime-trace argument to the comm
 $ bCompilerTrace : Outputs compile timing information so that it can be analyzed.
 
 $ bShowIncludes : Print out files that are included by each source file
+
+$ bSetResourceVersions : If enabled will set the ProductVersion embeded in windows executables and dlls to contain BUILT_FROM_CHANGELIST and BuildVersion Enabled by default for all precompiled and Shipping configurations. Regardless of this setting, the versions from Build.version will be available via the BuildSettings module Note: Embedding these versions will cause resource files to be recompiled whenever changelist is updated which will cause binaries to relink
 
 $ InlineFunctionExpansionLevel : Which level to use for Inline Function Expansion when TargetRules.bUseInlining is enabled
 
